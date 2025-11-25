@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface MetaBase {
   eixo: string;
@@ -22,42 +24,52 @@ const ImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<MetaBase[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [showMapping, setShowMapping] = useState(false);
+  const [columnMapping, setColumnMapping] = useState({
+    eixo: '',
+    item: '',
+    subitem: '',
+    descricao: '',
+    pontos_aplicaveis: '',
+    setor_executor: '',
+    deadline: ''
+  });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      parseFile(selectedFile);
-    }
-  };
-
-  const parseFile = async (file: File) => {
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
-
-      const parsedData: MetaBase[] = jsonData.map(row => ({
-        eixo: row.Eixo || row.eixo || '',
-        item: row.Item || row.item || '',
-        subitem: row.Subitem || row.subitem || '',
-        descricao: row.Descricao || row.descricao || '',
-        pontos_aplicaveis: parseInt(row.PontosAplicaveis || row.pontos_aplicaveis || '0'),
-        setor_executor: row.SetorExecutor || row.setor_executor || '',
-        deadline: row.Deadline || row.deadline || '',
-      }));
-
-      setPreview(parsedData.slice(0, 5));
-    } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
-      toast.error('Erro ao processar o arquivo. Verifique o formato.');
+      
+      // Extrair headers do arquivo
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        if (data.length > 0) {
+          setHeaders(data[0] as string[]);
+          setShowMapping(true);
+        }
+      };
+      reader.readAsBinaryString(selectedFile);
     }
   };
 
   const handleImport = async () => {
     if (!file) {
       toast.error('Por favor, selecione um arquivo');
+      return;
+    }
+
+    // Validar mapeamento
+    const requiredFields = ['eixo', 'item', 'descricao', 'pontos_aplicaveis', 'deadline'];
+    const missingFields = requiredFields.filter(field => !columnMapping[field as keyof typeof columnMapping]);
+    
+    if (missingFields.length > 0) {
+      toast.error(`Campos obrigatórios não mapeados: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -68,24 +80,31 @@ const ImportPage = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-      const metas = jsonData.map(row => {
-        const deadlineStr = row.Deadline || row.deadline || '';
+      const metas = jsonData.filter(row => row[columnMapping.eixo]).map(row => {
         let deadlineFormatted = '';
+        const deadlineValue = row[columnMapping.deadline];
         
-        if (deadlineStr) {
-          const parts = deadlineStr.split('/');
-          if (parts.length === 3) {
-            deadlineFormatted = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        if (deadlineValue) {
+          if (typeof deadlineValue === 'number') {
+            // Tratar data serial do Excel
+            const date = XLSX.SSF.parse_date_code(deadlineValue);
+            deadlineFormatted = `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+          } else if (typeof deadlineValue === 'string') {
+            // Tratar formato de string (dd/mm/yyyy)
+            const parts = deadlineValue.split('/');
+            if (parts.length === 3) {
+              deadlineFormatted = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
           }
         }
 
         return {
-          eixo: row.Eixo || row.eixo || '',
-          item: row.Item || row.item || '',
-          subitem: row.Subitem || row.subitem || '',
-          descricao: row.Descricao || row.descricao || '',
-          pontos_aplicaveis: parseInt(row.PontosAplicaveis || row.pontos_aplicaveis || '0'),
-          setor_executor: row.SetorExecutor || row.setor_executor || '',
+          eixo: row[columnMapping.eixo] || '',
+          item: row[columnMapping.item] || '',
+          subitem: row[columnMapping.subitem] || '',
+          descricao: row[columnMapping.descricao] || '',
+          pontos_aplicaveis: parseInt(row[columnMapping.pontos_aplicaveis] || '0'),
+          setor_executor: row[columnMapping.setor_executor] || '',
           deadline: deadlineFormatted,
         };
       });
@@ -138,43 +157,72 @@ const ImportPage = () => {
             </label>
           </div>
 
-          {file && (
+          {file && showMapping && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                <Check className="h-5 w-5 text-green-500" />
                 <span className="text-sm font-medium">{file.name}</span>
               </div>
 
-              {preview.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Prévia dos dados:</p>
-                  <div className="bg-muted p-3 rounded-lg text-xs">
-                    <p>{preview.length} registro(s) detectado(s)</p>
-                    <p className="mt-1 text-muted-foreground">
-                      Primeiro registro: {preview[0]?.subitem || 'N/A'}
-                    </p>
+              <div className="border rounded-lg p-4 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="font-medium">Mapeamento de Colunas</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Selecione qual coluna da planilha corresponde a cada campo do sistema:
+                  </p>
+                </div>
+
+                <div className="grid gap-4">
+                  {Object.entries({
+                    eixo: 'Eixo *',
+                    item: 'Item *',
+                    subitem: 'Subitem/Requisito',
+                    descricao: 'Descrição *',
+                    pontos_aplicaveis: 'Pontos Aplicáveis *',
+                    setor_executor: 'Setor Executor',
+                    deadline: 'Deadline *'
+                  }).map(([field, label]) => (
+                    <div key={field} className="grid gap-2">
+                      <Label htmlFor={field} className="text-sm">
+                        {label}
+                      </Label>
+                      <Select
+                        value={columnMapping[field as keyof typeof columnMapping]}
+                        onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
+                      >
+                        <SelectTrigger id={field}>
+                          <SelectValue placeholder="Selecione a coluna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {headers.map(header => (
+                            <SelectItem key={header} value={header}>
+                              {header}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg mt-4">
+                  <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-blue-900">
+                    <p className="font-medium">Campos marcados com * são obrigatórios</p>
                   </div>
                 </div>
-              )}
+              </div>
+
+              <Button
+                onClick={handleImport}
+                disabled={loading}
+                className="w-full"
+                size="lg"
+              >
+                {loading ? 'Importando...' : 'Importar Dados'}
+              </Button>
             </div>
           )}
-
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-900">
-              <p className="font-medium mb-1">Colunas obrigatórias:</p>
-              <p>Eixo, Item, Subitem, Descricao, PontosAplicaveis, SetorExecutor, Deadline</p>
-            </div>
-          </div>
-
-          <Button
-            onClick={handleImport}
-            disabled={!file || loading}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? 'Importando...' : 'Salvar Dados'}
-          </Button>
         </CardContent>
       </Card>
     </div>
