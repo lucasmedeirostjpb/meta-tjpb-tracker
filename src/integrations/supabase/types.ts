@@ -24,6 +24,7 @@ export type Database = {
           item: string
           pontos_aplicaveis: number
           setor_executor: string
+          coordenador: string | null
           subitem: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           item: string
           pontos_aplicaveis: number
           setor_executor: string
+          coordenador?: string | null
           subitem: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           item?: string
           pontos_aplicaveis?: number
           setor_executor?: string
+          coordenador?: string | null
           subitem?: string
         }
         Relationships: []

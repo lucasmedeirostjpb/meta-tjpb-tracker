@@ -16,6 +16,7 @@ interface Meta {
   descricao: string;
   pontos_aplicaveis: number;
   setor_executor: string;
+  coordenador?: string;
   deadline: string;
   status?: string;
   link_evidencia?: string;
@@ -26,7 +27,8 @@ interface Meta {
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const setor = searchParams.get('setor');
+  const tipo = searchParams.get('tipo') || 'setor';
+  const nome = searchParams.get('nome');
   
   const [metas, setMetas] = useState<Meta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,28 +36,29 @@ const DashboardPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!setor) {
+    if (!nome) {
       navigate('/setor-selection');
       return;
     }
     fetchMetas();
-  }, [setor]);
+  }, [tipo, nome]);
 
   const fetchMetas = async () => {
-    if (!setor) return;
+    if (!nome) return;
 
     try {
+      const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
+      
       const { data: metasData, error: metasError } = await supabase
         .from('metas_base')
         .select('*')
-        .eq('setor_executor', setor);
+        .eq(coluna, nome);
 
       if (metasError) throw metasError;
 
       const { data: updatesData, error: updatesError } = await supabase
         .from('updates')
-        .select('*')
-        .eq('setor_executor', setor);
+        .select('*');
 
       if (updatesError) throw updatesError;
 
@@ -91,12 +94,34 @@ const DashboardPage = () => {
   const groupByEixo = () => {
     const grupos: { [key: string]: Meta[] } = {};
     metas.forEach(meta => {
-      if (!grupos[meta.eixo]) {
-        grupos[meta.eixo] = [];
+      // Remover numeração do início do eixo (ex: "1. Governança" -> "Governança")
+      const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+      if (!grupos[eixoLimpo]) {
+        grupos[eixoLimpo] = [];
       }
-      grupos[meta.eixo].push(meta);
+      grupos[eixoLimpo].push(meta);
     });
     return grupos;
+  };
+
+  const groupBySetor = () => {
+    const grupos: { [key: string]: Meta[] } = {};
+    metas.forEach(meta => {
+      const setor = meta.setor_executor || 'Sem Setor';
+      if (!grupos[setor]) {
+        grupos[setor] = [];
+      }
+      grupos[setor].push(meta);
+    });
+    return grupos;
+  };
+
+  const calculateSetorProgress = (setorMetas: Meta[]) => {
+    const totalPontos = setorMetas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    const pontosConcluidos = setorMetas
+      .filter(meta => meta.status === 'Concluído')
+      .reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    return totalPontos > 0 ? (pontosConcluidos / totalPontos) * 100 : 0;
   };
 
   const handleMetaClick = (meta: Meta) => {
@@ -111,6 +136,7 @@ const DashboardPage = () => {
 
   const progress = calculateProgress();
   const grupos = groupByEixo();
+  const gruposSetor = tipo === 'coordenador' ? groupBySetor() : {};
 
   if (loading) {
     return (
@@ -132,15 +158,19 @@ const DashboardPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{setor}</h1>
-            <p className="text-muted-foreground">Prêmio CNJ de Qualidade TJPB 2026</p>
+            <h1 className="text-3xl font-bold">{nome}</h1>
+            <p className="text-muted-foreground">
+              {tipo === 'coordenador' ? 'Coordenação' : 'Setor'} - Prêmio CNJ de Qualidade TJPB 2026
+            </p>
           </div>
         </div>
 
         <div className="bg-card rounded-xl p-6 shadow-sm border">
           <div className="flex items-center gap-3 mb-4">
             <Award className="h-6 w-6 text-primary" />
-            <h2 className="text-xl font-semibold">Progresso do Setor</h2>
+            <h2 className="text-xl font-semibold">
+              Progresso {tipo === 'coordenador' ? 'da Coordenação' : 'do Setor'}
+            </h2>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -153,6 +183,39 @@ const DashboardPage = () => {
             </p>
           </div>
         </div>
+
+        {tipo === 'coordenador' && Object.keys(gruposSetor).length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">Consolidação por Setor</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(gruposSetor).map(([setor, setorMetas]) => {
+                const setorProgress = calculateSetorProgress(setorMetas);
+                return (
+                  <div key={setor} className="bg-card rounded-xl p-5 shadow-sm border hover:shadow-md transition-shadow">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <h3 className="font-semibold text-lg line-clamp-2">{setor}</h3>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2">
+                          {setorProgress.toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress value={setorProgress} className="h-2" />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {setorMetas.filter(m => m.status === 'Concluído').length}/{setorMetas.length} metas
+                        </span>
+                        <span>
+                          {setorMetas.filter(m => m.status === 'Concluído').reduce((sum, m) => sum + m.pontos_aplicaveis, 0)}/
+                          {setorMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-8">
           {Object.entries(grupos).map(([eixo, metasDoEixo]) => (

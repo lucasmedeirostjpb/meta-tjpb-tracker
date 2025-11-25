@@ -33,6 +33,7 @@ const ImportPage = () => {
     descricao: '',
     pontos_aplicaveis: '',
     setor_executor: '',
+    coordenador: '',
     deadline: ''
   });
 
@@ -105,6 +106,7 @@ const ImportPage = () => {
           descricao: row[columnMapping.descricao] || '',
           pontos_aplicaveis: parseInt(row[columnMapping.pontos_aplicaveis] || '0'),
           setor_executor: row[columnMapping.setor_executor] || '',
+          coordenador: row[columnMapping.coordenador] || '',
           deadline: deadlineFormatted,
         };
       });
@@ -180,6 +182,7 @@ const ImportPage = () => {
                     descricao: 'Descrição *',
                     pontos_aplicaveis: 'Pontos Aplicáveis *',
                     setor_executor: 'Setor Executor',
+                    coordenador: 'Coordenador',
                     deadline: 'Deadline *'
                   }).map(([field, label]) => (
                     <div key={field} className="grid gap-2">
