@@ -47,6 +47,28 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        eixo: {
+          governanca: "hsl(var(--eixo-governanca))",
+          "governanca-light": "hsl(var(--eixo-governanca-light))",
+          produtividade: "hsl(var(--eixo-produtividade))",
+          "produtividade-light": "hsl(var(--eixo-produtividade-light))",
+          dados: "hsl(var(--eixo-dados))",
+          "dados-light": "hsl(var(--eixo-dados-light))",
+          transparencia: "hsl(var(--eixo-transparencia))",
+          "transparencia-light": "hsl(var(--eixo-transparencia-light))",
+        },
+        status: {
+          pendente: "hsl(var(--status-pendente))",
+          "pendente-foreground": "hsl(var(--status-pendente-foreground))",
+          andamento: "hsl(var(--status-andamento))",
+          "andamento-foreground": "hsl(var(--status-andamento-foreground))",
+          concluido: "hsl(var(--status-concluido))",
+          "concluido-foreground": "hsl(var(--status-concluido-foreground))",
+        },
+        prazo: {
+          urgente: "hsl(var(--prazo-urgente))",
+          "urgente-light": "hsl(var(--prazo-urgente-light))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
