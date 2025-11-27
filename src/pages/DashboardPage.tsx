@@ -7,12 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Award } from "lucide-react";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
+import { getMetasWithUpdates } from "@/lib/mockData";
 
 interface Meta {
   id: string;
   eixo: string;
   item: string;
-  subitem: string;
+  artigo: string;
+  requisito: string;
   descricao: string;
   pontos_aplicaveis: number;
   setor_executor: string;
@@ -27,6 +29,7 @@ interface Meta {
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const tipo = searchParams.get('tipo') || 'setor';
   const nome = searchParams.get('nome');
   
@@ -47,33 +50,42 @@ const DashboardPage = () => {
     if (!nome) return;
 
     try {
-      const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
-      
-      const { data: metasData, error: metasError } = await supabase
-        .from('metas_base')
-        .select('*')
-        .eq(coluna, nome);
+      if (isMockMode) {
+        // Usar dados mock
+        const allMetas = getMetasWithUpdates();
+        const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
+        const filteredMetas = allMetas.filter(meta => meta[coluna] === nome);
+        setMetas(filteredMetas);
+      } else {
+        // Usar dados reais do Supabase
+        const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
+        
+        const { data: metasData, error: metasError } = await supabase
+          .from('metas_base')
+          .select('*')
+          .eq(coluna, nome);
 
-      if (metasError) throw metasError;
+        if (metasError) throw metasError;
 
-      const { data: updatesData, error: updatesError } = await supabase
-        .from('updates')
-        .select('*');
+        const { data: updatesData, error: updatesError } = await supabase
+          .from('updates')
+          .select('*');
 
-      if (updatesError) throw updatesError;
+        if (updatesError) throw updatesError;
 
-      const metasWithStatus = metasData.map(meta => {
-        const update = updatesData?.find(u => u.meta_id === meta.id);
-        return {
-          ...meta,
-          status: update?.status || 'Pendente',
-          link_evidencia: update?.link_evidencia || '',
-          observacoes: update?.observacoes || '',
-          update_id: update?.id,
-        };
-      });
+        const metasWithStatus = metasData.map(meta => {
+          const update = updatesData?.find(u => u.meta_id === meta.id);
+          return {
+            ...meta,
+            status: update?.status || 'Pendente',
+            link_evidencia: update?.link_evidencia || '',
+            observacoes: update?.observacoes || '',
+            update_id: update?.id,
+          };
+        });
 
-      setMetas(metasWithStatus);
+        setMetas(metasWithStatus);
+      }
     } catch (error) {
       console.error('Erro ao carregar metas:', error);
       toast.error('Erro ao carregar as metas');
@@ -131,6 +143,9 @@ const DashboardPage = () => {
 
   const handleMetaUpdate = async () => {
     setModalOpen(false);
+    if (isMockMode) {
+      toast.info('Em modo mock, as alterações não são persistidas');
+    }
     await fetchMetas();
   };
 

@@ -8,7 +8,8 @@ interface Meta {
   id: string;
   eixo: string;
   item: string;
-  subitem: string;
+  artigo: string;
+  requisito: string;
   descricao: string;
   pontos_aplicaveis: number;
   deadline: string;
@@ -51,12 +52,12 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-base line-clamp-2">{meta.subitem}</h3>
+          <h3 className="font-semibold text-base line-clamp-2">{meta.requisito}</h3>
           <Badge className={getStatusColor(meta.status || 'Pendente')}>
             {meta.status || 'Pendente'}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-1">{meta.item}</p>
+        <p className="text-sm text-muted-foreground line-clamp-1">{meta.artigo}</p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">

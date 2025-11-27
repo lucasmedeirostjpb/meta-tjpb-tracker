@@ -12,24 +12,29 @@ import { Label } from "@/components/ui/label";
 interface MetaBase {
   eixo: string;
   item: string;
-  subitem: string;
+  artigo: string;
+  requisito: string;
   descricao: string;
   pontos_aplicaveis: number;
   setor_executor: string;
+  coordenador: string;
   deadline: string;
 }
 
 const ImportPage = () => {
   const navigate = useNavigate();
+  const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<MetaBase[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [showMapping, setShowMapping] = useState(false);
+  const [deleteOldData, setDeleteOldData] = useState(false);
   const [columnMapping, setColumnMapping] = useState({
     eixo: '',
     item: '',
-    subitem: '',
+    artigo: '',
+    requisito: '',
     descricao: '',
     pontos_aplicaveis: '',
     setor_executor: '',
@@ -51,7 +56,19 @@ const ImportPage = () => {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
         if (data.length > 0) {
-          setHeaders(data[0] as string[]);
+          // Filtrar headers vazios e garantir unicidade
+          const rawHeaders = (data[0] as string[]).map((h, idx) => {
+            const header = String(h || '').trim();
+            return header || `Coluna_${idx + 1}`;
+          });
+          
+          // Garantir que não há duplicatas
+          const uniqueHeaders = rawHeaders.map((header, idx) => {
+            const count = rawHeaders.slice(0, idx).filter(h => h === header).length;
+            return count > 0 ? `${header}_${count + 1}` : header;
+          });
+          
+          setHeaders(uniqueHeaders);
           setShowMapping(true);
         }
       };
@@ -66,7 +83,7 @@ const ImportPage = () => {
     }
 
     // Validar mapeamento
-    const requiredFields = ['eixo', 'item', 'descricao', 'pontos_aplicaveis', 'deadline'];
+    const requiredFields = ['eixo', 'item', 'artigo', 'requisito', 'pontos_aplicaveis', 'deadline'];
     const missingFields = requiredFields.filter(field => !columnMapping[field as keyof typeof columnMapping]);
     
     if (missingFields.length > 0) {
@@ -76,6 +93,23 @@ const ImportPage = () => {
 
     setLoading(true);
     try {
+      // Deletar dados antigos se a opção estiver marcada
+      if (deleteOldData) {
+        const { error: deleteError } = await supabase
+          .from('metas_base')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos os registros
+        
+        if (deleteError) {
+          console.error('Erro ao deletar dados antigos:', deleteError);
+          toast.error('Erro ao limpar dados antigos');
+          setLoading(false);
+          return;
+        }
+        
+        toast.success('Dados antigos removidos com sucesso');
+      }
+
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -102,7 +136,8 @@ const ImportPage = () => {
         return {
           eixo: row[columnMapping.eixo] || '',
           item: row[columnMapping.item] || '',
-          subitem: row[columnMapping.subitem] || '',
+          artigo: row[columnMapping.artigo] || '',
+          requisito: row[columnMapping.requisito] || '',
           descricao: row[columnMapping.descricao] || '',
           pontos_aplicaveis: parseInt(row[columnMapping.pontos_aplicaveis] || '0'),
           setor_executor: row[columnMapping.setor_executor] || '',
@@ -140,26 +175,45 @@ const ImportPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileChange}
-              className="hidden"
-              id="file-upload"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Arraste um arquivo ou clique para selecionar
+          {isMockMode ? (
+            <div className="border-2 border-dashed border-yellow-300 bg-yellow-50 rounded-lg p-8 text-center">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+              <h3 className="font-semibold text-lg mb-2 text-yellow-900">Modo de Demonstração</h3>
+              <p className="text-sm text-yellow-800 mb-4">
+                A importação de dados está desabilitada no modo mock.
               </p>
-              <p className="text-xs text-muted-foreground">
-                Formatos: CSV, XLSX
+              <p className="text-xs text-yellow-700">
+                O sistema está usando dados fictícios para demonstração. Para importar dados reais, configure o arquivo .env com VITE_MOCK_MODE=false e as credenciais do Supabase.
               </p>
-            </label>
-          </div>
+              <Button
+                onClick={() => navigate('/setor-selection')}
+                className="mt-6"
+              >
+                Visualizar Dados de Demonstração
+              </Button>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Arraste um arquivo ou clique para selecionar
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Formatos: CSV, XLSX
+                </p>
+              </label>
+            </div>
+          )}
 
-          {file && showMapping && (
+          {file && showMapping && !isMockMode && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <Check className="h-5 w-5 text-green-500" />
@@ -178,8 +232,9 @@ const ImportPage = () => {
                   {Object.entries({
                     eixo: 'Eixo *',
                     item: 'Item *',
-                    subitem: 'Subitem/Requisito',
-                    descricao: 'Descrição *',
+                    artigo: 'Artigo *',
+                    requisito: 'Requisito *',
+                    descricao: 'Descrição',
                     pontos_aplicaveis: 'Pontos Aplicáveis *',
                     setor_executor: 'Setor Executor',
                     coordenador: 'Coordenador',
@@ -197,8 +252,8 @@ const ImportPage = () => {
                           <SelectValue placeholder="Selecione a coluna" />
                         </SelectTrigger>
                         <SelectContent>
-                          {headers.map(header => (
-                            <SelectItem key={header} value={header}>
+                          {headers.map((header, idx) => (
+                            <SelectItem key={`${header}-${idx}`} value={header}>
                               {header}
                             </SelectItem>
                           ))}
@@ -212,6 +267,26 @@ const ImportPage = () => {
                   <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-blue-900">
                     <p className="font-medium">Campos marcados com * são obrigatórios</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="deleteOldData"
+                    checked={deleteOldData}
+                    onChange={(e) => setDeleteOldData(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="deleteOldData" className="font-medium cursor-pointer">
+                      Limpar dados antigos antes de importar
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Isso irá deletar permanentemente todas as metas e atualizações existentes no banco de dados antes de importar os novos dados.
+                    </p>
                   </div>
                 </div>
               </div>

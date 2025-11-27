@@ -22,10 +22,11 @@ export type Database = {
           eixo: string
           id: string
           item: string
+          artigo: string
+          requisito: string
           pontos_aplicaveis: number
           setor_executor: string
           coordenador: string | null
-          subitem: string
         }
         Insert: {
           created_at?: string | null
@@ -34,10 +35,11 @@ export type Database = {
           eixo: string
           id?: string
           item: string
+          artigo: string
+          requisito: string
           pontos_aplicaveis: number
           setor_executor: string
           coordenador?: string | null
-          subitem: string
         }
         Update: {
           created_at?: string | null
@@ -46,10 +48,11 @@ export type Database = {
           eixo?: string
           id?: string
           item?: string
+          artigo?: string
+          requisito?: string
           pontos_aplicaveis?: number
           setor_executor?: string
           coordenador?: string | null
-          subitem?: string
         }
         Relationships: []
       }

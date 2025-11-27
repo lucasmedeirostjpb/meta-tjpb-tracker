@@ -26,7 +26,8 @@ interface Meta {
   id: string;
   eixo: string;
   item: string;
-  subitem: string;
+  artigo: string;
+  requisito: string;
   descricao: string;
   pontos_aplicaveis: number;
   setor_executor: string;
@@ -45,6 +46,7 @@ interface MetaModalProps {
 }
 
 const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
+  const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [status, setStatus] = useState<string>('Pendente');
   const [linkEvidencia, setLinkEvidencia] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
@@ -60,6 +62,12 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
 
   const handleSave = async () => {
     if (!meta) return;
+
+    if (isMockMode) {
+      toast.warning('Modo de demonstração: alterações não são salvas');
+      onClose();
+      return;
+    }
 
     setSaving(true);
     try {
@@ -105,7 +113,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">{meta.subitem}</DialogTitle>
+          <DialogTitle className="text-xl">{meta.artigo} - {meta.requisito}</DialogTitle>
           <DialogDescription>{meta.item}</DialogDescription>
         </DialogHeader>
 
@@ -176,12 +184,20 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
             </div>
           </div>
 
+          {isMockMode && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-yellow-800">
+                ⚠️ Modo de demonstração: as alterações não serão salvas
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end pt-4">
             <Button variant="outline" onClick={onClose} disabled={saving}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Salvando...' : 'Salvar'}
+              {saving ? 'Salvando...' : isMockMode ? 'Visualizar (não salva)' : 'Salvar'}
             </Button>
           </div>
         </div>

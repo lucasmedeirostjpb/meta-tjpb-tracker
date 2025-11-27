@@ -13,9 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getSetoresUnicos, getCoordenadoresUnicos } from "@/lib/mockData";
 
 const SetorSelectionPage = () => {
   const navigate = useNavigate();
+  const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [setores, setSetores] = useState<string[]>([]);
   const [coordenadores, setCoordenadores] = useState<string[]>([]);
   const [selectedSetor, setSelectedSetor] = useState<string>("");
@@ -29,17 +31,24 @@ const SetorSelectionPage = () => {
 
   const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('metas_base')
-        .select('setor_executor, coordenador');
+      if (isMockMode) {
+        // Usar dados mock
+        setSetores(getSetoresUnicos());
+        setCoordenadores(getCoordenadoresUnicos());
+      } else {
+        // Usar dados reais do Supabase
+        const { data, error } = await supabase
+          .from('metas_base')
+          .select('setor_executor, coordenador');
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const uniqueSetores = [...new Set(data.map(item => item.setor_executor).filter(Boolean))].sort();
-      const uniqueCoordenadores = [...new Set(data.map(item => item.coordenador).filter(Boolean))].sort();
-      
-      setSetores(uniqueSetores);
-      setCoordenadores(uniqueCoordenadores);
+        const uniqueSetores = [...new Set(data.map(item => item.setor_executor).filter(Boolean))].sort();
+        const uniqueCoordenadores = [...new Set(data.map(item => item.coordenador).filter(Boolean))].sort();
+        
+        setSetores(uniqueSetores);
+        setCoordenadores(uniqueCoordenadores);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast.error('Erro ao carregar os dados');
