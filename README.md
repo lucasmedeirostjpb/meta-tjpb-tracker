@@ -325,80 +325,97 @@ meta-tjpb-tracker/
 └── .env                     # Credenciais (não versionar!)
 ```
 
+## 🚢 Deploy
+
+### Opções de Deploy
+
+#### Vercel (Recomendado)
+
+1. Crie uma conta em [https://vercel.com](https://vercel.com)
+2. Conecte seu repositório GitHub
+3. Configure as variáveis de ambiente:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_SUPABASE_PROJECT_ID`
+   - `VITE_MOCK_MODE` (false para produção)
+4. Clique em Deploy
+
+#### Netlify
+
+1. Crie uma conta em [https://netlify.com](https://netlify.com)
+2. Conecte seu repositório
+3. Build command: `npm run build`
+4. Publish directory: `dist`
+5. Configure as variáveis de ambiente
+6. Deploy
+
+#### Build Manual
+
+```powershell
+# Gerar build de produção
+npm run build
+
+# Testar build localmente
+npm run preview
+```
+
+O build estará em `dist/` pronto para deploy em qualquer servidor estático.
+
+## 🛠️ Desenvolvimento
+
+### Estrutura de Branches
+
+- `main` - Produção estável
+- `develop` - Desenvolvimento
+- `feature/*` - Novas funcionalidades
+
+### Comandos Úteis
+
+```powershell
+# Instalar dependências
+npm install
+
+# Desenvolvimento com hot reload
+npm run dev
+
+# Build de produção
+npm run build
+
+# Preview do build
+npm run preview
+
+# Lint
+npm run lint
+```
+
+### Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch: `git checkout -b feature/MinhaFeature`
+3. Commit: `git commit -m 'feat: Adiciona MinhaFeature'`
+4. Push: `git push origin feature/MinhaFeature`
+5. Abra um Pull Request
+
+### Padrões de Commit
+
+- `feat:` Nova funcionalidade
+- `fix:` Correção de bug
+- `docs:` Documentação
+- `style:` Formatação
+- `refactor:` Refatoração
+- `test:` Testes
+- `chore:` Manutenção
+
 ## 📄 Licença
 
 Este projeto é propriedade do **Tribunal de Justiça da Paraíba**.
 
+## 📧 Contato
+
+Para dúvidas ou suporte:
+- **Repositório**: [github.com/lucasmedeirostjpb/meta-tjpb-tracker](https://github.com/lucasmedeirostjpb/meta-tjpb-tracker)
+- **Issues**: Reporte bugs ou sugira melhorias nas [Issues do GitHub](https://github.com/lucasmedeirostjpb/meta-tjpb-tracker/issues)
+
 ---
 
-## Project info (Lovable)
-
-**URL**: https://lovable.dev/projects/10572b5d-a720-4dba-8647-db8fcc59a786
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/10572b5d-a720-4dba-8647-db8fcc59a786) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/10572b5d-a720-4dba-8647-db8fcc59a786) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+**Desenvolvido para o Tribunal de Justiça da Paraíba** | Prêmio CNJ de Qualidade 2026
