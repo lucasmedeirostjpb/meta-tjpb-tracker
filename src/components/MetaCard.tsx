@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Calendar, Award } from "lucide-react";
+import { Calendar, Award, Building2 } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -12,6 +12,8 @@ interface Meta {
   requisito: string;
   descricao: string;
   pontos_aplicaveis: number;
+  setor_executor: string;
+  coordenador?: string;
   deadline: string;
   status?: string;
 }
@@ -22,21 +24,40 @@ interface MetaCardProps {
 }
 
 const getEixoColor = (eixo: string) => {
-  if (eixo.toLowerCase().includes('governança')) return 'bg-eixo-governanca-light border-eixo-governanca';
-  if (eixo.toLowerCase().includes('produtividade')) return 'bg-eixo-produtividade-light border-eixo-produtividade';
-  if (eixo.toLowerCase().includes('dados')) return 'bg-eixo-dados-light border-eixo-dados';
-  if (eixo.toLowerCase().includes('transparência')) return 'bg-eixo-transparencia-light border-eixo-transparencia';
-  return 'bg-muted border-border';
+  const eixoLower = eixo.toLowerCase();
+  
+  // Eixo 1: Governança - Azul
+  if (eixoLower.includes('governança')) {
+    return 'bg-blue-50 border-blue-500';
+  }
+  
+  // Eixo 2: Produtividade - Verde
+  if (eixoLower.includes('produtividade')) {
+    return 'bg-green-50 border-green-500';
+  }
+  
+  // Eixo 3: Transparência - Roxo/Purple
+  if (eixoLower.includes('transparência') || eixoLower.includes('transparencia')) {
+    return 'bg-purple-50 border-purple-500';
+  }
+  
+  // Eixo 4: Dados e Tecnologia - Laranja
+  if (eixoLower.includes('dados') || eixoLower.includes('tecnologia')) {
+    return 'bg-orange-50 border-orange-500';
+  }
+  
+  // Fallback para eixos não identificados
+  return 'bg-gray-50 border-gray-400';
 };
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Concluído':
-      return 'bg-status-concluido text-status-concluido-foreground';
+      return 'bg-green-500 text-white hover:bg-green-500 border-green-600';
     case 'Em Andamento':
-      return 'bg-status-andamento text-status-andamento-foreground';
+      return 'bg-yellow-500 text-white hover:bg-yellow-500 border-yellow-600';
     default:
-      return 'bg-status-pendente text-status-pendente-foreground';
+      return 'bg-gray-500 text-white hover:bg-gray-500 border-gray-600';
   }
 };
 
@@ -51,12 +72,16 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
       onClick={onClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-base line-clamp-2">{meta.requisito}</h3>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-blue-50 px-2 py-1 rounded-md border border-blue-200">
+            <Building2 className="h-3 w-3 text-blue-600" />
+            <span className="font-medium text-blue-700">{meta.setor_executor}</span>
+          </div>
           <Badge className={getStatusColor(meta.status || 'Pendente')}>
             {meta.status || 'Pendente'}
           </Badge>
         </div>
+        <h3 className="font-semibold text-base line-clamp-2">{meta.requisito}</h3>
         <p className="text-sm text-muted-foreground line-clamp-1">{meta.artigo}</p>
       </CardHeader>
       <CardContent className="space-y-3">

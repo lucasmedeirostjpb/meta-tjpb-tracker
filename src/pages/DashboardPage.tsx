@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Award } from "lucide-react";
+import { ArrowLeft, Award, LogOut, LogIn, AlertCircle, Scale } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
 import { getMetasWithUpdates } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Meta {
   id: string;
@@ -20,15 +22,22 @@ interface Meta {
   setor_executor: string;
   coordenador?: string;
   deadline: string;
+  linha_planilha?: number;
   status?: string;
   link_evidencia?: string;
   observacoes?: string;
   update_id?: string;
+  estimativa_cumprimento?: string;
+  pontos_estimados?: number;
+  percentual_cumprimento?: number;
+  acoes_planejadas?: string;
+  justificativa_parcial?: string;
 }
 
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const tipo = searchParams.get('tipo') || 'setor';
   const nome = searchParams.get('nome');
@@ -81,6 +90,11 @@ const DashboardPage = () => {
             link_evidencia: update?.link_evidencia || '',
             observacoes: update?.observacoes || '',
             update_id: update?.id,
+            estimativa_cumprimento: update?.estimativa_cumprimento,
+            pontos_estimados: update?.pontos_estimados,
+            percentual_cumprimento: update?.percentual_cumprimento,
+            acoes_planejadas: update?.acoes_planejadas,
+            justificativa_parcial: update?.justificativa_parcial,
           };
         });
 
@@ -96,11 +110,12 @@ const DashboardPage = () => {
 
   const calculateProgress = () => {
     const totalPontos = metas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
-    const pontosConcluidos = metas
-      .filter(meta => meta.status === 'Concluído')
-      .reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    const pontosRecebidos = metas.reduce((sum, meta) => {
+      const percentual = meta.percentual_cumprimento || 0;
+      return sum + (meta.pontos_aplicaveis * percentual / 100);
+    }, 0);
 
-    return totalPontos > 0 ? (pontosConcluidos / totalPontos) * 100 : 0;
+    return totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0;
   };
 
   const groupByEixo = () => {
@@ -130,13 +145,23 @@ const DashboardPage = () => {
 
   const calculateSetorProgress = (setorMetas: Meta[]) => {
     const totalPontos = setorMetas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
-    const pontosConcluidos = setorMetas
-      .filter(meta => meta.status === 'Concluído')
-      .reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
-    return totalPontos > 0 ? (pontosConcluidos / totalPontos) * 100 : 0;
+    const pontosRecebidos = setorMetas.reduce((sum, meta) => {
+      const percentual = meta.percentual_cumprimento || 0;
+      return sum + (meta.pontos_aplicaveis * percentual / 100);
+    }, 0);
+    return totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0;
   };
 
   const handleMetaClick = (meta: Meta) => {
+    if (!user && !isMockMode) {
+      toast.info('Faça login para editar metas', {
+        action: {
+          label: 'Login',
+          onClick: () => navigate('/login'),
+        },
+      });
+      return;
+    }
     setSelectedMeta(meta);
     setModalOpen(true);
   };
@@ -163,22 +188,85 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/setor-selection')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{nome}</h1>
-            <p className="text-muted-foreground">
-              {tipo === 'coordenador' ? 'Coordenação' : 'Setor'} - Prêmio CNJ de Qualidade TJPB 2026
-            </p>
+      {/* Header Padronizado */}
+      <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/consultar')}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Scale className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
+                  <p className="text-xs text-gray-600">Qualidade 2026</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <Badge variant="outline" className="gap-2">
+                    <span className="h-2 w-2 bg-green-500 rounded-full"></span>
+                    <span className="hidden sm:inline">{user.email}</span>
+                    <span className="sm:hidden">Logado</span>
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={signOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => navigate('/login')} className="gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Entrar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
+      </nav>
+
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{tipo === 'coordenador' ? 'Coordenação' : 'Setor'}</span>
+          <span>/</span>
+          <span className="font-medium text-foreground">{nome}</span>
+        </div>
+
+        {!user && !isMockMode && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <p className="font-medium text-blue-900">Modo Consulta</p>
+                <p className="text-sm text-blue-700 mt-1">
+                  Você está visualizando as metas em modo somente leitura. 
+                  <button 
+                    onClick={() => navigate('/login')} 
+                    className="underline font-medium ml-1"
+                  >
+                    Faça login
+                  </button> para registrar prestações de contas.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card rounded-xl p-6 shadow-sm border">
           <div className="flex items-center gap-3 mb-4">
@@ -194,7 +282,8 @@ const DashboardPage = () => {
             </div>
             <Progress value={progress} className="h-3" />
             <p className="text-xs text-muted-foreground">
-              {metas.filter(m => m.status === 'Concluído').length} de {metas.length} metas concluídas
+              {metas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0).toFixed(1)} de{' '}
+              {metas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pontos
             </p>
           </div>
         </div>
@@ -217,10 +306,10 @@ const DashboardPage = () => {
                       <Progress value={setorProgress} className="h-2" />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          {setorMetas.filter(m => m.status === 'Concluído').length}/{setorMetas.length} metas
+                          {setorMetas.length} metas
                         </span>
                         <span>
-                          {setorMetas.filter(m => m.status === 'Concluído').reduce((sum, m) => sum + m.pontos_aplicaveis, 0)}/
+                          {setorMetas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0).toFixed(1)}/
                           {setorMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pts
                         </span>
                       </div>

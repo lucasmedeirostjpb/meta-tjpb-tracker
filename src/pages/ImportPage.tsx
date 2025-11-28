@@ -42,6 +42,64 @@ const ImportPage = () => {
     deadline: ''
   });
 
+  // Função para mapear automaticamente as colunas
+  const autoMapColumns = (headers: string[]) => {
+    const mapping: typeof columnMapping = {
+      eixo: '',
+      item: '',
+      artigo: '',
+      requisito: '',
+      descricao: '',
+      pontos_aplicaveis: '',
+      setor_executor: '',
+      coordenador: '',
+      deadline: ''
+    };
+
+    headers.forEach(header => {
+      const headerLower = header.toLowerCase().trim();
+      
+      // Mapeamento de Eixo
+      if (headerLower === 'eixo' || headerLower.includes('eixo')) {
+        mapping.eixo = header;
+      }
+      // Mapeamento de Item
+      else if (headerLower === 'item' || headerLower.includes('item')) {
+        mapping.item = header;
+      }
+      // Mapeamento de Artigo
+      else if (headerLower === 'art' || headerLower === 'artigo' || headerLower.includes('artigo')) {
+        mapping.artigo = header;
+      }
+      // Mapeamento de Requisito
+      else if (headerLower === 'requisito' || headerLower.includes('requisito')) {
+        mapping.requisito = header;
+      }
+      // Mapeamento de Descrição
+      else if (headerLower === 'descrição' || headerLower === 'descricao' || headerLower.includes('descriç')) {
+        mapping.descricao = header;
+      }
+      // Mapeamento de Pontos Aplicáveis
+      else if (headerLower.includes('ponto') && (headerLower.includes('aplic') || headerLower.includes('2026'))) {
+        mapping.pontos_aplicaveis = header;
+      }
+      // Mapeamento de Setor Executor
+      else if (headerLower.includes('setor') && headerLower.includes('exec')) {
+        mapping.setor_executor = header;
+      }
+      // Mapeamento de Coordenador
+      else if (headerLower.includes('coordenador') || headerLower.includes('executivo')) {
+        mapping.coordenador = header;
+      }
+      // Mapeamento de Deadline
+      else if (headerLower === 'deadline' || headerLower.includes('prazo') || headerLower.includes('data')) {
+        mapping.deadline = header;
+      }
+    });
+
+    return mapping;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -69,6 +127,11 @@ const ImportPage = () => {
           });
           
           setHeaders(uniqueHeaders);
+          
+          // Mapeamento automático baseado em nomes comuns
+          const autoMapping = autoMapColumns(uniqueHeaders);
+          setColumnMapping(autoMapping);
+          
           setShowMapping(true);
         }
       };
@@ -115,7 +178,7 @@ const ImportPage = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-      const metas = jsonData.filter(row => row[columnMapping.eixo]).map(row => {
+      const metas = jsonData.filter(row => row[columnMapping.eixo]).map((row, index) => {
         let deadlineFormatted = '';
         const deadlineValue = row[columnMapping.deadline];
         
@@ -143,6 +206,7 @@ const ImportPage = () => {
           setor_executor: row[columnMapping.setor_executor] || '',
           coordenador: row[columnMapping.coordenador] || '',
           deadline: deadlineFormatted,
+          linha_planilha: index + 2,
         };
       });
 

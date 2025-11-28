@@ -4,13 +4,31 @@ Sistema para gerenciamento e acompanhamento das metas do Prêmio CNJ de Qualidad
 
 ## 📋 Funcionalidades
 
-- ✅ Importação de metas via arquivo Excel/CSV com mapeamento flexível de colunas
+### 🔐 Autenticação e Segurança
+- ✅ **Login/Cadastro de usuários** - Autenticação obrigatória para alterações
+- ✅ **Histórico completo** - Rastreamento de todas as modificações com usuário e timestamp
+
+### 📊 Prestação de Contas
+- ✅ **Formulário estruturado** baseado no Forms atual do TJPB com 5 questões:
+  1️⃣ Identificação do Coordenador Executivo (automático)
+  2️⃣ Critério da prestação (automático)
+  3️⃣ Estimativa de Cumprimento (Totalmente/Parcialmente/Não Cumprido/Não se Aplica)
+  4️⃣ Percentual e pontos estimados para cumprimento parcial
+  5️⃣ Ações Planejadas/Executadas
+- ✅ **Pontuação parcial** - Sistema de percentual de cumprimento (0-100%)
+- ✅ **Cálculo automático** - Pontos recebidos baseados no percentual
+- ✅ **Justificativa obrigatória** para cumprimento parcial
+
+### 📥 Importação e Exportação
+- ✅ Importação via Excel/CSV com mapeamento automático de colunas
 - ✅ Opção para limpar dados antigos antes de reimportar
-- ✅ Visualização de metas por setor ou coordenador
-- ✅ Acompanhamento de status (Pendente, Em Andamento, Concluído)
-- ✅ Registro de evidências e observações
-- ✅ Dashboard com progresso consolidado por setor
-- ✅ Cálculo automático de pontuação
+- ✅ **Exportação de pontos** - Copia valores calculados para colar no Excel
+- ✅ Preservação da ordem original da planilha
+
+### 📈 Visualização e Acompanhamento
+- ✅ Dashboard com progresso por setor/coordenador
+- ✅ Consolidação de pontos recebidos vs aplicáveis
+- ✅ Visualização por eixo temático
 - ✅ Alertas de prazo próximo
 
 ## 🔧 Tecnologias
@@ -66,19 +84,39 @@ VITE_MOCK_MODE=false
 
 **⚠️ IMPORTANTE:** O arquivo `.env` contém credenciais sensíveis e **NÃO deve ser commitado** no Git. Ele já está no `.gitignore`.
 
-#### 2.4. Executar Migration do Banco
+#### 2.4. Executar Migrations do Banco
 
-No Supabase, vá em **SQL Editor** → **New query** e cole o conteúdo completo de:
-`supabase/migrations/20251127_inicial_completa.sql`
+No Supabase, vá em **SQL Editor** → **New query** e execute **na ordem**:
 
-Clique em **Run** para criar:
+**1. Migration inicial** (`supabase/migrations/20251127_inicial_completa.sql`):
 - ✅ Tabela `metas_base` (com artigo, requisito e todos os campos)
 - ✅ Tabela `updates` (para acompanhamento de status)
 - ✅ Índices para performance
 - ✅ Políticas RLS
 - ✅ Triggers automáticos
 
-#### 2.5. Verificar Instalação
+**2. Adicionar linha_planilha** (`supabase/migrations/20251128_add_linha_planilha.sql`):
+- ✅ Campo `linha_planilha` para ordenação correta na exportação
+
+**3. Adicionar autenticação e histórico** (`supabase/migrations/20251128_add_auth_and_history.sql`):
+- ✅ Tabela `historico_alteracoes` (rastreamento completo de alterações)
+- ✅ Políticas RLS atualizadas (leitura pública, escrita apenas autenticada)
+- ✅ Trigger automático para registrar histórico
+
+**4. Adicionar sistema de prestação de contas** (`supabase/migrations/20251128_add_prestacao_contas.sql`):
+- ✅ Campos: `estimativa_cumprimento`, `percentual_cumprimento`, `pontos_estimados`
+- ✅ Campos: `acoes_planejadas`, `justificativa_parcial`, `data_prestacao`
+- ✅ Função `fn_calcular_pontos_recebidos()` para cálculo automático
+- ✅ View `vw_prestacao_contas` para consultas consolidadas
+
+#### 2.5. Habilitar Autenticação
+
+No Supabase:
+1. Vá em **Authentication** → **Providers**
+2. Habilite **Email** provider
+3. Configure confirmação de email se desejado
+
+#### 2.6. Verificar Instalação
 
 Execute no SQL Editor:
 
@@ -87,16 +125,22 @@ Execute no SQL Editor:
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('metas_base', 'updates');
+AND table_name IN ('metas_base', 'updates', 'historico_alteracoes');
 
--- Verificar índices
-SELECT COUNT(*) as total_indices
-FROM pg_indexes
-WHERE schemaname = 'public'
-AND tablename IN ('metas_base', 'updates');
+-- Verificar view criada
+SELECT table_name 
+FROM information_schema.views 
+WHERE table_schema = 'public' 
+AND table_name = 'vw_prestacao_contas';
+
+-- Verificar função
+SELECT routine_name 
+FROM information_schema.routines 
+WHERE routine_schema = 'public' 
+AND routine_name = 'fn_calcular_pontos_recebidos';
 ```
 
-Resultado esperado: 2 tabelas e 8 índices.
+Resultado esperado: 3 tabelas, 1 view, 1 função.
 
 ### 3. Iniciar o Sistema
 
@@ -174,24 +218,80 @@ O sistema aceita datas em formato:
 
 ## 🎯 Como Usar o Sistema
 
-### Visão por Setor
-1. Acesse a página inicial após importar
-2. Clique em "Selecionar por Setor"
-3. Escolha o setor desejado
-4. Visualize todas as metas do setor
+### 1. Criar Conta / Login
+1. Acesse: http://localhost:8080/login
+2. **Primeira vez**: Clique em "Criar Conta"
+   - Insira email institucional (@tjpb.jus.br)
+   - Crie uma senha (mínimo 6 caracteres)
+   - Confirme o email (se configurado)
+3. **Login**: Insira email e senha
 
-### Visão por Coordenador
+### 2. Importar Metas
+1. Acesse **Importar Metas** (requer login)
+2. Faça upload do arquivo Excel/CSV
+3. As colunas serão mapeadas automaticamente
+4. Ajuste mapeamentos se necessário
+5. Marque "Limpar dados antigos" se for reimportar
+6. Clique em **Importar Dados**
+
+### 3. Visão por Setor
+1. Acesse "Selecionar por Setor"
+2. Escolha o setor desejado
+3. Visualize todas as metas do setor
+4. Clique em uma meta para atualizar status
+
+### 4. Visão por Coordenador
 1. Clique em "Selecionar por Coordenador"
 2. Escolha o coordenador
 3. Veja consolidação por setor + metas individuais
 
-### Atualizar Meta
-1. Clique em qualquer card de meta
-2. No modal, atualize:
-   - **Status**: Pendente → Em Andamento → Concluído
-   - **Link de Evidência**: URL com comprovações
-   - **Observações**: Notas sobre o andamento
-3. Clique em "Salvar"
+### 5. Prestação de Contas (requer login)
+1. Clique em qualquer card de meta para abrir o formulário
+2. Preencha as **5 questões obrigatórias**:
+
+**1️⃣ Identificação do Coordenador** (preenchido automaticamente)
+- Sistema identifica o usuário logado
+
+**2️⃣ Critério desta prestação** (preenchido automaticamente)
+- Exibe artigo, requisito e descrição da meta
+
+**3️⃣ Estimativa de Cumprimento** (selecione):
+- ✅ Totalmente Cumprido (100%)
+- ⚠️ Parcialmente Cumprido (definir %)
+- ❌ Não Cumprido (0%)
+- ➖ Não se Aplica (0%)
+
+**4️⃣ Percentual e Pontos Estimados**:
+- Se "Parcialmente Cumprido":
+  - Use o controle deslizante (0-100%)
+  - Informe **justificativa obrigatória**
+  - Sistema calcula pontos automaticamente
+- Outros casos: "Não se aplica"
+
+**5️⃣ Ações Planejadas/Executadas**:
+- Descreva iniciativas e medidas adotadas
+- Campo de texto livre
+
+**📎 Informações Complementares** (opcionais):
+- Link de Evidência (URL com documentos)
+- Observações Adicionais
+
+3. Clique em **"💾 Salvar Prestação de Contas"**
+4. **Histórico registrado automaticamente** com seu email e timestamp
+
+### 6. Exportar Pontos Recebidos
+1. No Dashboard, clique em **"Copiar Pontos Recebidos"**
+2. Valores são copiados para área de transferência
+3. Cole (Ctrl+V) na coluna "Pontos Recebidos 2026" do Excel
+4. A ordem corresponde exatamente à planilha original
+
+### 7. Ver Histórico de Alterações
+1. No Dashboard, clique em **"Histórico"**
+2. Visualize todas as alterações:
+   - Quem fez a alteração (email)
+   - Quando foi feito (data/hora)
+   - O que foi alterado (status, evidências, observações)
+   - Valores anteriores e novos
 
 ### Dashboard
 
@@ -199,8 +299,9 @@ O sistema aceita datas em formato:
 - **Agrupamento por Eixo**: Metas organizadas por categoria
 - **Consolidação por Setor**: Para coordenadores, veja progresso de cada setor
 - **Alertas de Prazo**: Metas com menos de 30 dias aparecem destacadas
+- **Botões de Ação**: Histórico, Exportar, Sair
 
-## 🔐 Segurança
+## 🔐 Segurança e Autenticação
 
 ### Arquivo .env
 
@@ -208,13 +309,33 @@ O sistema aceita datas em formato:
 - ✅ `.env.example` serve como template (SEM credenciais)
 - ⚠️ **NUNCA commite o arquivo `.env` com credenciais reais**
 
-### Supabase
+### Sistema de Autenticação
 
-O sistema usa Supabase com políticas RLS (Row Level Security) configuradas para acesso público. 
+**Políticas de acesso implementadas:**
 
-**Para adicionar autenticação:**
+- ✅ **Leitura pública**: Qualquer pessoa pode visualizar metas e progresso
+- 🔒 **Escrita autenticada**: Apenas usuários logados podem:
+  - Importar metas
+  - Atualizar status, evidências e observações
+  - Criar/editar registros
 
-1. Ative um provider de autenticação no Supabase (Email, Google, etc.)
+### Histórico de Alterações
+
+**Rastreamento automático:**
+- ✅ Toda alteração é registrada com:
+  - Email do usuário responsável
+  - ID do usuário autenticado
+  - Timestamp exato da modificação
+  - Valores anteriores e novos
+  - Tipo de ação (criação, atualização de status, etc.)
+
+### RLS (Row Level Security)
+
+Políticas configuradas no Supabase garantem que:
+1. Todos podem **ler** dados (visualização pública)
+2. Apenas usuários autenticados podem **escrever**
+3. Histórico só pode ser inserido pelo próprio usuário
+4. Triggers automáticos garantem integridade dos dados
 2. Atualize as políticas RLS para validar `auth.uid()`
 3. Implemente componentes de login no frontend
 

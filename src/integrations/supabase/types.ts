@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      historico_alteracoes: {
+        Row: {
+          id: string
+          meta_id: string
+          usuario_email: string
+          usuario_id: string
+          acao: string
+          status_anterior: string | null
+          status_novo: string | null
+          link_evidencia_anterior: string | null
+          link_evidencia_novo: string | null
+          observacoes_anterior: string | null
+          observacoes_novo: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          meta_id: string
+          usuario_email: string
+          usuario_id: string
+          acao: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          link_evidencia_anterior?: string | null
+          link_evidencia_novo?: string | null
+          observacoes_anterior?: string | null
+          observacoes_novo?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          meta_id?: string
+          usuario_email?: string
+          usuario_id?: string
+          acao?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          link_evidencia_anterior?: string | null
+          link_evidencia_novo?: string | null
+          observacoes_anterior?: string | null
+          observacoes_novo?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_alteracoes_meta_id_fkey"
+            columns: ["meta_id"]
+            isOneToOne: false
+            referencedRelation: "metas_base"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas_base: {
         Row: {
           created_at: string | null
@@ -27,6 +80,7 @@ export type Database = {
           pontos_aplicaveis: number
           setor_executor: string
           coordenador: string | null
+          linha_planilha: number | null
         }
         Insert: {
           created_at?: string | null
@@ -40,6 +94,7 @@ export type Database = {
           pontos_aplicaveis: number
           setor_executor: string
           coordenador?: string | null
+          linha_planilha?: number | null
         }
         Update: {
           created_at?: string | null
@@ -53,6 +108,7 @@ export type Database = {
           pontos_aplicaveis?: number
           setor_executor?: string
           coordenador?: string | null
+          linha_planilha?: number | null
         }
         Relationships: []
       }
@@ -65,6 +121,12 @@ export type Database = {
           setor_executor: string
           status: string
           updated_at: string | null
+          estimativa_cumprimento: string | null
+          pontos_estimados: number | null
+          percentual_cumprimento: number | null
+          acoes_planejadas: string | null
+          justificativa_parcial: string | null
+          data_prestacao: string | null
         }
         Insert: {
           id?: string
@@ -74,6 +136,12 @@ export type Database = {
           setor_executor: string
           status?: string
           updated_at?: string | null
+          estimativa_cumprimento?: string | null
+          pontos_estimados?: number | null
+          percentual_cumprimento?: number | null
+          acoes_planejadas?: string | null
+          justificativa_parcial?: string | null
+          data_prestacao?: string | null
         }
         Update: {
           id?: string
@@ -83,6 +151,12 @@ export type Database = {
           setor_executor?: string
           status?: string
           updated_at?: string | null
+          estimativa_cumprimento?: string | null
+          pontos_estimados?: number | null
+          percentual_cumprimento?: number | null
+          acoes_planejadas?: string | null
+          justificativa_parcial?: string | null
+          data_prestacao?: string | null
         }
         Relationships: [
           {
