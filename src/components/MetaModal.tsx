@@ -174,9 +174,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
   const percentualCalculado = (pontosRecebidos / meta.pontos_aplicaveis) * 100;
   const getStatusColor = (s: string) => {
     switch (s) {
-      case 'Concluído': return 'bg-green-500';
-      case 'Em Andamento': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+      case 'Concluído': return 'bg-green-500 text-white hover:bg-green-500';
+      case 'Em Andamento': return 'bg-yellow-500 text-white hover:bg-yellow-500';
+      default: return 'bg-gray-500 text-white hover:bg-gray-500';
     }
   };
 
@@ -184,12 +184,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 pr-8">
             <div className="flex-1">
               <DialogTitle className="text-2xl mb-2">{meta.artigo} - {meta.requisito}</DialogTitle>
               <DialogDescription className="text-base">{meta.item}</DialogDescription>
+              <div className="mt-2">
+                <Badge className={getStatusColor(status)}>{status}</Badge>
+              </div>
             </div>
-            <Badge className={getStatusColor(status)}>{status}</Badge>
           </div>
         </DialogHeader>
 
