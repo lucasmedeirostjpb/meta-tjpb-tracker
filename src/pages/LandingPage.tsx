@@ -24,6 +24,25 @@ const LandingPage = () => {
 
   useEffect(() => {
     loadStats();
+
+    // Recarregar dados quando a página recebe foco (usuário volta para a tab)
+    const handleFocus = () => {
+      loadStats();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    // Recarregar a cada 30 segundos se a página estiver visível
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadStats();
+      }
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadStats = async () => {
@@ -64,11 +83,29 @@ const LandingPage = () => {
         const { data: metas, error } = await supabase
           .from('metas_base')
           .select(`
-            *,
-            updates (percentual_cumprimento)
+            id,
+            eixo,
+            pontos_aplicaveis,
+            setor_executor
           `);
 
         if (error) throw error;
+
+        // Buscar todos os updates
+        const { data: updates, error: updatesError } = await supabase
+          .from('updates')
+          .select('meta_id, percentual_cumprimento, updated_at')
+          .order('updated_at', { ascending: false });
+
+        if (updatesError) throw updatesError;
+
+        // Criar mapa de updates mais recentes por meta
+        const updatesMap = new Map<string, number>();
+        updates?.forEach(update => {
+          if (!updatesMap.has(update.meta_id)) {
+            updatesMap.set(update.meta_id, update.percentual_cumprimento || 0);
+          }
+        });
 
         const totalRequisitos = metas?.length || 0;
         const totalPontos = metas?.reduce((sum, m) => sum + m.pontos_aplicaveis, 0) || 0;
@@ -82,7 +119,9 @@ const LandingPage = () => {
           }
           const eixoData = eixosMap.get(eixoLimpo)!;
           eixoData.pontos += meta.pontos_aplicaveis;
-          const percentual = meta.updates?.[0]?.percentual_cumprimento || 0;
+          
+          // Pegar percentual do update mais recente
+          const percentual = updatesMap.get(meta.id) || 0;
           eixoData.pontosRecebidos += (meta.pontos_aplicaveis * percentual) / 100;
         });
 
