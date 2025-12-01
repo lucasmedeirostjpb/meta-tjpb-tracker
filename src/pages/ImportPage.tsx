@@ -168,7 +168,7 @@ const ImportPage = () => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       const metas = jsonData.filter(row => row[columnMapping.eixo]).map((row, index) => {
-        let deadlineFormatted = '';
+        let deadlineFormatted = null; // Usar null em vez de string vazia
         const deadlineValue = row[columnMapping.deadline];
         
         if (deadlineValue) {
@@ -176,13 +176,30 @@ const ImportPage = () => {
             // Tratar data serial do Excel
             const date = XLSX.SSF.parse_date_code(deadlineValue);
             deadlineFormatted = `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
-          } else if (typeof deadlineValue === 'string') {
+          } else if (typeof deadlineValue === 'string' && deadlineValue.trim()) {
             // Tratar formato de string (dd/mm/yyyy)
-            const parts = deadlineValue.split('/');
+            const parts = deadlineValue.trim().split('/');
             if (parts.length === 3) {
-              deadlineFormatted = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+              const day = parts[0].padStart(2, '0');
+              const month = parts[1].padStart(2, '0');
+              const year = parts[2];
+              deadlineFormatted = `${year}-${month}-${day}`;
+            } else {
+              // Tentar formato ISO ou outros formatos
+              const parsedDate = new Date(deadlineValue);
+              if (!isNaN(parsedDate.getTime())) {
+                const year = parsedDate.getFullYear();
+                const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(parsedDate.getDate()).padStart(2, '0');
+                deadlineFormatted = `${year}-${month}-${day}`;
+              }
             }
           }
+        }
+        
+        // Se não conseguiu formatar a data, usar data padrão
+        if (!deadlineFormatted) {
+          deadlineFormatted = '2026-12-31'; // Data padrão do prêmio CNJ 2026
         }
 
         return {
