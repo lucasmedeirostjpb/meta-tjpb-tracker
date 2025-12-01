@@ -25,7 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Building2, Users, LogIn, LogOut, ArrowLeft, Scale, LayoutList, Check, ChevronsUpDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 import { getSetoresUnicos, getCoordenadoresUnicos } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,22 +54,22 @@ const SetorSelectionPage = () => {
         setSetores(getSetoresUnicos());
         setCoordenadores(getCoordenadoresUnicos());
       } else {
-        // Usar dados reais do Supabase
-        const { data, error } = await supabase
-          .from('metas_base')
-          .select('setor_executor, coordenador');
-
-        if (error) throw error;
-
-        const uniqueSetores = [...new Set(data.map(item => item.setor_executor).filter(Boolean))].sort();
-        const uniqueCoordenadores = [...new Set(data.map(item => item.coordenador).filter(Boolean))].sort();
+        console.log('🌐 [SETOR SELECTION] Usando Supabase REAL');
+        // Usar API
+        const [setoresData, coordenadoresData] = await Promise.all([
+          api.getSetores(),
+          api.getCoordenadores(),
+        ]);
         
-        setSetores(uniqueSetores);
-        setCoordenadores(uniqueCoordenadores);
+        console.log('✅ [SETOR SELECTION] Setores recebidos:', setoresData.length, setoresData);
+        console.log('✅ [SETOR SELECTION] Coordenadores recebidos:', coordenadoresData.length, coordenadoresData);
+        
+        setSetores(setoresData);
+        setCoordenadores(coordenadoresData);
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      toast.error('Erro ao carregar os dados');
+    } catch (error: any) {
+      console.error('❌ [SETOR SELECTION] Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Scale, Target, Award, Users, FileText, LogIn, ChevronDown, Search, LayoutList } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { mockMetas } from '@/lib/mockData';
 
 const LandingPage = () => {
@@ -48,6 +48,7 @@ const LandingPage = () => {
   const loadStats = async () => {
     try {
       if (isMockMode) {
+        console.log('🎭 [LANDING] Usando modo MOCK');
         // Usar dados mock
         const totalRequisitos = mockMetas.length;
         const totalPontos = mockMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
@@ -71,6 +72,12 @@ const LandingPage = () => {
           cor: data.cor
         }));
 
+        console.log('✅ [LANDING] Estatísticas calculadas (MOCK):', {
+          eixos: 4,
+          requisitos: totalRequisitos,
+          pontos: totalPontos
+        });
+
         setStats({
           eixos: 4,
           requisitos: totalRequisitos,
@@ -79,70 +86,14 @@ const LandingPage = () => {
           eixosData
         });
       } else {
-        // Buscar dados reais do Supabase
-        const { data: metas, error } = await supabase
-          .from('metas_base')
-          .select(`
-            id,
-            eixo,
-            pontos_aplicaveis,
-            setor_executor
-          `);
-
-        if (error) throw error;
-
-        // Buscar todos os updates
-        const { data: updates, error: updatesError } = await supabase
-          .from('updates')
-          .select('meta_id, percentual_cumprimento, updated_at')
-          .order('updated_at', { ascending: false });
-
-        if (updatesError) throw updatesError;
-
-        // Criar mapa de updates mais recentes por meta
-        const updatesMap = new Map<string, number>();
-        updates?.forEach(update => {
-          if (!updatesMap.has(update.meta_id)) {
-            updatesMap.set(update.meta_id, update.percentual_cumprimento || 0);
-          }
-        });
-
-        const totalRequisitos = metas?.length || 0;
-        const totalPontos = metas?.reduce((sum, m) => sum + m.pontos_aplicaveis, 0) || 0;
-        const setoresUnicos = new Set(metas?.map(m => m.setor_executor)).size || 0;
-
-        const eixosMap = new Map<string, { pontos: number; pontosRecebidos: number; cor: string }>();
-        metas?.forEach(meta => {
-          const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
-          if (!eixosMap.has(eixoLimpo)) {
-            eixosMap.set(eixoLimpo, { pontos: 0, pontosRecebidos: 0, cor: getEixoColor(eixoLimpo) });
-          }
-          const eixoData = eixosMap.get(eixoLimpo)!;
-          eixoData.pontos += meta.pontos_aplicaveis;
-          
-          // Pegar percentual do update mais recente
-          const percentual = updatesMap.get(meta.id) || 0;
-          eixoData.pontosRecebidos += (meta.pontos_aplicaveis * percentual) / 100;
-        });
-
-        const eixosData = Array.from(eixosMap.entries()).map(([nome, data]) => ({
-          nome,
-          pontos: data.pontos,
-          pontosRecebidos: data.pontosRecebidos,
-          percentual: data.pontos > 0 ? (data.pontosRecebidos / data.pontos) * 100 : 0,
-          cor: data.cor
-        }));
-
-        setStats({
-          eixos: 4,
-          requisitos: totalRequisitos,
-          pontosTotais: totalPontos,
-          setores: setoresUnicos,
-          eixosData
-        });
+        console.log('🌐 [LANDING] Usando Supabase REAL');
+        // Buscar dados da API
+        const statsData = await api.getStats();
+        console.log('✅ [LANDING] Estatísticas recebidas:', statsData);
+        setStats(statsData);
       }
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+    } catch (error: any) {
+      console.error('❌ [LANDING] Erro ao carregar estatísticas:', error);
     }
   };
 
@@ -196,25 +147,12 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="h-full w-full">
-                  <defs>
-                    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style={{stopColor: '#1e40af', stopOpacity: 1}} />
-                      <stop offset="100%" style={{stopColor: '#2563eb', stopOpacity: 1}} />
-                    </linearGradient>
-                  </defs>
-                  {/* Escudo */}
-                  <path d="M50 5 L85 20 L85 50 Q85 75 50 95 Q15 75 15 50 L15 20 Z" fill="url(#blueGradient)" stroke="#94a3b8" strokeWidth="2"/>
-                  {/* Balança */}
-                  <line x1="50" y1="30" x2="50" y2="60" stroke="#fbbf24" strokeWidth="2"/>
-                  <line x1="35" y1="35" x2="65" y2="35" stroke="#fbbf24" strokeWidth="2"/>
-                  <path d="M32 35 L32 40 L38 45 L32 45 Z" fill="#fbbf24"/>
-                  <path d="M68 35 L68 40 L62 45 L68 45 Z" fill="#fbbf24"/>
-                  {/* Livro */}
-                  <rect x="42" y="55" width="16" height="12" fill="#fbbf24" rx="1"/>
-                  <line x1="50" y1="57" x2="50" y2="65" stroke="#1e40af" strokeWidth="1"/>
-                </svg>
+              <div className="h-14 w-14 flex items-center justify-center">
+                <img 
+                  src="/assets/images/tjpb-brasao.png" 
+                  alt="Brasão TJPB" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
@@ -328,8 +266,8 @@ const LandingPage = () => {
                   <CardHeader>
                     <CardTitle className="text-base font-semibold">{eixo.nome}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="relative inline-flex items-center justify-center">
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col items-center gap-3">
                       <svg className="w-32 h-32 transform -rotate-90">
                         <circle
                           cx="64"
@@ -352,19 +290,17 @@ const LandingPage = () => {
                           strokeLinecap="round"
                         />
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-3xl font-bold ${textClass}`}>
-                          {eixo.percentual.toFixed(1)}%
-                        </span>
+                      <div className={`text-3xl font-bold ${textClass}`}>
+                        {eixo.percentual.toFixed(1)}%
                       </div>
                     </div>
-                    <div className={`mt-4 p-3 ${bgClass} rounded-lg`}>
+                    <div className={`p-3 ${bgClass} rounded-lg`}>
                       <p className="text-xs text-gray-600">Pontos Alcançados</p>
                       <p className={`text-lg font-bold ${textClass}`}>
                         {eixo.pontosRecebidos.toFixed(0)}
                       </p>
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="text-xs text-gray-500">
                       de {eixo.pontos} pontos
                     </div>
                   </CardContent>

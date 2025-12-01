@@ -11,7 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 import { mockMetas, mockUpdates } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,9 +64,11 @@ const VisaoAgregadaPage = () => {
   }, []);
 
   const loadMetas = async () => {
+    console.log('🔄 [VISAO AGREGADA] Iniciando carregamento de todas as metas');
     setLoading(true);
     try {
       if (isMockMode) {
+        console.log('🎭 [VISAO AGREGADA] Usando modo MOCK');
         const metasWithUpdates = mockMetas.map(meta => {
           const update = mockUpdates.find(u => u.meta_id === meta.id);
           return {
@@ -77,46 +79,22 @@ const VisaoAgregadaPage = () => {
             update_id: update?.id,
           };
         });
+        console.log('✅ [VISAO AGREGADA] Metas carregadas (MOCK):', metasWithUpdates.length);
         setMetas(metasWithUpdates);
       } else {
-        const { data, error } = await supabase
-          .from('metas_base')
-          .select(`
-            *,
-            updates (
-              id,
-              status,
-              link_evidencia,
-              observacoes,
-              estimativa_cumprimento,
-              pontos_estimados,
-              percentual_cumprimento,
-              acoes_planejadas,
-              justificativa_parcial
-            )
-          `)
-          .order('linha_planilha', { ascending: true });
-
-        if (error) throw error;
-
-        const metasWithUpdates = (data || []).map((meta: any) => ({
-          ...meta,
-          status: meta.updates?.[0]?.status,
-          link_evidencia: meta.updates?.[0]?.link_evidencia,
-          observacoes: meta.updates?.[0]?.observacoes,
-          update_id: meta.updates?.[0]?.id,
-          estimativa_cumprimento: meta.updates?.[0]?.estimativa_cumprimento,
-          pontos_estimados: meta.updates?.[0]?.pontos_estimados,
-          percentual_cumprimento: meta.updates?.[0]?.percentual_cumprimento,
-          acoes_planejadas: meta.updates?.[0]?.acoes_planejadas,
-          justificativa_parcial: meta.updates?.[0]?.justificativa_parcial,
-        }));
-
-        setMetas(metasWithUpdates);
+        console.log('🌐 [VISAO AGREGADA] Usando Supabase REAL');
+        const data = await api.getMetas();
+        console.log('✅ [VISAO AGREGADA] Metas recebidas:', data.length);
+        if (data.length > 0) {
+          console.log('📊 [VISAO AGREGADA] Primeira meta:', data[0]);
+          console.log('📊 [VISAO AGREGADA] Exemplo de status:', data[0].status);
+          console.log('📊 [VISAO AGREGADA] Exemplo de pontos:', data[0].pontos_estimados);
+        }
+        setMetas(data);
       }
-    } catch (error) {
-      console.error('Erro ao carregar metas:', error);
-      toast.error('Erro ao carregar os dados');
+    } catch (error: any) {
+      console.error('❌ [VISAO AGREGADA] Erro ao carregar metas:', error);
+      toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -150,7 +128,13 @@ const VisaoAgregadaPage = () => {
     if (metasSubset.length === 0) return 0;
     
     const pontosRecebidos = metasSubset.reduce((sum, m) => {
-      return sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100);
+      // Usar pontos_estimados se disponível, senão calcular do percentual
+      if (m.pontos_estimados !== undefined && m.pontos_estimados !== null) {
+        return sum + m.pontos_estimados;
+      }
+      // Fallback para cálculo via percentual
+      const percentual = m.percentual_cumprimento || 0;
+      return sum + (percentual * m.pontos_aplicaveis / 100);
     }, 0);
     
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
@@ -160,7 +144,13 @@ const VisaoAgregadaPage = () => {
 
   const getTotalPontos = (metasSubset: Meta[]) => {
     const pontosRecebidos = metasSubset.reduce((sum, m) => {
-      return sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100);
+      // Usar pontos_estimados se disponível, senão calcular do percentual
+      if (m.pontos_estimados !== undefined && m.pontos_estimados !== null) {
+        return sum + m.pontos_estimados;
+      }
+      // Fallback para cálculo via percentual
+      const percentual = m.percentual_cumprimento || 0;
+      return sum + (percentual * m.pontos_aplicaveis / 100);
     }, 0);
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
     return { recebidos: pontosRecebidos, aplicaveis: pontosAplicaveis };

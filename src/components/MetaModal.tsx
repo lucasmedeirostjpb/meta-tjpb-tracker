@@ -19,12 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
-import { Calendar, Target, User, Building2, AlertCircle, TrendingUp } from "lucide-react";
+import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, History, Clock } from "lucide-react";
 
 interface Meta {
   id: string;
@@ -48,6 +56,29 @@ interface Meta {
   justificativa_parcial?: string;
 }
 
+interface HistoricoAlteracao {
+  id: string;
+  meta_id: string;
+  usuario_email: string;
+  usuario_id: string;
+  acao: string;
+  status_anterior?: string | null;
+  status_novo?: string | null;
+  link_evidencia_anterior?: string | null;
+  link_evidencia_novo?: string | null;
+  observacoes_anterior?: string | null;
+  observacoes_novo?: string | null;
+  estimativa_cumprimento_anterior?: string | null;
+  estimativa_cumprimento_novo?: string | null;
+  pontos_estimados_anterior?: number | null;
+  pontos_estimados_novo?: number | null;
+  acoes_planejadas_anterior?: string | null;
+  acoes_planejadas_novo?: string | null;
+  justificativa_parcial_anterior?: string | null;
+  justificativa_parcial_novo?: string | null;
+  created_at: string;
+}
+
 interface MetaModalProps {
   meta: Meta | null;
   open: boolean;
@@ -66,6 +97,8 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
   const [linkEvidencia, setLinkEvidencia] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [historico, setHistorico] = useState<HistoricoAlteracao[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
 
   useEffect(() => {
     if (meta) {
@@ -76,8 +109,28 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
       setObservacoes(meta.observacoes || '');
+      
+      // Carregar histórico
+      loadHistorico();
+    } else {
+      // Resetar estado quando fechar modal
+      setHistorico([]);
     }
-  }, [meta]);
+  }, [meta?.id]); // Usar meta.id como dependência para forçar reset
+
+  const loadHistorico = async () => {
+    if (!meta || isMockMode) return;
+    
+    setLoadingHistorico(true);
+    try {
+      const data = await api.getHistoricoByMeta(meta.id);
+      setHistorico(data);
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
 
   // Sincronizar status com estimativa
   useEffect(() => {
@@ -140,30 +193,20 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
         justificativa_parcial: justificativa,
         link_evidencia: linkEvidencia,
         observacoes,
-        data_prestacao: new Date().toISOString(),
       };
 
-      if (meta.update_id) {
-        const { error } = await supabase
-          .from('updates')
-          .update(updateData)
-          .eq('id', meta.update_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('updates')
-          .insert(updateData);
-
-        if (error) throw error;
-      }
+      await api.createUpdate(updateData);
 
       toast.success('Prestação de contas salva com sucesso!');
+      
+      // Aguardar um pouco para garantir que o banco atualizou
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       onUpdate();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      toast.error('Erro ao salvar a prestação de contas');
+      toast.error('Erro ao salvar: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setSaving(false);
     }
@@ -177,6 +220,26 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
       case 'Concluído': return 'bg-green-500 text-white hover:bg-green-500';
       case 'Em Andamento': return 'bg-yellow-500 text-white hover:bg-yellow-500';
       default: return 'bg-gray-500 text-white hover:bg-gray-500';
+    }
+  };
+
+  const getAcaoIcon = (acao: string) => {
+    switch (acao) {
+      case 'criacao': return '✨';
+      case 'atualizacao_status': return '🔄';
+      case 'adicao_evidencia': return '📎';
+      case 'edicao_observacoes': return '📝';
+      default: return '📋';
+    }
+  };
+
+  const getAcaoLabel = (acao: string) => {
+    switch (acao) {
+      case 'criacao': return 'Criação inicial';
+      case 'atualizacao_status': return 'Atualização de status';
+      case 'adicao_evidencia': return 'Adição de evidência';
+      case 'edicao_observacoes': return 'Edição de observações';
+      default: return acao;
     }
   };
 
@@ -195,7 +258,16 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <Tabs defaultValue="prestacao" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="prestacao">📋 Prestação de Contas</TabsTrigger>
+            <TabsTrigger value="historico">
+              <History className="h-4 w-4 mr-2" />
+              Histórico {historico.length > 0 && `(${historico.length})`}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="prestacao" className="space-y-6 mt-4">
           {/* Informações da Meta */}
           <div className="border-l-4 border-blue-500 bg-muted/30 p-4 rounded-r-lg space-y-3">
             <div className="flex items-center gap-2 text-sm">
@@ -402,15 +474,224 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
-            <Button variant="outline" onClick={onClose} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Salvando...' : '💾 Salvar Prestação de Contas'}
-            </Button>
-          </div>
-        </div>
+            <div className="flex gap-3 justify-end pt-4 border-t">
+              <Button variant="outline" onClick={onClose} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Salvando...' : '💾 Salvar Prestação de Contas'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-4">
+            <div className="space-y-4">
+              {loadingHistorico ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p>Carregando histórico...</p>
+                </div>
+              ) : historico.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Nenhuma alteração registrada ainda</p>
+                  <p className="text-sm mt-1">Faça uma alteração na prestação de contas para criar o primeiro registro</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[500px] pr-4">
+                  <div className="space-y-4">
+                    {historico.map((item, index) => (
+                      <div key={item.id} className="relative">
+                        {index !== historico.length - 1 && (
+                          <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-border" />
+                        )}
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-2xl">
+                            {getAcaoIcon(item.acao)}
+                          </div>
+                          <div className="flex-1 bg-muted/30 rounded-lg p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="font-medium">{getAcaoLabel(item.acao)}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  por {item.usuario_email}
+                                </p>
+                              </div>
+                              <div className="text-xs text-muted-foreground text-right">
+                                <p>{format(parseISO(item.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                                <p>{format(parseISO(item.created_at), "HH:mm", { locale: ptBR })}</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2 pt-2">
+                              {/* Status */}
+                              {(item.status_anterior !== item.status_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">📊 Status:</p>
+                                  <div className="flex items-center gap-2">
+                                    {item.status_anterior && (
+                                      <>
+                                        <Badge variant="outline" className="text-xs">
+                                          {item.status_anterior}
+                                        </Badge>
+                                        <span className="text-muted-foreground">→</span>
+                                      </>
+                                    )}
+                                    <Badge className={item.status_novo ? getStatusColor(item.status_novo) : ''}>
+                                      {item.status_novo || 'N/A'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Estimativa de Cumprimento */}
+                              {(item.estimativa_cumprimento_anterior !== item.estimativa_cumprimento_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">✅ Estimativa de Cumprimento:</p>
+                                  <div className="flex items-center gap-2 text-xs">
+                                    {item.estimativa_cumprimento_anterior && (
+                                      <>
+                                        <span className="bg-muted px-2 py-1 rounded">{item.estimativa_cumprimento_anterior}</span>
+                                        <span className="text-muted-foreground">→</span>
+                                      </>
+                                    )}
+                                    <span className="bg-primary/10 px-2 py-1 rounded font-medium">
+                                      {item.estimativa_cumprimento_novo || 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Pontos Estimados */}
+                              {(item.pontos_estimados_anterior !== item.pontos_estimados_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">🎯 Pontos Estimados:</p>
+                                  <div className="flex items-center gap-2 text-xs">
+                                    {item.pontos_estimados_anterior !== null && item.pontos_estimados_anterior !== undefined && (
+                                      <>
+                                        <span className="bg-muted px-2 py-1 rounded">{item.pontos_estimados_anterior}</span>
+                                        <span className="text-muted-foreground">→</span>
+                                      </>
+                                    )}
+                                    <span className="bg-primary/10 px-2 py-1 rounded font-medium">
+                                      {item.pontos_estimados_novo ?? 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Ações Planejadas */}
+                              {(item.acoes_planejadas_anterior !== item.acoes_planejadas_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">📝 Ações Planejadas:</p>
+                                  {item.acoes_planejadas_anterior && (
+                                    <div className="mb-2">
+                                      <p className="text-xs text-muted-foreground mb-1">Anterior:</p>
+                                      <p className="text-xs bg-muted/50 p-2 rounded line-through">
+                                        {item.acoes_planejadas_anterior}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {item.acoes_planejadas_novo && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">Novo:</p>
+                                      <p className="text-xs bg-primary/10 p-2 rounded">
+                                        {item.acoes_planejadas_novo}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Justificativa Parcial */}
+                              {(item.justificativa_parcial_anterior !== item.justificativa_parcial_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">📋 Justificativa (Cumprimento Parcial):</p>
+                                  {item.justificativa_parcial_anterior && (
+                                    <div className="mb-2">
+                                      <p className="text-xs text-muted-foreground mb-1">Anterior:</p>
+                                      <p className="text-xs bg-muted/50 p-2 rounded line-through">
+                                        {item.justificativa_parcial_anterior}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {item.justificativa_parcial_novo && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">Novo:</p>
+                                      <p className="text-xs bg-primary/10 p-2 rounded">
+                                        {item.justificativa_parcial_novo}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Link de Evidência */}
+                              {(item.link_evidencia_anterior !== item.link_evidencia_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">🔗 Link de Evidência:</p>
+                                  {item.link_evidencia_anterior && (
+                                    <div className="mb-2">
+                                      <p className="text-xs text-muted-foreground mb-1">Anterior:</p>
+                                      <a 
+                                        href={item.link_evidencia_anterior} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-blue-600/50 hover:underline break-all line-through"
+                                      >
+                                        {item.link_evidencia_anterior}
+                                      </a>
+                                    </div>
+                                  )}
+                                  {item.link_evidencia_novo && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">Novo:</p>
+                                      <a 
+                                        href={item.link_evidencia_novo} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-blue-600 hover:underline break-all font-medium"
+                                      >
+                                        {item.link_evidencia_novo}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Observações */}
+                              {(item.observacoes_anterior !== item.observacoes_novo) && (
+                                <div className="text-sm pt-2 border-t">
+                                  <p className="text-muted-foreground mb-1 font-medium">💬 Observações:</p>
+                                  {item.observacoes_anterior && (
+                                    <div className="mb-2">
+                                      <p className="text-xs text-muted-foreground mb-1">Anterior:</p>
+                                      <p className="text-xs bg-muted/50 p-2 rounded line-through">
+                                        {item.observacoes_anterior}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {item.observacoes_novo && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1">Novo:</p>
+                                      <p className="text-xs bg-primary/10 p-2 rounded">
+                                        {item.observacoes_novo}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

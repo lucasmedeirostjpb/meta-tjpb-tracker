@@ -6,14 +6,103 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
-  }
+export interface Database {
   public: {
     Tables: {
+      metas_base: {
+        Row: {
+          id: string
+          linha_planilha: number | null
+          eixo: string
+          artigo: string
+          requisito: string
+          especificacao_requisito: string
+          responsavel_cnj: string | null
+          setor_executor: string
+          coordenador: string | null
+          prazo: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          linha_planilha?: number | null
+          eixo: string
+          artigo: string
+          requisito: string
+          especificacao_requisito: string
+          responsavel_cnj?: string | null
+          setor_executor: string
+          coordenador?: string | null
+          prazo?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          linha_planilha?: number | null
+          eixo?: string
+          artigo?: string
+          requisito?: string
+          especificacao_requisito?: string
+          responsavel_cnj?: string | null
+          setor_executor?: string
+          coordenador?: string | null
+          prazo?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      updates: {
+        Row: {
+          id: string
+          meta_id: string
+          setor_executor: string
+          status: string
+          data_prestacao: string
+          estimativa_cumprimento: string | null
+          pontos_estimados: number | null
+          percentual_cumprimento: number | null
+          acoes_planejadas: string | null
+          justificativa_parcial: string | null
+          link_evidencia: string | null
+          observacoes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          meta_id: string
+          setor_executor: string
+          status: string
+          data_prestacao?: string
+          estimativa_cumprimento?: string | null
+          pontos_estimados?: number | null
+          percentual_cumprimento?: number | null
+          acoes_planejadas?: string | null
+          justificativa_parcial?: string | null
+          link_evidencia?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          meta_id?: string
+          setor_executor?: string
+          status?: string
+          data_prestacao?: string
+          estimativa_cumprimento?: string | null
+          pontos_estimados?: number | null
+          percentual_cumprimento?: number | null
+          acoes_planejadas?: string | null
+          justificativa_parcial?: string | null
+          link_evidencia?: string | null
+          observacoes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       historico_alteracoes: {
         Row: {
           id: string
@@ -23,11 +112,19 @@ export type Database = {
           acao: string
           status_anterior: string | null
           status_novo: string | null
+          estimativa_cumprimento_anterior: string | null
+          estimativa_cumprimento_novo: string | null
+          pontos_estimados_anterior: number | null
+          pontos_estimados_novo: number | null
+          acoes_planejadas_anterior: string | null
+          acoes_planejadas_novo: string | null
+          justificativa_parcial_anterior: string | null
+          justificativa_parcial_novo: string | null
           link_evidencia_anterior: string | null
           link_evidencia_novo: string | null
           observacoes_anterior: string | null
           observacoes_novo: string | null
-          created_at: string | null
+          created_at: string
         }
         Insert: {
           id?: string
@@ -37,11 +134,19 @@ export type Database = {
           acao: string
           status_anterior?: string | null
           status_novo?: string | null
+          estimativa_cumprimento_anterior?: string | null
+          estimativa_cumprimento_novo?: string | null
+          pontos_estimados_anterior?: number | null
+          pontos_estimados_novo?: number | null
+          acoes_planejadas_anterior?: string | null
+          acoes_planejadas_novo?: string | null
+          justificativa_parcial_anterior?: string | null
+          justificativa_parcial_novo?: string | null
           link_evidencia_anterior?: string | null
           link_evidencia_novo?: string | null
           observacoes_anterior?: string | null
           observacoes_novo?: string | null
-          created_at?: string | null
+          created_at?: string
         }
         Update: {
           id?: string
@@ -51,122 +156,20 @@ export type Database = {
           acao?: string
           status_anterior?: string | null
           status_novo?: string | null
+          estimativa_cumprimento_anterior?: string | null
+          estimativa_cumprimento_novo?: string | null
+          pontos_estimados_anterior?: number | null
+          pontos_estimados_novo?: number | null
+          acoes_planejadas_anterior?: string | null
+          acoes_planejadas_novo?: string | null
+          justificativa_parcial_anterior?: string | null
+          justificativa_parcial_novo?: string | null
           link_evidencia_anterior?: string | null
           link_evidencia_novo?: string | null
           observacoes_anterior?: string | null
           observacoes_novo?: string | null
-          created_at?: string | null
+          created_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "historico_alteracoes_meta_id_fkey"
-            columns: ["meta_id"]
-            isOneToOne: false
-            referencedRelation: "metas_base"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      metas_base: {
-        Row: {
-          created_at: string | null
-          deadline: string
-          descricao: string | null
-          eixo: string
-          id: string
-          item: string
-          artigo: string
-          requisito: string
-          pontos_aplicaveis: number
-          setor_executor: string
-          coordenador: string | null
-          linha_planilha: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          deadline: string
-          descricao?: string | null
-          eixo: string
-          id?: string
-          item: string
-          artigo: string
-          requisito: string
-          pontos_aplicaveis: number
-          setor_executor: string
-          coordenador?: string | null
-          linha_planilha?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          deadline?: string
-          descricao?: string | null
-          eixo?: string
-          id?: string
-          item?: string
-          artigo?: string
-          requisito?: string
-          pontos_aplicaveis?: number
-          setor_executor?: string
-          coordenador?: string | null
-          linha_planilha?: number | null
-        }
-        Relationships: []
-      }
-      updates: {
-        Row: {
-          id: string
-          link_evidencia: string | null
-          meta_id: string
-          observacoes: string | null
-          setor_executor: string
-          status: string
-          updated_at: string | null
-          estimativa_cumprimento: string | null
-          pontos_estimados: number | null
-          percentual_cumprimento: number | null
-          acoes_planejadas: string | null
-          justificativa_parcial: string | null
-          data_prestacao: string | null
-        }
-        Insert: {
-          id?: string
-          link_evidencia?: string | null
-          meta_id: string
-          observacoes?: string | null
-          setor_executor: string
-          status?: string
-          updated_at?: string | null
-          estimativa_cumprimento?: string | null
-          pontos_estimados?: number | null
-          percentual_cumprimento?: number | null
-          acoes_planejadas?: string | null
-          justificativa_parcial?: string | null
-          data_prestacao?: string | null
-        }
-        Update: {
-          id?: string
-          link_evidencia?: string | null
-          meta_id?: string
-          observacoes?: string | null
-          setor_executor?: string
-          status?: string
-          updated_at?: string | null
-          estimativa_cumprimento?: string | null
-          pontos_estimados?: number | null
-          percentual_cumprimento?: number | null
-          acoes_planejadas?: string | null
-          justificativa_parcial?: string | null
-          data_prestacao?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "updates_meta_id_fkey"
-            columns: ["meta_id"]
-            isOneToOne: true
-            referencedRelation: "metas_base"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
@@ -178,131 +181,5 @@ export type Database = {
     Enums: {
       [_ in never]: never
     }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

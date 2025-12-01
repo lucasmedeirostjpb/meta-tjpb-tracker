@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileSpreadsheet, AlertCircle, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -158,18 +158,7 @@ const ImportPage = () => {
     try {
       // Deletar dados antigos se a opção estiver marcada
       if (deleteOldData) {
-        const { error: deleteError } = await supabase
-          .from('metas_base')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos os registros
-        
-        if (deleteError) {
-          console.error('Erro ao deletar dados antigos:', deleteError);
-          toast.error('Erro ao limpar dados antigos');
-          setLoading(false);
-          return;
-        }
-        
+        await api.deleteAllMetas();
         toast.success('Dados antigos removidos com sucesso');
       }
 
@@ -210,15 +199,13 @@ const ImportPage = () => {
         };
       });
 
-      const { error } = await supabase.from('metas_base').insert(metas);
-
-      if (error) throw error;
+      await api.createMetas(metas);
 
       toast.success(`${metas.length} metas importadas com sucesso!`);
       navigate('/setor-selection');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao importar dados:', error);
-      toast.error('Erro ao importar os dados. Tente novamente.');
+      toast.error('Erro ao importar os dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }

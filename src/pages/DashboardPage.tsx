@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -66,43 +66,16 @@ const DashboardPage = () => {
         const filteredMetas = allMetas.filter(meta => meta[coluna] === nome);
         setMetas(filteredMetas);
       } else {
-        // Usar dados reais do Supabase
-        const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
+        // Usar API
+        const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor';
+        const filters = { [coluna]: nome };
         
-        const { data: metasData, error: metasError } = await supabase
-          .from('metas_base')
-          .select('*')
-          .eq(coluna, nome);
-
-        if (metasError) throw metasError;
-
-        const { data: updatesData, error: updatesError } = await supabase
-          .from('updates')
-          .select('*');
-
-        if (updatesError) throw updatesError;
-
-        const metasWithStatus = metasData.map(meta => {
-          const update = updatesData?.find(u => u.meta_id === meta.id);
-          return {
-            ...meta,
-            status: update?.status || 'Pendente',
-            link_evidencia: update?.link_evidencia || '',
-            observacoes: update?.observacoes || '',
-            update_id: update?.id,
-            estimativa_cumprimento: update?.estimativa_cumprimento,
-            pontos_estimados: update?.pontos_estimados,
-            percentual_cumprimento: update?.percentual_cumprimento,
-            acoes_planejadas: update?.acoes_planejadas,
-            justificativa_parcial: update?.justificativa_parcial,
-          };
-        });
-
-        setMetas(metasWithStatus);
+        const data = await api.getMetas(filters);
+        setMetas(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar metas:', error);
-      toast.error('Erro ao carregar as metas');
+      toast.error('Erro ao carregar metas: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -111,6 +84,11 @@ const DashboardPage = () => {
   const calculateProgress = () => {
     const totalPontos = metas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
     const pontosRecebidos = metas.reduce((sum, meta) => {
+      // Usar pontos_estimados se disponível, senão calcular do percentual
+      if (meta.pontos_estimados !== undefined && meta.pontos_estimados !== null) {
+        return sum + meta.pontos_estimados;
+      }
+      // Fallback para cálculo via percentual
       const percentual = meta.percentual_cumprimento || 0;
       return sum + (meta.pontos_aplicaveis * percentual / 100);
     }, 0);

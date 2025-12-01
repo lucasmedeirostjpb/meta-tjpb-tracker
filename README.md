@@ -35,7 +35,8 @@ Sistema para gerenciamento e acompanhamento das metas do Prêmio CNJ de Qualidad
 
 - **Frontend**: React + TypeScript + Vite
 - **UI**: Shadcn-ui + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + API)
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **Cliente**: @supabase/supabase-js (comunicação direta)
 - **Planilhas**: XLSX (importação de Excel)
 
 ## 🚀 Início Rápido
@@ -438,11 +439,19 @@ meta-tjpb-tracker/
 │   │   ├── SetorSelectionPage.tsx
 │   │   └── DashboardPage.tsx
 │   ├── integrations/supabase/
-│   │   ├── client.ts        # Cliente configurado
-│   │   └── types.ts         # Tipos do banco
-│   └── lib/utils.ts
+│   │   ├── client.ts        # Cliente Supabase configurado
+│   │   ├── types.ts         # Tipos TypeScript do banco
+│   │   └── index.ts         # Exports públicos
+│   ├── services/
+│   │   └── api.ts           # Camada de serviço (usa Supabase diretamente)
+│   └── lib/
+│       ├── utils.ts         # Utilitários
+│       └── mockData.ts      # Dados para modo demo
 ├── supabase/migrations/
-│   └── 20251127_inicial_completa.sql  # Migration única
+│   ├── 20251127_inicial_completa.sql
+│   ├── 20251128_add_linha_planilha.sql
+│   ├── 20251128_add_auth_and_history.sql
+│   └── 20251128_add_prestacao_contas.sql
 └── .env                     # Credenciais (não versionar!)
 ```
 

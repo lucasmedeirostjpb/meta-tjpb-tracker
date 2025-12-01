@@ -1,0 +1,456 @@
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type UpdateData = {
+  id: string;
+  status: string;
+  link_evidencia?: string | null;
+  observacoes?: string | null;
+  estimativa_cumprimento?: string | null;
+  pontos_estimados?: number | null;
+  percentual_cumprimento?: number | null;
+  acoes_planejadas?: string | null;
+  justificativa_parcial?: string | null;
+  updated_at: string;
+};
+
+type Meta = Database['public']['Tables']['metas_base']['Row'] & {
+  status?: string;
+  link_evidencia?: string;
+  observacoes?: string;
+  update_id?: string;
+  estimativa_cumprimento?: string;
+  pontos_estimados?: number;
+  percentual_cumprimento?: number;
+  acoes_planejadas?: string;
+  justificativa_parcial?: string;
+  updates?: UpdateData[];
+};
+
+type MetaBase = {
+  eixo: string;
+  artigo: string;
+  requisito: string;
+};
+
+type HistoricoItem = Database['public']['Tables']['historico_alteracoes']['Row'] & {
+  meta?: MetaBase;
+  metas_base?: MetaBase | MetaBase[] | null;
+};
+
+export const api = {
+  // ==================== AUTENTICAÇÃO ====================
+  
+  async signUp(email: string, password: string) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async signIn(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    return { token: data.session?.access_token, user: data.user };
+  },
+
+  async signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
+  async getSession() {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return { user: session?.user || null };
+  },
+
+  // ==================== METAS ====================
+
+  async getMetas(filters?: { setor?: string; coordenador?: string }): Promise<Meta[]> {
+    console.log('🔍 [API] Iniciando busca de metas com filtros:', filters);
+
+    try {
+      // Primeira query: buscar metas_base
+      let queryMetas = supabase
+        .from('metas_base')
+        .select('*')
+        .order('linha_planilha', { ascending: true, nullsFirst: false })
+        .order('eixo', { ascending: true })
+        .order('artigo', { ascending: true })
+        .order('requisito', { ascending: true });
+
+      // Aplicar filtros
+      if (filters?.setor) {
+        queryMetas = queryMetas.eq('setor_executor', filters.setor);
+      }
+      if (filters?.coordenador) {
+        queryMetas = queryMetas.eq('coordenador', filters.coordenador);
+      }
+
+      const { data: metasData, error: metasError } = await queryMetas;
+
+      if (metasError) {
+        console.error('❌ [API] Erro ao buscar metas_base:', metasError);
+        throw metasError;
+      }
+
+      console.log(`✅ [API] ${metasData?.length || 0} metas encontradas`);
+
+      if (!metasData || metasData.length === 0) {
+        console.warn('⚠️ [API] Nenhuma meta encontrada no banco');
+        return [];
+      }
+
+      // Segunda query: buscar updates
+      const { data: updatesData, error: updatesError } = await supabase
+        .from('updates')
+        .select('*');
+
+      if (updatesError) {
+        console.error('⚠️ [API] Erro ao buscar updates (continuando sem eles):', updatesError);
+      }
+
+      console.log(`✅ [API] ${updatesData?.length || 0} updates encontrados`);
+
+      // Mapear metas com seus updates
+      const metasComUpdates = metasData.map(meta => {
+        const update = updatesData?.find(u => u.meta_id === meta.id);
+        
+        return {
+          ...meta,
+          status: update?.status || 'Pendente',
+          link_evidencia: update?.link_evidencia || '',
+          observacoes: update?.observacoes || '',
+          update_id: update?.id,
+          estimativa_cumprimento: update?.estimativa_cumprimento || 'Não se Aplica',
+          pontos_estimados: update?.pontos_estimados || 0,
+          percentual_cumprimento: update?.percentual_cumprimento || 0,
+          acoes_planejadas: update?.acoes_planejadas || '',
+          justificativa_parcial: update?.justificativa_parcial || '',
+        };
+      });
+
+      console.log('✅ [API] Metas processadas com sucesso:', metasComUpdates.length);
+      return metasComUpdates;
+
+    } catch (error) {
+      console.error('❌ [API] Erro geral ao buscar metas:', error);
+      throw error;
+    }
+  },
+
+  async createMetas(metas: Array<Omit<Database['public']['Tables']['metas_base']['Insert'], 'id'>>) {
+    console.log('📝 [API] Criando metas:', metas.length);
+    
+    const { error } = await supabase
+      .from('metas_base')
+      .insert(metas);
+
+    if (error) {
+      console.error('❌ [API] Erro ao criar metas:', error);
+      throw error;
+    }
+
+    console.log('✅ [API] Metas criadas com sucesso');
+  },
+
+  async deleteAllMetas() {
+    console.log('🗑️ [API] Deletando todas as metas...');
+    
+    const { error } = await supabase
+      .from('metas_base')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta todos
+
+    if (error) {
+      console.error('❌ [API] Erro ao deletar metas:', error);
+      throw error;
+    }
+
+    console.log('✅ [API] Todas as metas foram deletadas');
+  },
+
+  // ==================== UPDATES (PRESTAÇÃO DE CONTAS) ====================
+
+  async createUpdate(updateData: {
+    meta_id: string;
+    setor_executor: string;
+    status: string;
+    estimativa_cumprimento?: string;
+    pontos_estimados?: number;
+    percentual_cumprimento?: number;
+    acoes_planejadas?: string;
+    justificativa_parcial?: string;
+    link_evidencia?: string;
+    observacoes?: string;
+  }) {
+    console.log('💾 [API] Salvando update para meta:', updateData.meta_id);
+
+    // Verificar se já existe um update para esta meta
+    const { data: existing } = await supabase
+      .from('updates')
+      .select('id')
+      .eq('meta_id', updateData.meta_id)
+      .maybeSingle();
+
+    if (existing) {
+      console.log('📝 [API] Update existente encontrado, atualizando...');
+      
+      // Atualizar update existente
+      const { error } = await supabase
+        .from('updates')
+        .update({
+          setor_executor: updateData.setor_executor,
+          status: updateData.status,
+          estimativa_cumprimento: updateData.estimativa_cumprimento,
+          pontos_estimados: updateData.pontos_estimados,
+          percentual_cumprimento: updateData.percentual_cumprimento,
+          acoes_planejadas: updateData.acoes_planejadas,
+          justificativa_parcial: updateData.justificativa_parcial,
+          link_evidencia: updateData.link_evidencia,
+          observacoes: updateData.observacoes,
+          data_prestacao: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+
+      if (error) {
+        console.error('❌ [API] Erro ao atualizar update:', error);
+        throw error;
+      }
+
+      console.log('✅ [API] Update atualizado com sucesso');
+    } else {
+      console.log('➕ [API] Criando novo update...');
+      
+      // Criar novo update
+      const { error } = await supabase
+        .from('updates')
+        .insert({
+          meta_id: updateData.meta_id,
+          setor_executor: updateData.setor_executor,
+          status: updateData.status,
+          estimativa_cumprimento: updateData.estimativa_cumprimento,
+          pontos_estimados: updateData.pontos_estimados,
+          percentual_cumprimento: updateData.percentual_cumprimento,
+          acoes_planejadas: updateData.acoes_planejadas,
+          justificativa_parcial: updateData.justificativa_parcial,
+          link_evidencia: updateData.link_evidencia,
+          observacoes: updateData.observacoes,
+          data_prestacao: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('❌ [API] Erro ao criar update:', error);
+        throw error;
+      }
+
+      console.log('✅ [API] Update criado com sucesso');
+    }
+  },
+
+  // ==================== DADOS AUXILIARES ====================
+
+  async getSetores(): Promise<string[]> {
+    console.log('📋 [API] Buscando lista de setores...');
+    
+    const { data, error } = await supabase
+      .from('metas_base')
+      .select('setor_executor')
+      .not('setor_executor', 'is', null)
+      .order('setor_executor');
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar setores:', error);
+      throw error;
+    }
+
+    // Retornar lista única de setores
+    const setores = [...new Set(data?.map(m => m.setor_executor).filter(Boolean) || [])];
+    console.log(`✅ [API] ${setores.length} setores encontrados:`, setores);
+    return setores.sort();
+  },
+
+  async getCoordenadores(): Promise<string[]> {
+    console.log('👥 [API] Buscando lista de coordenadores...');
+    
+    const { data, error } = await supabase
+      .from('metas_base')
+      .select('coordenador')
+      .not('coordenador', 'is', null)
+      .order('coordenador');
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar coordenadores:', error);
+      throw error;
+    }
+
+    // Retornar lista única de coordenadores
+    const coordenadores = [...new Set(data?.map(m => m.coordenador).filter(Boolean) || [])];
+    console.log(`✅ [API] ${coordenadores.length} coordenadores encontrados:`, coordenadores);
+    return coordenadores.sort();
+  },
+
+  // ==================== HISTÓRICO ====================
+
+  async getHistorico(limit = 100): Promise<HistoricoItem[]> {
+    console.log('📜 [API] Buscando histórico (limit:', limit, ')');
+    
+    const { data, error } = await supabase
+      .from('historico_alteracoes')
+      .select(`
+        *,
+        metas_base (
+          eixo,
+          artigo,
+          requisito
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar histórico:', error);
+      throw error;
+    }
+
+    console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados`);
+
+    return (data || []).map(item => ({
+      ...item,
+      meta: item.metas_base ? {
+        eixo: item.metas_base.eixo,
+        artigo: item.metas_base.artigo,
+        requisito: item.metas_base.requisito,
+      } : undefined,
+    }));
+  },
+
+  async getHistoricoByMeta(metaId: string): Promise<HistoricoItem[]> {
+    console.log('📜 [API] Buscando histórico da meta:', metaId);
+    
+    const { data, error } = await supabase
+      .from('historico_alteracoes')
+      .select('*')
+      .eq('meta_id', metaId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar histórico da meta:', error);
+      throw error;
+    }
+
+    console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados para a meta`);
+    return data || [];
+  },
+
+  // ==================== ESTATÍSTICAS ====================
+
+  async getStats() {
+    console.log('📊 [API] Calculando estatísticas...');
+
+    try {
+      // Buscar metas e updates separadamente (mesmo padrão de getMetas)
+      const { data: metasData, error: metasError } = await supabase
+        .from('metas_base')
+        .select('*');
+
+      if (metasError) {
+        console.error('❌ [API] Erro ao buscar metas_base:', metasError);
+        throw metasError;
+      }
+
+      const { data: updatesData, error: updatesError } = await supabase
+        .from('updates')
+        .select('*');
+
+      if (updatesError) {
+        console.error('⚠️ [API] Erro ao buscar updates (continuando sem eles):', updatesError);
+      }
+
+      console.log(`✅ [API] ${metasData?.length || 0} metas encontradas`);
+      console.log(`✅ [API] ${updatesData?.length || 0} updates encontrados`);
+
+      // Função para determinar cor do eixo
+      const getEixoCor = (eixo: string): string => {
+        const eixoLower = eixo.toLowerCase();
+        if (eixoLower.includes('governança') || eixoLower.includes('governanca')) return 'blue';
+        if (eixoLower.includes('produtividade')) return 'green';
+        if (eixoLower.includes('transparência') || eixoLower.includes('transparencia')) return 'purple';
+        if (eixoLower.includes('dados') || eixoLower.includes('tecnologia')) return 'orange';
+        return 'gray';
+      };
+
+      // Agrupar por eixo
+      const eixosMap = new Map<string, { 
+        pontos: number; 
+        pontosRecebidos: number; 
+        total: number;
+      }>();
+      const setoresSet = new Set<string>();
+      let totalRequisitos = 0;
+      let totalPontos = 0;
+
+      (metasData || []).forEach(meta => {
+        totalRequisitos++;
+        setoresSet.add(meta.setor_executor);
+
+        // Buscar update correspondente
+        const update = updatesData?.find(u => u.meta_id === meta.id);
+
+        // Agregar por eixo
+        const eixoData = eixosMap.get(meta.eixo) || { 
+          pontos: 0, 
+          pontosRecebidos: 0,
+          total: 0
+        };
+        
+        const pontosMeta = meta.pontos_aplicaveis || 10;
+        eixoData.pontos += pontosMeta;
+        eixoData.total++;
+
+        // Calcular pontos recebidos usando pontos_estimados do update
+        if (update) {
+          const pontosRecebidos = update.pontos_estimados || 0;
+          eixoData.pontosRecebidos += pontosRecebidos;
+          totalPontos += pontosRecebidos;
+          
+          console.log(`📈 [API] Meta ${meta.artigo} ${meta.requisito}: ${pontosRecebidos}/${pontosMeta} pontos (${update.status})`);
+        }
+
+        eixosMap.set(meta.eixo, eixoData);
+      });
+
+      // Converter map para array com formato esperado pela página
+      const eixosData = Array.from(eixosMap.entries()).map(([nome, dados]) => ({
+        nome,
+        pontos: dados.pontos,
+        pontosRecebidos: dados.pontosRecebidos,
+        percentual: dados.pontos > 0 ? (dados.pontosRecebidos / dados.pontos) * 100 : 0,
+        cor: getEixoCor(nome),
+      }));
+
+      const stats = {
+        eixos: eixosMap.size,
+        requisitos: totalRequisitos,
+        pontosTotais: Math.round(totalPontos),
+        setores: setoresSet.size,
+        eixosData,
+      };
+
+      console.log('✅ [API] Estatísticas calculadas:', stats);
+      return stats;
+
+    } catch (error) {
+      console.error('❌ [API] Erro ao calcular estatísticas:', error);
+      throw error;
+    }
+  },
+};

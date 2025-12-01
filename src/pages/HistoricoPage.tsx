@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,20 +40,17 @@ const HistoricoPage = () => {
   }, []);
 
   const carregarHistorico = async () => {
+    console.log('🔄 [HISTORICO] Carregando histórico de alterações');
     try {
-      const { data, error } = await supabase
-        .from('historico_alteracoes')
-        .select(`
-          *,
-          meta:metas_base(eixo, artigo, requisito)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
+      const data = await api.getHistorico(100);
+      console.log('✅ [HISTORICO] Registros recebidos:', data?.length || 0);
+      if (data && data.length > 0) {
+        console.log('📊 [HISTORICO] Primeiro registro:', data[0]);
+      }
       setHistorico(data || []);
     } catch (error: any) {
-      toast.error('Erro ao carregar histórico: ' + error.message);
+      console.error('❌ [HISTORICO] Erro ao carregar histórico:', error);
+      toast.error('Erro ao carregar histórico: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
