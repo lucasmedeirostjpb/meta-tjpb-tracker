@@ -101,10 +101,21 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
   const [loadingHistorico, setLoadingHistorico] = useState(false);
 
   useEffect(() => {
-    if (meta) {
-      setStatus(meta.status || 'Pendente');
-      setEstimativa(meta.estimativa_cumprimento || 'Não se Aplica');
-      setPontosRecebidos(meta.pontos_estimados || 0);
+    if (meta && open) { // Adicionar 'open' para garantir que recarrega ao abrir
+      const statusInicial = meta.status || 'Pendente';
+      const estimativaInicial = meta.estimativa_cumprimento || 'Não se Aplica';
+      const pontosInicial = meta.pontos_estimados || 0;
+      
+      console.log('🔍 [Modal] Carregando dados da meta:', {
+        id: meta.id,
+        status: statusInicial,
+        estimativa: estimativaInicial,
+        pontos: pontosInicial
+      });
+      
+      setStatus(statusInicial);
+      setEstimativa(estimativaInicial);
+      setPontosRecebidos(pontosInicial);
       setAcoes(meta.acoes_planejadas || '');
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
@@ -112,11 +123,11 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
       
       // Carregar histórico
       loadHistorico();
-    } else {
+    } else if (!open) {
       // Resetar estado quando fechar modal
       setHistorico([]);
     }
-  }, [meta?.id]); // Usar meta.id como dependência para forçar reset
+  }, [meta?.id, open]); // Adicionar 'open' como dependência
 
   const loadHistorico = async () => {
     if (!meta || isMockMode) return;
@@ -132,7 +143,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
     }
   };
 
-  // Sincronizar status com estimativa
+  // Sincronizar status com estimativa (apenas quando usuário muda a estimativa manualmente)
   useEffect(() => {
     if (estimativa === 'Totalmente Cumprido') {
       setStatus('Concluído');
@@ -142,11 +153,11 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
       setPontosRecebidos(0);
     } else if (estimativa === 'Parcialmente Cumprido') {
       setStatus('Em Andamento');
-      // Manter pontos atual definido pelo usuário
+      // Não resetar pontos aqui - manter o valor atual que veio do banco ou que o usuário definir
     } else if (estimativa === 'Não se Aplica') {
       setPontosRecebidos(0);
     }
-  }, [estimativa, meta]);
+  }, [estimativa]); // Removido 'meta' das dependências para não retriggerar ao abrir modal
 
   const handleSave = async () => {
     if (!meta) return;
@@ -199,10 +210,13 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
 
       toast.success('Prestação de contas salva com sucesso!');
       
-      // Aguardar um pouco para garantir que o banco atualizou
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Chamar onUpdate para recarregar dados ANTES de fechar
+      await onUpdate();
       
-      onUpdate();
+      // Aguardar um pouco para UI atualizar
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Fechar modal
       onClose();
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
@@ -243,6 +257,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
     }
   };
 
+  // Determinar status atual baseado na estimativa (para exibição)
+  const statusAtual = (() => {
+    if (estimativa === 'Totalmente Cumprido') return 'Concluído';
+    if (estimativa === 'Parcialmente Cumprido') return 'Em Andamento';
+    if (estimativa === 'Não Cumprido') return 'Pendente';
+    return status;
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -252,7 +274,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
               <DialogTitle className="text-2xl mb-2">{meta.artigo} - {meta.requisito}</DialogTitle>
               <DialogDescription className="text-base">{meta.item}</DialogDescription>
               <div className="mt-2">
-                <Badge className={getStatusColor(status)}>{status}</Badge>
+                <Badge className={getStatusColor(statusAtual)}>{statusAtual}</Badge>
               </div>
             </div>
           </div>
