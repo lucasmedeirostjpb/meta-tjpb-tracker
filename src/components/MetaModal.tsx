@@ -210,11 +210,18 @@ const MetaModal = ({ meta, open, onClose, onUpdate }: MetaModalProps) => {
 
       toast.success('Prestação de contas salva com sucesso!');
       
-      // Chamar onUpdate para recarregar dados ANTES de fechar
-      await onUpdate();
+      // Atualizar apenas os dados da meta atual sem recarregar a página
+      meta.status = status;
+      meta.estimativa_cumprimento = estimativa;
+      meta.percentual_cumprimento = percentualCalculado;
+      meta.pontos_estimados = pontosRecebidos;
+      meta.acoes_planejadas = acoes;
+      meta.justificativa_parcial = justificativa;
+      meta.link_evidencia = linkEvidencia;
+      meta.observacoes = observacoes;
       
-      // Aguardar um pouco para UI atualizar
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Recarregar apenas o histórico desta meta
+      await loadHistorico();
       
       // Fechar modal
       onClose();

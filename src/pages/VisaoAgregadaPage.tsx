@@ -470,7 +470,11 @@ const VisaoAgregadaPage = () => {
         meta={selectedMeta}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onUpdate={loadMetas}
+        onUpdate={() => {
+          setModalOpen(false);
+          // Removido: loadMetas();
+          // A meta já foi atualizada no modal, não precisa recarregar tudo
+        }}
       />
     </div>
   );

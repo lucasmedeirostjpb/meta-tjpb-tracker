@@ -149,7 +149,8 @@ const DashboardPage = () => {
     if (isMockMode) {
       toast.info('Em modo mock, as alterações não são persistidas');
     }
-    await fetchMetas();
+    // Removido: await fetchMetas();
+    // A meta já foi atualizada no modal, não precisa recarregar tudo
   };
 
   const progress = calculateProgress();
