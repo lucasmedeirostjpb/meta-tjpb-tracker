@@ -24,22 +24,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Building2, Users, LogIn, LogOut, ArrowLeft, Scale, LayoutList, Check, ChevronsUpDown } from "lucide-react";
+import { Building2, Users, ArrowLeft, Scale, LayoutList, Check, ChevronsUpDown, Target, FileText } from "lucide-react";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 import { getSetoresUnicos, getCoordenadoresUnicos } from "@/lib/mockData";
-import { useAuth } from "@/contexts/AuthContext";
 
 const SetorSelectionPage = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [setores, setSetores] = useState<string[]>([]);
   const [coordenadores, setCoordenadores] = useState<string[]>([]);
   const [selectedSetor, setSelectedSetor] = useState<string>("");
   const [selectedCoordenador, setSelectedCoordenador] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("setor");
+  const [activeTab, setActiveTab] = useState("coordenador");
   const [openSetor, setOpenSetor] = useState(false);
   const [openCoordenador, setOpenCoordenador] = useState(false);
 
@@ -92,9 +90,9 @@ const SetorSelectionPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -102,96 +100,71 @@ const SetorSelectionPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/')}
+                className="hover:bg-blue-100"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
                   <Scale className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    TJPB - Prêmio CNJ
+                  </h1>
                   <p className="text-xs text-gray-600">Qualidade 2026</p>
                 </div>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <Badge variant="outline" className="gap-2">
-                    <span className="h-2 w-2 bg-green-500 rounded-full"></span>
-                    <span className="hidden sm:inline">{user.email}</span>
-                    <span className="sm:hidden">Logado</span>
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={signOut}
-                    className="gap-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sair</span>
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => navigate('/login')} className="gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Entrar
-                </Button>
-              )}
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto space-y-8">
           {/* Hero Section */}
-          <div className="text-center space-y-4">
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-blue-600 rounded-2xl">
-                <Building2 className="h-12 w-12 text-white" />
+          <div className="text-center space-y-4 mb-12">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-xl opacity-50"></div>
+                <div className="relative p-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl shadow-2xl">
+                  <Target className="h-14 w-14 text-white" />
+                </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900">Consultar Requisitos</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Escolha como deseja visualizar os requisitos do Prêmio CNJ de Qualidade 2026
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Consultar Requisitos
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Escolha a melhor forma de visualizar e acompanhar os requisitos do Prêmio CNJ de Qualidade 2026
             </p>
-            {!user && (
-              <div className="inline-block bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                <p className="text-sm text-blue-800">
-                  💡 <button onClick={() => navigate('/login')} className="underline font-medium">Faça login</button> para registrar prestações de contas
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Opções de Visualização */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             {/* Card Visão por Setor/Coordenador */}
-            <Card className="border-2 hover:border-blue-500 transition-colors">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Building2 className="h-6 w-6 text-blue-600" />
+            <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 bg-white/80 backdrop-blur-sm group">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl group-hover:from-blue-500 group-hover:to-blue-600 transition-all duration-300">
+                    <Building2 className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors duration-300" />
                   </div>
-                  <CardTitle className="text-xl">Meu Setor/Coordenação</CardTitle>
+                  <CardTitle className="text-xl font-bold">{activeTab === "coordenador" ? "Por Coordenador" : "Por Setor"}</CardTitle>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-base">
                   Visualize apenas os requisitos do seu setor ou coordenação específica
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="setor" className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Setor
-                    </TabsTrigger>
                     <TabsTrigger value="coordenador" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Coordenador
+                    </TabsTrigger>
+                    <TabsTrigger value="setor" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Setor
                     </TabsTrigger>
                   </TabsList>
 
@@ -247,9 +220,10 @@ const SetorSelectionPage = () => {
                     <Button
                       onClick={handleAccessSetor}
                       disabled={!selectedSetor || loading}
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                       size="lg"
                     >
+                      <Building2 className="mr-2 h-5 w-5" />
                       Ver Requisitos do Setor
                     </Button>
                   </TabsContent>
@@ -306,9 +280,10 @@ const SetorSelectionPage = () => {
                     <Button
                       onClick={handleAccessCoordenador}
                       disabled={!selectedCoordenador || loading}
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                       size="lg"
                     >
+                      <Users className="mr-2 h-5 w-5" />
                       Ver Requisitos do Coordenador
                     </Button>
                   </TabsContent>
@@ -317,38 +292,74 @@ const SetorSelectionPage = () => {
             </Card>
 
             {/* Card Visão Consolidada */}
-            <Card className="border-2 hover:border-purple-500 transition-colors">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <LayoutList className="h-6 w-6 text-purple-600" />
+            <Card className="border-2 border-purple-200 hover:border-purple-400 hover:shadow-2xl transition-all duration-300 bg-white/80 backdrop-blur-sm group">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl group-hover:from-purple-500 group-hover:to-purple-600 transition-all duration-300">
+                    <LayoutList className="h-7 w-7 text-purple-600 group-hover:text-white transition-colors duration-300" />
                   </div>
-                  <CardTitle className="text-xl">Visão Consolidada</CardTitle>
+                  <CardTitle className="text-xl font-bold">Visão Consolidada</CardTitle>
                 </div>
-                <CardDescription>
-                  Visualize todos os requisitos organizados por eixo e coordenador em uma visão completa
+                <CardDescription className="text-base">
+                  Visualize todos os requisitos organizados em uma visão completa
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <p className="text-sm text-purple-900 font-medium mb-2">Inclui:</p>
-                    <ul className="text-sm text-purple-800 space-y-1">
-                      <li>✓ Todos os 4 eixos temáticos</li>
-                      <li>✓ Agrupamento por coordenador</li>
-                      <li>✓ Progresso consolidado</li>
-                      <li>✓ Visualização em acordeão</li>
-                    </ul>
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+                    <p className="text-sm text-purple-900 font-medium">Escolha o tipo de consolidação:</p>
                   </div>
-                  <Button
-                    onClick={() => navigate('/consolidado')}
-                    variant="outline"
-                    className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
-                    size="lg"
-                  >
-                    Abrir Visão Consolidada
-                  </Button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => navigate('/consolidado?tipo=coordenador')}
+                      variant="outline"
+                      className="border-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400 h-auto py-5 flex-col gap-2 transition-all duration-300"
+                    >
+                      <Users className="h-7 w-7" />
+                      <div className="text-center">
+                        <div className="font-bold text-sm">Coordenador</div>
+                        <div className="text-xs text-muted-foreground">Eixos → Coords</div>
+                      </div>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => navigate('/consolidado?tipo=setor')}
+                      variant="outline"
+                      className="border-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400 h-auto py-5 flex-col gap-2 transition-all duration-300"
+                    >
+                      <Building2 className="h-7 w-7" />
+                      <div className="text-center">
+                        <div className="font-bold text-sm">Setor</div>
+                        <div className="text-xs text-muted-foreground">Eixos → Setores</div>
+                      </div>
+                    </Button>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Card Tabela Completa */}
+            <Card className="border-2 border-green-200 hover:border-green-400 hover:shadow-2xl transition-all duration-300 bg-white/80 backdrop-blur-sm group">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-3 bg-gradient-to-br from-green-100 to-green-200 rounded-xl group-hover:from-green-500 group-hover:to-green-600 transition-all duration-300">
+                    <FileText className="h-7 w-7 text-green-600 group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <CardTitle className="text-xl font-bold">Tabela Completa</CardTitle>
+                </div>
+                <CardDescription className="text-base">
+                  Visualize todos os requisitos em formato de tabela com filtros avançados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => navigate('/tabela')}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white h-12"
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Abrir Tabela Completa
+                </Button>
               </CardContent>
             </Card>
           </div>

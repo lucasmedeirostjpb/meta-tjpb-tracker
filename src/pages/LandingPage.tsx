@@ -3,16 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Target, Award, Users, FileText, LogIn, ChevronDown, Search, LayoutList } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
+import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight } from 'lucide-react';
 import { api } from '@/services/api';
 import { mockMetas } from '@/lib/mockData';
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [stats, setStats] = useState({
     eixos: 4,
@@ -117,7 +113,7 @@ const LandingPage = () => {
       nome: 'Produtividade',
       cor: 'green',
       descricao: 'Eficiência processual, otimização e gestão de acervo',
-      icone: Award,
+      icone: TrendingUp,
     },
     {
       nome: 'Transparência',
@@ -133,17 +129,10 @@ const LandingPage = () => {
     },
   ];
 
-  const statsCards = [
-    { label: 'Eixos Temáticos', value: stats.eixos.toString(), color: 'blue' },
-    { label: 'Requisitos', value: stats.requisitos.toString(), color: 'green' },
-    { label: 'Pontos Totais', value: stats.pontosTotais.toString(), color: 'purple' },
-    { label: 'Setores Envolvidos', value: stats.setores.toString(), color: 'orange' },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      {/* Header/Navbar */}
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header/Navbar - Modernizado */}
+      <nav className="bg-white/90 backdrop-blur-md shadow-lg border-b border-blue-100 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -155,153 +144,184 @@ const LandingPage = () => {
                 />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
-                <p className="text-xs text-gray-600">Qualidade 2026</p>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
+                  TJPB - Prêmio CNJ
+                </h1>
+                <p className="text-xs text-gray-600 font-medium">Qualidade 2026</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
+                onClick={() => navigate('/tabela')}
+                className="gap-2 hidden lg:flex hover:bg-blue-50 transition-colors"
+              >
+                <FileText className="h-4 w-4" />
+                Tabela Completa
+              </Button>
+              <Button 
+                variant="ghost" 
                 onClick={() => navigate('/consolidado')}
-                className="gap-2 hidden md:flex"
+                className="gap-2 hidden md:flex hover:bg-blue-50 transition-colors"
               >
                 <LayoutList className="h-4 w-4" />
                 Visão Consolidada
               </Button>
-              <Button onClick={() => navigate('/consultar')}>
+              <Button 
+                onClick={() => navigate('/consultar')}
+                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
+              >
                 Acessar Sistema
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Badge className="bg-blue-100 text-blue-800 text-sm px-4 py-2 hover:bg-blue-100 cursor-default">
+      {/* Hero Section - Redesenhado */}
+      <section className="container mx-auto px-4 py-16 lg:py-24">
+        <div className="max-w-5xl mx-auto text-center space-y-8">
+          <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm px-6 py-2 hover:from-blue-700 hover:to-indigo-700 cursor-default shadow-lg">
             Tribunal de Justiça da Paraíba
           </Badge>
           
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
-            Prêmio CNJ de Qualidade
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight">
+            <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Prêmio CNJ
+            </span>
+            <br />
+            <span className="text-gray-800">
+              de Qualidade
+            </span>
             <span className="block text-blue-600 mt-2">2026</span>
           </h1>
           
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Sistema de acompanhamento e gestão das metas para o Prêmio Conselho Nacional de Justiça de Qualidade
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
             <Button 
               size="lg" 
               onClick={() => navigate('/consultar')}
-              className="gap-2 text-lg px-8"
+              className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              <Target className="h-5 w-5" />
+              <Target className="h-6 w-6" />
               Consultar Requisitos
             </Button>
             <Button 
               size="lg" 
               variant="outline"
               onClick={() => navigate('/consolidado')}
-              className="gap-2 text-lg px-8"
+              className="gap-3 text-lg px-8 py-6 border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400 shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              <LayoutList className="h-5 w-5" />
+              <LayoutList className="h-6 w-6" />
               Visão Consolidada
             </Button>
           </div>
-
-          <div className="pt-8">
-            <ChevronDown className="h-8 w-8 text-gray-400 mx-auto animate-bounce" />
-          </div>
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Grid - Modernizado */}
       <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {statsCards.map((stat, index) => (
-            <Card key={index} className="text-center">
-              <CardContent className="pt-6">
-                <p className={`text-4xl font-bold text-${stat.color}-600`}>{stat.value}</p>
-                <p className="text-sm text-gray-600 mt-2">{stat.label}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          {[
+            { label: 'Eixos Temáticos', value: stats.eixos, color: 'from-blue-500 to-blue-600', icon: Target },
+            { label: 'Requisitos', value: stats.requisitos, color: 'from-green-500 to-green-600', icon: CheckCircle2 },
+            { label: 'Pontos Totais', value: stats.pontosTotais, color: 'from-purple-500 to-purple-600', icon: Award },
+            { label: 'Setores', value: stats.setores, color: 'from-orange-500 to-orange-600', icon: Users },
+          ].map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index} className="text-center border-2 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 backdrop-blur-sm">
+                <CardContent className="pt-6 pb-6">
+                  <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                    <Icon className="h-7 w-7 text-white" />
+                  </div>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    {stat.value}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2 font-medium">{stat.label}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </section>
 
-      {/* Performance por Eixo */}
-      <section className="bg-white py-16">
+      {/* Performance por Eixo - Redesenhado */}
+      <section className="bg-white/80 backdrop-blur-sm py-16 lg:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent mb-4">
               Performance por Eixo
             </h2>
-            <p className="text-lg text-gray-600">
-              Acompanhe o progresso de cada eixo temático
+            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+              Acompanhe o progresso de cada eixo temático do prêmio
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {stats.eixosData.map((eixo, index) => {
               const strokeDasharray = `${eixo.percentual * 2.51} 251`;
-              const corClass = eixo.cor === 'blue' ? 'stroke-blue-600' :
-                              eixo.cor === 'green' ? 'stroke-green-600' :
-                              eixo.cor === 'purple' ? 'stroke-purple-600' :
-                              eixo.cor === 'orange' ? 'stroke-orange-600' : 'stroke-gray-600';
-              const bgClass = eixo.cor === 'blue' ? 'bg-blue-50' :
-                             eixo.cor === 'green' ? 'bg-green-50' :
-                             eixo.cor === 'purple' ? 'bg-purple-50' :
-                             eixo.cor === 'orange' ? 'bg-orange-50' : 'bg-gray-50';
-              const textClass = eixo.cor === 'blue' ? 'text-blue-600' :
-                               eixo.cor === 'green' ? 'text-green-600' :
-                               eixo.cor === 'purple' ? 'text-purple-600' :
-                               eixo.cor === 'orange' ? 'text-orange-600' : 'text-gray-600';
+              const gradients = {
+                blue: 'from-blue-500 to-blue-600',
+                green: 'from-green-500 to-green-600',
+                purple: 'from-purple-500 to-purple-600',
+                orange: 'from-orange-500 to-orange-600'
+              };
+              const gradient = gradients[eixo.cor as keyof typeof gradients] || 'from-gray-500 to-gray-600';
 
               return (
-                <Card key={index} className="text-center">
+                <Card key={index} className="text-center border-2 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white">
                   <CardHeader>
-                    <CardTitle className="text-base font-semibold">{eixo.nome}</CardTitle>
+                    <CardTitle className="text-base font-semibold text-gray-800">{eixo.nome}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-col items-center gap-3">
-                      <svg className="w-32 h-32 transform -rotate-90">
-                        <circle
-                          cx="64"
-                          cy="64"
-                          r="40"
-                          stroke="currentColor"
-                          strokeWidth="8"
-                          fill="none"
-                          className="text-gray-200"
-                        />
-                        <circle
-                          cx="64"
-                          cy="64"
-                          r="40"
-                          stroke="currentColor"
-                          strokeWidth="8"
-                          fill="none"
-                          strokeDasharray={strokeDasharray}
-                          className={corClass}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className={`text-3xl font-bold ${textClass}`}>
-                        {eixo.percentual.toFixed(1)}%
+                      <div className="relative w-32 h-32">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="54"
+                            stroke="currentColor"
+                            strokeWidth="10"
+                            fill="none"
+                            className="text-gray-200"
+                          />
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="54"
+                            stroke="url(#gradient-${index})"
+                            strokeWidth="10"
+                            fill="none"
+                            strokeDasharray={strokeDasharray}
+                            strokeLinecap="round"
+                            className="transition-all duration-1000"
+                          />
+                          <defs>
+                            <linearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" className={`text-${eixo.cor}-500`} stopColor="currentColor" />
+                              <stop offset="100%" className={`text-${eixo.cor}-600`} stopColor="currentColor" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className={`text-3xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                            {eixo.percentual.toFixed(0)}%
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className={`p-3 ${bgClass} rounded-lg`}>
-                      <p className="text-xs text-gray-600">Pontos Alcançados</p>
-                      <p className={`text-lg font-bold ${textClass}`}>
-                        {eixo.pontosRecebidos.toFixed(0)}
+                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <p className="text-xs text-gray-600 font-medium mb-1">Pontos Alcançados</p>
+                      <p className={`text-2xl font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                        {eixo.pontosRecebidos.toFixed(0)} / {eixo.pontos}
                       </p>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      de {eixo.pontos} pontos
                     </div>
                   </CardContent>
                 </Card>
@@ -311,34 +331,44 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Eixos Temáticos */}
-      <section className="container mx-auto px-4 py-16">
+      {/* Eixos Temáticos - Melhorado */}
+      <section className="container mx-auto px-4 py-16 lg:py-20">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent mb-4">
             Eixos Temáticos
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             O prêmio é dividido em 4 eixos principais, cada um avaliando diferentes aspectos da qualidade do tribunal
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {eixos.map((eixo, index) => {
             const Icon = eixo.icone;
+            const gradients = {
+              blue: 'from-blue-500 to-blue-600',
+              green: 'from-green-500 to-green-600',
+              purple: 'from-purple-500 to-purple-600',
+              orange: 'from-orange-500 to-orange-600'
+            };
+            const gradient = gradients[eixo.cor as keyof typeof gradients] || 'from-gray-500 to-gray-600';
+            
             return (
               <Card 
                 key={index} 
-                className={`border-l-4 border-${eixo.cor}-500 hover:shadow-lg transition-shadow cursor-pointer`}
+                className="border-2 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group bg-white"
                 onClick={() => navigate('/consultar')}
               >
                 <CardHeader>
-                  <div className="flex items-start gap-3">
-                    <div className={`p-3 bg-${eixo.cor}-100 rounded-lg`}>
-                      <Icon className={`h-6 w-6 text-${eixo.cor}-600`} />
+                  <div className="flex items-start gap-4">
+                    <div className={`p-4 bg-gradient-to-br ${gradient} rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="h-7 w-7 text-white" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{eixo.nome}</CardTitle>
-                      <CardDescription className="mt-2">
+                      <CardTitle className="text-xl font-bold text-gray-800 mb-2">
+                        {eixo.nome}
+                      </CardTitle>
+                      <CardDescription className="text-base text-gray-600">
                         {eixo.descricao}
                       </CardDescription>
                     </div>
@@ -350,69 +380,67 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Como Funciona */}
-      <section className="bg-blue-50 py-16">
+      {/* Como Funciona - Melhorado */}
+      <section className="bg-gradient-to-br from-blue-600 to-indigo-700 py-16 lg:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Como Funciona
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto">
               Processo simples e transparente de gestão das metas
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                1
+            {[
+              {
+                numero: '1',
+                titulo: 'Consulta Pública',
+                descricao: 'Qualquer pessoa pode consultar os requisitos e o progresso das metas'
+              },
+              {
+                numero: '2',
+                titulo: 'Prestação de Contas',
+                descricao: 'Setores e coordenadores registram o cumprimento das metas'
+              },
+              {
+                numero: '3',
+                titulo: 'Acompanhamento',
+                descricao: 'Sistema calcula automaticamente a pontuação e gera relatórios'
+              }
+            ].map((passo, index) => (
+              <div key={index} className="text-center">
+                <div className="w-20 h-20 bg-white text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-2xl">
+                  {passo.numero}
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-3">{passo.titulo}</h3>
+                <p className="text-blue-100 text-lg leading-relaxed">
+                  {passo.descricao}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Consulta Pública</h3>
-              <p className="text-gray-600">
-                Qualquer pessoa pode consultar os requisitos e o progresso das metas
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Prestação de Contas</h3>
-              <p className="text-gray-600">
-                Setores e coordenadores fazem login para registrar o cumprimento das metas
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Acompanhamento</h3>
-              <p className="text-gray-600">
-                Sistema calcula automaticamente a pontuação e gera relatórios
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <Card className="max-w-3xl mx-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-3xl">
+      {/* CTA Final - Redesenhado */}
+      <section className="container mx-auto px-4 py-16 lg:py-20">
+        <Card className="max-w-4xl mx-auto bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl">
+          <CardHeader className="pb-6 pt-10">
+            <CardTitle className="text-4xl md:text-5xl font-bold text-center">
               Pronto para começar?
             </CardTitle>
-            <CardDescription className="text-blue-100 text-lg">
-              Consulte os requisitos ou faça login para gerenciar as metas do seu setor
+            <CardDescription className="text-blue-100 text-xl text-center mt-4">
+              Consulte os requisitos e gerencie as metas do seu setor
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center">
+          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center pb-10">
             <Button 
               size="lg" 
               variant="secondary"
               onClick={() => navigate('/consultar')}
-              className="gap-2"
+              className="gap-2 text-lg px-8 py-6 bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <Search className="h-5 w-5" />
               Consultar Requisitos
@@ -421,7 +449,7 @@ const LandingPage = () => {
               size="lg" 
               variant="outline"
               onClick={() => navigate('/consolidado')}
-              className="gap-2 bg-white text-blue-600 hover:bg-blue-50"
+              className="gap-2 text-lg px-8 py-6 bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <LayoutList className="h-5 w-5" />
               Visão Consolidada
@@ -430,36 +458,38 @@ const LandingPage = () => {
         </Card>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <svg viewBox="0 0 100 100" className="h-8 w-8">
-              <defs>
-                <linearGradient id="blueGradientFooter" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{stopColor: '#60a5fa', stopOpacity: 1}} />
-                  <stop offset="100%" style={{stopColor: '#3b82f6', stopOpacity: 1}} />
-                </linearGradient>
-              </defs>
-              {/* Escudo */}
-              <path d="M50 5 L85 20 L85 50 Q85 75 50 95 Q15 75 15 50 L15 20 Z" fill="url(#blueGradientFooter)" stroke="#94a3b8" strokeWidth="2"/>
-              {/* Balança */}
-              <line x1="50" y1="30" x2="50" y2="60" stroke="#fbbf24" strokeWidth="2"/>
-              <line x1="35" y1="35" x2="65" y2="35" stroke="#fbbf24" strokeWidth="2"/>
-              <path d="M32 35 L32 40 L38 45 L32 45 Z" fill="#fbbf24"/>
-              <path d="M68 35 L68 40 L62 45 L68 45 Z" fill="#fbbf24"/>
-              {/* Livro */}
-              <rect x="42" y="55" width="16" height="12" fill="#fbbf24" rx="1"/>
-              <line x1="50" y1="57" x2="50" y2="65" stroke="#1e40af" strokeWidth="1"/>
-            </svg>
-            <span className="font-semibold">TJPB - Tribunal de Justiça da Paraíba</span>
+      {/* Footer - Redesenhado com Brasão */}
+      <footer className="bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center text-center space-y-6">
+            {/* Brasão TJPB */}
+            <div className="flex items-center gap-4">
+              <img 
+                src="/assets/images/tjpb-brasao.png" 
+                alt="Brasão TJPB" 
+                className="h-16 w-16 object-contain drop-shadow-2xl"
+              />
+              <div className="text-left">
+                <p className="font-bold text-xl text-white">
+                  TJPB
+                </p>
+                <p className="text-sm text-blue-200">
+                  Tribunal de Justiça da Paraíba
+                </p>
+              </div>
+            </div>
+            
+            <div className="h-px w-32 bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
+            
+            <div className="space-y-2">
+              <p className="text-blue-200 font-medium">
+                Sistema de Gestão do Prêmio CNJ de Qualidade 2026
+              </p>
+              <p className="text-blue-300 text-sm">
+                © 2025 - Todos os direitos reservados
+              </p>
+            </div>
           </div>
-          <p className="text-gray-400 text-sm">
-            Sistema de Gestão do Prêmio CNJ de Qualidade 2026
-          </p>
-          <p className="text-gray-500 text-xs mt-2">
-            © 2025 - Todos os direitos reservados
-          </p>
         </div>
       </footer>
     </div>

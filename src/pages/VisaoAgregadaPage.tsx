@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -14,16 +14,15 @@ import {
 import { api } from "@/services/api";
 import { toast } from "sonner";
 import { mockMetas, mockUpdates } from "@/lib/mockData";
-import { useAuth } from "@/contexts/AuthContext";
 import { 
   ArrowLeft, 
   Scale, 
   Target, 
   User, 
   AlertCircle,
-  LogIn,
-  LogOut,
-  TrendingUp
+  TrendingUp,
+  Building2,
+  Users
 } from "lucide-react";
 
 interface Meta {
@@ -51,8 +50,10 @@ interface Meta {
 
 const VisaoAgregadaPage = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
+  
+  const [searchParams] = useSearchParams();
+  const tipoConsolidacao = searchParams.get('tipo') || 'coordenador'; // 'coordenador' ou 'setor'
   
   const [metas, setMetas] = useState<Meta[]>([]);
   const [selectedMeta, setSelectedMeta] = useState<Meta | null>(null);
@@ -100,25 +101,27 @@ const VisaoAgregadaPage = () => {
     }
   };
 
-  const groupByEixoAndCoordenador = () => {
+  const groupByEixoAndAgrupador = () => {
     const grupos: { 
       [eixo: string]: { 
-        [coordenador: string]: Meta[] 
+        [agrupador: string]: Meta[] 
       } 
     } = {};
 
     metas.forEach(meta => {
       // Remover numeração do início do eixo
       const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
-      const coordenador = meta.coordenador || 'Sem Coordenador';
+      const agrupador = tipoConsolidacao === 'coordenador' 
+        ? (meta.coordenador || 'Sem Coordenador')
+        : (meta.setor_executor || 'Sem Setor');
 
       if (!grupos[eixoLimpo]) {
         grupos[eixoLimpo] = {};
       }
-      if (!grupos[eixoLimpo][coordenador]) {
-        grupos[eixoLimpo][coordenador] = [];
+      if (!grupos[eixoLimpo][agrupador]) {
+        grupos[eixoLimpo][agrupador] = [];
       }
-      grupos[eixoLimpo][coordenador].push(meta);
+      grupos[eixoLimpo][agrupador].push(meta);
     });
 
     return grupos;
@@ -183,22 +186,18 @@ const VisaoAgregadaPage = () => {
   };
 
   const handleMetaClick = (meta: Meta) => {
-    if (!user && !isMockMode) {
-      toast.error('Faça login para editar as metas', {
-        action: {
-          label: 'Login',
-          onClick: () => navigate('/login')
-        }
-      });
-      return;
-    }
     setSelectedMeta(meta);
     setModalOpen(true);
   };
 
-  const grupos = groupByEixoAndCoordenador();
+  const grupos = groupByEixoAndAgrupador();
   const totalGeral = getTotalPontos(metas);
   const progressoGeral = calculateProgress(metas);
+
+  // Calcular total de agrupadores únicos
+  const totalAgrupadores = new Set(
+    metas.map(m => tipoConsolidacao === 'coordenador' ? m.coordenador : m.setor_executor).filter(Boolean)
+  ).size;
 
   if (loading) {
     return (
@@ -221,7 +220,7 @@ const VisaoAgregadaPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/consultar')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -231,62 +230,41 @@ const VisaoAgregadaPage = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
-                  <p className="text-xs text-gray-600">Qualidade 2026</p>
+                  <p className="text-xs text-gray-600">
+                    Qualidade 2026 - Consolidado por {tipoConsolidacao === 'coordenador' ? 'Coordenador' : 'Setor'}
+                  </p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <Badge variant="outline" className="gap-2">
-                    <span className="h-2 w-2 bg-green-500 rounded-full"></span>
-                    <span className="hidden sm:inline">{user.email}</span>
-                    <span className="sm:hidden">Logado</span>
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={signOut}
-                    className="gap-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sair</span>
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => navigate('/login')} className="gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Entrar
+              {/* Toggle de tipo de consolidação */}
+              <div className="hidden md:flex items-center gap-2 bg-muted rounded-lg p-1">
+                <Button
+                  variant={tipoConsolidacao === 'coordenador' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => navigate('/consolidado?tipo=coordenador')}
+                  className="gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Coordenador
                 </Button>
-              )}
+                <Button
+                  variant={tipoConsolidacao === 'setor' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => navigate('/consolidado?tipo=setor')}
+                  className="gap-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Setor
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </nav>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Banner Informativo */}
-        {!user && !isMockMode && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-blue-900">Modo Consulta</h3>
-                <p className="text-sm text-blue-800 mt-1">
-                  Você está visualizando os requisitos publicamente. 
-                  <button 
-                    onClick={() => navigate('/login')} 
-                    className="underline font-medium ml-1"
-                  >
-                    Faça login
-                  </button> para registrar prestações de contas.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Resumo Geral */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -294,7 +272,10 @@ const VisaoAgregadaPage = () => {
               <Target className="h-8 w-8 text-blue-600" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Progresso Geral</h2>
-                <p className="text-sm text-gray-600">{metas.length} requisitos em {Object.keys(grupos).length} eixos</p>
+                <p className="text-sm text-gray-600">
+                  {metas.length} requisitos em {Object.keys(grupos).length} eixos • 
+                  {totalAgrupadores} {tipoConsolidacao === 'coordenador' ? 'coordenadores' : 'setores'}
+                </p>
               </div>
             </div>
             <div className="text-right">
@@ -311,8 +292,8 @@ const VisaoAgregadaPage = () => {
 
         {/* Acordeões por Eixo */}
         <div className="space-y-4">
-          {Object.entries(grupos).map(([eixo, coordenadores]) => {
-            const metasDoEixo = Object.values(coordenadores).flat();
+          {Object.entries(grupos).map(([eixo, agrupadores]) => {
+            const metasDoEixo = Object.values(agrupadores).flat();
             const progressoEixo = calculateProgress(metasDoEixo);
             const pontosEixo = getTotalPontos(metasDoEixo);
             const cor = getEixoColor(eixo);
@@ -348,7 +329,7 @@ const VisaoAgregadaPage = () => {
                           <div className="text-left">
                             <h3 className="text-lg font-semibold text-gray-900">{eixo}</h3>
                             <p className="text-sm text-gray-600">
-                              {metasDoEixo.length} requisitos • {Object.keys(coordenadores).length} coordenadores
+                              {metasDoEixo.length} requisitos • {Object.keys(agrupadores).length} {tipoConsolidacao === 'coordenador' ? 'coordenadores' : 'setores'}
                             </p>
                           </div>
                         </div>
@@ -374,49 +355,53 @@ const VisaoAgregadaPage = () => {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-6 pb-6">
-                      {/* Acordeões por Coordenador */}
-                      <Accordion type="single" collapsible className="space-y-2">
-                        {Object.entries(coordenadores)
+                      {/* Acordeões por Agrupador (Coordenador ou Setor) */}
+                      <Accordion type="multiple" className="space-y-2">
+                        {Object.entries(agrupadores)
                           .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([coordenador, metasCoordenador]) => {
-                            const progressoCoordenador = calculateProgress(metasCoordenador);
-                            const pontosCoordenador = getTotalPontos(metasCoordenador);
+                          .map(([agrupador, metasAgrupador]) => {
+                            const progressoAgrupador = calculateProgress(metasAgrupador);
+                            const pontosAgrupador = getTotalPontos(metasAgrupador);
 
                             return (
                               <AccordionItem 
-                                key={coordenador} 
-                                value={coordenador}
+                                key={agrupador} 
+                                value={agrupador}
                                 className="border rounded-lg bg-gray-50"
                               >
                                 <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-100">
                                   <div className="flex items-center justify-between w-full pr-4">
                                     <div className="flex items-center gap-3">
-                                      <User className="h-4 w-4 text-gray-600" />
+                                      {tipoConsolidacao === 'coordenador' ? (
+                                        <User className="h-4 w-4 text-gray-600" />
+                                      ) : (
+                                        <Building2 className="h-4 w-4 text-gray-600" />
+                                      )}
                                       <div className="text-left">
-                                        <h4 className="font-medium text-gray-900">{coordenador}</h4>
+                                        <h4 className="font-medium text-gray-900">{agrupador}</h4>
                                         <p className="text-xs text-gray-600">
-                                          {metasCoordenador.length} requisitos neste eixo
+                                          {metasAgrupador.length} requisitos neste eixo
                                         </p>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <div className="text-right">
                                         <Badge variant="secondary" className="text-xs">
-                                          {progressoCoordenador.toFixed(1)}%
+                                          {progressoAgrupador.toFixed(1)}%
                                         </Badge>
                                         <p className="text-xs text-gray-600 mt-0.5">
-                                          {pontosCoordenador.recebidos.toFixed(1)} / {pontosCoordenador.aplicaveis} pts
+                                          {pontosAgrupador.recebidos.toFixed(1)} / {pontosAgrupador.aplicaveis} pts
                                         </p>
                                       </div>
                                       <div className="w-20">
-                                        <Progress value={progressoCoordenador} className="h-1.5" />
+                                        <Progress value={progressoAgrupador} className="h-1.5" />
                                       </div>
                                     </div>
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-                                    {metasCoordenador.map(meta => (
+                                    {metasAgrupador.map(meta => (
                                       <MetaCard
                                         key={meta.id}
                                         meta={meta}
@@ -445,11 +430,13 @@ const VisaoAgregadaPage = () => {
             <p className="text-sm text-gray-600">Eixos</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-            <User className="h-6 w-6 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">
-              {new Set(metas.map(m => m.coordenador).filter(Boolean)).size}
-            </p>
-            <p className="text-sm text-gray-600">Coordenadores</p>
+            {tipoConsolidacao === 'coordenador' ? (
+              <User className="h-6 w-6 text-green-600 mx-auto mb-2" />
+            ) : (
+              <Building2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
+            )}
+            <p className="text-2xl font-bold text-gray-900">{totalAgrupadores}</p>
+            <p className="text-sm text-gray-600">{tipoConsolidacao === 'coordenador' ? 'Coordenadores' : 'Setores'}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
             <Target className="h-6 w-6 text-purple-600 mx-auto mb-2" />

@@ -4,12 +4,11 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Award, LogOut, LogIn, AlertCircle, Scale } from "lucide-react";
+import { ArrowLeft, Award, AlertCircle, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
 import { getMetasWithUpdates } from "@/lib/mockData";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface Meta {
   id: string;
@@ -37,7 +36,6 @@ interface Meta {
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const tipo = searchParams.get('tipo') || 'setor';
   const nome = searchParams.get('nome');
@@ -131,15 +129,6 @@ const DashboardPage = () => {
   };
 
   const handleMetaClick = (meta: Meta) => {
-    if (!user && !isMockMode) {
-      toast.info('Faça login para editar metas', {
-        action: {
-          label: 'Login',
-          onClick: () => navigate('/login'),
-        },
-      });
-      return;
-    }
     setSelectedMeta(meta);
     setModalOpen(true);
   };
@@ -189,32 +178,6 @@ const DashboardPage = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <Badge variant="outline" className="gap-2">
-                    <span className="h-2 w-2 bg-green-500 rounded-full"></span>
-                    <span className="hidden sm:inline">{user.email}</span>
-                    <span className="sm:hidden">Logado</span>
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={signOut}
-                    className="gap-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sair</span>
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => navigate('/login')} className="gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Entrar
-                </Button>
-              )}
-            </div>
           </div>
         </div>
       </nav>
@@ -226,26 +189,6 @@ const DashboardPage = () => {
           <span>/</span>
           <span className="font-medium text-foreground">{nome}</span>
         </div>
-
-        {!user && !isMockMode && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-blue-900">Modo Consulta</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Você está visualizando as metas em modo somente leitura. 
-                  <button 
-                    onClick={() => navigate('/login')} 
-                    className="underline font-medium ml-1"
-                  >
-                    Faça login
-                  </button> para registrar prestações de contas.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="bg-card rounded-xl p-6 shadow-sm border">
           <div className="flex items-center gap-3 mb-4">
