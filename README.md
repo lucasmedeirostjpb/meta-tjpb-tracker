@@ -186,9 +186,11 @@ VITE_MOCK_MODE=false
 
 E configure as credenciais do Supabase normalmente.
 
-## 📊 Importação de Metas
+## 📊 Importação de Dados
 
-### Formato do Arquivo Excel/CSV
+### Importação de Metas
+
+#### Formato do Arquivo Excel/CSV
 
 | Campo | Tipo | Obrigatório | Exemplo |
 |-------|------|-------------|---------|
@@ -198,11 +200,46 @@ E configure as credenciais do Supabase normalmente.
 | Requisito | Texto | ✅ Sim | I |
 | Descrição | Texto | Não | Implementar sistema... |
 | Pontos Aplicáveis | Número | ✅ Sim | 10 |
+| **Pontos Recebidos** | **Número** | **Não** | **7.5** |
 | Setor Executor | Texto | Não | TI |
 | Coordenador | Texto | Não | João Silva |
 | Deadline | Data | ✅ Sim | 31/12/2026 |
 
-### Como Importar
+**💡 Novo:** Ao importar com a coluna **Pontos Recebidos**, o sistema:
+- Calcula automaticamente o **percentual de cumprimento** (pontos recebidos / pontos aplicáveis × 100)
+- Define o **status** automaticamente:
+  - 100%+ → "Totalmente Cumprido" (Concluído)
+  - 1-99% → "Parcialmente Cumprido" (Em Andamento)
+  - 0% → "Não Cumprido" (Pendente)
+- Cria o registro de **prestação de contas** com a data de importação
+
+### Importação de Coordenadores Autorizados
+
+**🔐 Controle de Acesso:** O sistema usa esta lista para autorizar login e alterações.
+
+#### Formato do Arquivo Excel/CSV
+
+| Campo | Tipo | Obrigatório | Exemplo |
+|-------|------|-------------|---------|
+| Nome | Texto | ✅ Sim | João Silva Santos |
+| Email | Texto | ✅ Sim | joao.silva@tjpb.jus.br |
+
+#### Como Importar Coordenadores
+
+1. **Preparar Arquivo**: Excel (.xlsx) ou CSV com as 2 colunas acima
+2. **Acessar Sistema**: http://localhost:8080
+3. **Aba Coordenadores**: Clique na aba "Coordenadores"
+4. **Upload**: Clique ou arraste o arquivo
+5. **Mapear Colunas**: Confirme o mapeamento automático
+6. **Opção de Substituição**: Marque "Substituir lista existente" para limpar a lista anterior
+7. **Importar**: Clique em "Importar Coordenadores"
+
+**⚠️ Importante:**
+- Apenas emails importados poderão criar conta e fazer login
+- Ao reimportar com "Substituir lista existente", os coordenadores anteriores serão removidos
+- Emails são convertidos automaticamente para minúsculas
+
+### Como Importar Metas
 
 1. **Preparar Arquivo**: Excel (.xlsx) ou CSV com as colunas acima
 2. **Acessar Sistema**: http://localhost:8080
@@ -219,23 +256,50 @@ O sistema aceita datas em formato:
 
 ## 🎯 Como Usar o Sistema
 
-### 1. Criar Conta / Login
-1. Acesse: http://localhost:8080/login
-2. **Primeira vez**: Clique em "Criar Conta"
-   - Insira email institucional (@tjpb.jus.br)
-   - Crie uma senha (mínimo 6 caracteres)
-   - Confirme o email (se configurado)
-3. **Login**: Insira email e senha
+### 1. Login Simplificado
 
-### 2. Importar Metas
-1. Acesse **Importar Metas** (requer login)
-2. Faça upload do arquivo Excel/CSV
-3. As colunas serão mapeadas automaticamente
-4. Ajuste mapeamentos se necessário
-5. Marque "Limpar dados antigos" se for reimportar
-6. Clique em **Importar Dados**
+**🔐 Sistema sem senha tradicional:**
 
-### 3. Visão por Setor
+1. **Acesse**: http://localhost:8080/login
+2. **Informe seu email institucional** cadastrado na lista de coordenadores
+3. **Clique em "Acessar Sistema"**
+
+**Como funciona:**
+- ✅ O sistema verifica se seu email está na lista de coordenadores autorizados
+- ✅ Se autorizado, você acessa diretamente (sem senha)
+- ✅ Sessão válida por 24 horas
+- ✅ Nome do usuário exibido no topo das páginas
+- ❌ Emails não cadastrados não conseguem acessar
+
+**⚠️ Importante:**
+- Apenas emails importados na aba "Coordenadores" podem fazer login
+- Para adicionar novos usuários, reimporte a lista com os emails atualizados
+- Primeiro acesso: importe a lista de coordenadores antes de tentar fazer login
+
+### 2. Importar Coordenadores (Primeira Vez)
+
+**Antes de fazer login, você precisa importar a lista de coordenadores:**
+
+1. Acesse a página inicial (sem login necessário)
+2. Clique em "Importar Dados"
+3. Vá na aba **"Coordenadores"**
+4. Faça upload da planilha com Nome e Email
+5. Confirme o mapeamento
+6. Clique em "Importar Coordenadores"
+
+**Agora os emails da lista podem fazer login!**
+
+### 3. Importar Metas
+1. Faça **login** (requer autenticação)
+2. Acesse **Importar Dados** 
+3. Aba **"Metas"**
+4. Faça upload do arquivo Excel/CSV
+5. As colunas serão mapeadas automaticamente
+6. Ajuste mapeamentos se necessário
+7. Marque "Limpar dados antigos" se for reimportar
+8. Clique em **Importar Metas**
+
+### 4. Visão por Setor
 1. Acesse "Selecionar por Setor"
 2. Escolha o setor desejado
 3. Visualize todas as metas do setor
@@ -246,12 +310,13 @@ O sistema aceita datas em formato:
 2. Escolha o coordenador
 3. Veja consolidação por setor + metas individuais
 
-### 5. Prestação de Contas (requer login)
-1. Clique em qualquer card de meta para abrir o formulário
-2. Preencha as **5 questões obrigatórias**:
+### 6. Prestação de Contas
+1. **Faça login** com seu email autorizado
+2. Clique em qualquer card de meta para abrir o formulário
+3. Preencha as **5 questões obrigatórias**:
 
 **1️⃣ Identificação do Coordenador** (preenchido automaticamente)
-- Sistema identifica o usuário logado
+- Sistema identifica o usuário logado pelo nome
 
 **2️⃣ Critério desta prestação** (preenchido automaticamente)
 - Exibe artigo, requisito e descrição da meta

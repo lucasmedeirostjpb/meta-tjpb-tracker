@@ -4,11 +4,12 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Award, AlertCircle, Scale } from "lucide-react";
+import { ArrowLeft, Award, AlertCircle, Scale, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
 import { getMetasWithUpdates } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Meta {
   id: string;
@@ -36,6 +37,7 @@ interface Meta {
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const tipo = searchParams.get('tipo') || 'setor';
   const nome = searchParams.get('nome');
@@ -178,6 +180,25 @@ const DashboardPage = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Informações do usuário */}
+            {user && (
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user.nome}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </nav>

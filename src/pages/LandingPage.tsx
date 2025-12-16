@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit } from 'lucide-react';
 import { api } from '@/services/api';
 import { mockMetas } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [stats, setStats] = useState({
     eixos: 4,
@@ -152,29 +154,43 @@ const LandingPage = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/tabela')}
-                className="gap-2 hidden lg:flex hover:bg-blue-50 transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                Tabela Completa
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/consolidado')}
-                className="gap-2 hidden md:flex hover:bg-blue-50 transition-colors"
-              >
-                <LayoutList className="h-4 w-4" />
-                Visão Consolidada
-              </Button>
-              <Button 
-                onClick={() => navigate('/consultar')}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
-              >
-                Acessar Sistema
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              {/* Informações do usuário ou Login */}
+              {user ? (
+                <>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-medium text-gray-900">{user.nome}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate('/minhas-metas')}
+                    className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">Minhas Metas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={signOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => navigate('/login')}
+                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -195,31 +211,55 @@ const LandingPage = () => {
             <span className="text-gray-800">
               de Qualidade
             </span>
-            <span className="block text-blue-600 mt-2">2026</span>
           </h1>
-          
-          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Sistema de acompanhamento e gestão das metas para o Prêmio Conselho Nacional de Justiça de Qualidade
-          </p>
+
+          {user ? (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 flex items-center gap-3 mt-6">
+              <Edit className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <p className="text-sm text-green-900 font-medium text-left">
+                <strong>Bem-vindo, {user.nome}!</strong> Você pode preencher e atualizar suas metas ou consultar todos os requisitos do sistema.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-center gap-3 mt-6">
+              <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <p className="text-sm text-blue-900 font-medium text-left">
+                <strong>Sistema em modo de consulta.</strong> Visualize todos os requisitos e acompanhe o progresso. Faça login para preencher suas metas.
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-            <Button 
-              size="lg" 
-              onClick={() => navigate('/consultar')}
-              className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <Target className="h-6 w-6" />
-              Consultar Requisitos
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate('/consolidado')}
-              className="gap-3 text-lg px-8 py-6 border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <LayoutList className="h-6 w-6" />
-              Visão Consolidada
-            </Button>
+            {user ? (
+              <>
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate('/minhas-metas')}
+                  className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <Edit className="h-6 w-6" />
+                  Preencher Minhas Metas
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => navigate('/consultar')}
+                  className="gap-3 text-lg px-8 py-6 border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Search className="h-6 w-6" />
+                  Consultar Requisitos
+                </Button>
+              </>
+            ) : (
+              <Button 
+                size="lg" 
+                onClick={() => navigate('/consultar')}
+                className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+              >
+                <Search className="h-6 w-6" />
+                Consultar Requisitos
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -422,40 +462,6 @@ const LandingPage = () => {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* CTA Final - Redesenhado */}
-      <section className="container mx-auto px-4 py-16 lg:py-20">
-        <Card className="max-w-4xl mx-auto bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white border-0 shadow-2xl">
-          <CardHeader className="pb-6 pt-10">
-            <CardTitle className="text-4xl md:text-5xl font-bold text-center">
-              Pronto para começar?
-            </CardTitle>
-            <CardDescription className="text-blue-100 text-xl text-center mt-4">
-              Consulte os requisitos e gerencie as metas do seu setor
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center pb-10">
-            <Button 
-              size="lg" 
-              variant="secondary"
-              onClick={() => navigate('/consultar')}
-              className="gap-2 text-lg px-8 py-6 bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <Search className="h-5 w-5" />
-              Consultar Requisitos
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate('/consolidado')}
-              className="gap-2 text-lg px-8 py-6 bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <LayoutList className="h-5 w-5" />
-              Visão Consolidada
-            </Button>
-          </CardContent>
-        </Card>
       </section>
 
       {/* Footer - Redesenhado com Brasão */}

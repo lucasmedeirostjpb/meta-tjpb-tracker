@@ -22,8 +22,12 @@ import {
   AlertCircle,
   TrendingUp,
   Building2,
-  Users
+  Users,
+  LogOut,
+  LogIn,
+  Edit
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Meta {
   id: string;
@@ -50,6 +54,7 @@ interface Meta {
 
 const VisaoAgregadaPage = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   
   const [searchParams] = useSearchParams();
@@ -259,6 +264,44 @@ const VisaoAgregadaPage = () => {
                   Setor
                 </Button>
               </div>
+              
+              {/* Informações do usuário ou Login */}
+              {user ? (
+                <>
+                  <div className="text-right hidden lg:block">
+                    <p className="text-sm font-medium text-gray-900">{user.nome}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate('/minhas-metas')}
+                    className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">Minhas Metas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={signOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => navigate('/login')}
+                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              )}
             </div>
           </div>
         </div>

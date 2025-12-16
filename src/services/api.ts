@@ -147,12 +147,16 @@ export const api = {
     }
   },
 
-  async createMetas(metas: Array<Omit<Database['public']['Tables']['metas_base']['Insert'], 'id'>>) {
+  async createMetas(metas: Array<Omit<Database['public']['Tables']['metas_base']['Insert'], 'id'> & { pontos_recebidos?: number }>) {
     console.log('📝 [API] Criando metas:', metas.length);
     
-    const { error } = await supabase
+    // Separar pontos_recebidos dos dados de metas_base
+    const metasBase = metas.map(({ pontos_recebidos, ...meta }) => meta);
+    
+    const { data: metasData, error } = await supabase
       .from('metas_base')
-      .insert(metas);
+      .insert(metasBase)
+      .select();
 
     if (error) {
       console.error('❌ [API] Erro ao criar metas:', error);
@@ -160,6 +164,60 @@ export const api = {
     }
 
     console.log('✅ [API] Metas criadas com sucesso');
+
+    // Criar updates automaticamente para metas com pontos_recebidos
+    if (metasData && metasData.length > 0) {
+      const updatesData = [];
+      
+      for (let i = 0; i < metasData.length; i++) {
+        const meta = metasData[i];
+        const pontosRecebidos = metas[i].pontos_recebidos;
+
+        // Se há pontos recebidos informados, criar update
+        if (pontosRecebidos !== undefined && pontosRecebidos !== null && !isNaN(pontosRecebidos)) {
+          const pontosAplicaveis = meta.pontos_aplicaveis || 0;
+          const percentual = pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0;
+
+          // Determinar estimativa e status
+          let estimativa: string;
+          let status: string;
+
+          if (percentual >= 100) {
+            estimativa = 'Totalmente Cumprido';
+            status = 'Concluído';
+          } else if (percentual > 0) {
+            estimativa = 'Parcialmente Cumprido';
+            status = 'Em Andamento';
+          } else {
+            estimativa = 'Não Cumprido';
+            status = 'Pendente';
+          }
+
+          updatesData.push({
+            meta_id: meta.id,
+            setor_executor: meta.setor_executor,
+            status,
+            estimativa_cumprimento: estimativa,
+            pontos_estimados: pontosRecebidos,
+            percentual_cumprimento: Math.min(percentual, 100),
+            data_prestacao: new Date().toISOString(),
+          });
+        }
+      }
+
+      // Inserir updates se houver
+      if (updatesData.length > 0) {
+        const { error: updatesError } = await supabase
+          .from('updates')
+          .insert(updatesData);
+
+        if (updatesError) {
+          console.warn('⚠️ Erro ao criar updates automáticos:', updatesError);
+        } else {
+          console.log(`✅ ${updatesData.length} updates criados automaticamente com pontos já alcançados`);
+        }
+      }
+    }
   },
 
   async deleteAllMetas() {
@@ -452,5 +510,115 @@ export const api = {
       console.error('❌ [API] Erro ao calcular estatísticas:', error);
       throw error;
     }
+  },
+
+  // ==================== COORDENADORES AUTORIZADOS ====================
+
+  async getCoordenadoresAutorizados(): Promise<Database['public']['Tables']['coordenadores_autorizados']['Row'][]> {
+    console.log('👥 [API] Buscando coordenadores autorizados...');
+    
+    const { data, error } = await supabase
+      .from('coordenadores_autorizados')
+      .select('*')
+      .eq('ativo', true)
+      .order('nome');
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar coordenadores autorizados:', error);
+      throw error;
+    }
+
+    console.log(`✅ [API] ${data?.length || 0} coordenadores autorizados encontrados`);
+    return data || [];
+  },
+
+  async isEmailAutorizado(email: string): Promise<boolean> {
+    console.log('🔍 [API] Verificando se email está autorizado:', email);
+    
+    const { data, error } = await supabase
+      .from('coordenadores_autorizados')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .eq('ativo', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('❌ [API] Erro ao verificar email:', error);
+      throw error;
+    }
+
+    const isAutorizado = !!data;
+    console.log(isAutorizado ? '✅ [API] Email autorizado' : '❌ [API] Email não autorizado');
+    return isAutorizado;
+  },
+
+  async getCoordenadorByEmail(email: string): Promise<Database['public']['Tables']['coordenadores_autorizados']['Row'] | null> {
+    console.log('🔍 [API] Buscando coordenador por email:', email);
+    
+    const { data, error } = await supabase
+      .from('coordenadores_autorizados')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .eq('ativo', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar coordenador:', error);
+      throw error;
+    }
+
+    if (!data) {
+      console.log('❌ [API] Coordenador não encontrado');
+      return null;
+    }
+
+    console.log('✅ [API] Coordenador encontrado:', data.nome);
+    return data;
+  },
+
+  async createCoordenadoresAutorizados(coordenadores: Array<{ nome: string; email: string }>) {
+    console.log('📝 [API] Criando/atualizando coordenadores autorizados:', coordenadores.length);
+
+    try {
+      // Usar UPSERT para inserir ou atualizar se email já existir
+      const { data, error } = await supabase
+        .from('coordenadores_autorizados')
+        .upsert(
+          coordenadores.map(c => ({
+            email: c.email.toLowerCase(), // Email é a chave única
+            nome: c.nome,
+            ativo: true,
+          })),
+          { 
+            onConflict: 'email', // Se email já existe, atualiza
+            ignoreDuplicates: false // Atualiza os dados existentes
+          }
+        )
+        .select();
+
+      if (error) throw error;
+
+      console.log(`✅ [API] ${data?.length || 0} coordenadores autorizados criados/atualizados`);
+      return data;
+    } catch (error) {
+      console.error('❌ [API] Erro ao criar coordenadores autorizados:', error);
+      throw error;
+    }
+  },
+
+  async deleteAllCoordenadoresAutorizados() {
+    console.log('🗑️ [API] Deletando todos os coordenadores autorizados...');
+
+    const { error } = await supabase
+      .from('coordenadores_autorizados')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Deletar todos
+
+    if (error) {
+      console.error('❌ [API] Erro ao deletar coordenadores autorizados:', error);
+      throw error;
+    }
+
+    console.log('✅ [API] Todos os coordenadores autorizados foram deletados');
   },
 };

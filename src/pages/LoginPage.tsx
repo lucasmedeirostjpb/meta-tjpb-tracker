@@ -6,92 +6,148 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Scale } from 'lucide-react';
+import { Scale, Mail, Lock } from 'lucide-react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !email.trim()) {
+      toast.error('Por favor, informe seu email');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        await api.signUp(email, password);
-        toast.success('Conta criada! Verifique seu email para confirmar.');
-      } else {
-        const { token } = await api.signIn(email, password);
-        localStorage.setItem('auth_token', token);
-        toast.success('Login realizado com sucesso!');
-        navigate('/');
+      console.log('🔐 Tentando login com email:', email);
+      
+      // Verificar se o email está na lista de coordenadores autorizados
+      const isAutorizado = await api.isEmailAutorizado(email);
+      
+      if (!isAutorizado) {
+        toast.error('Email não autorizado. Apenas coordenadores cadastrados podem acessar o sistema.');
+        setLoading(false);
+        return;
       }
+
+      // Buscar dados completos do coordenador
+      const coordenador = await api.getCoordenadorByEmail(email);
+      
+      if (!coordenador) {
+        toast.error('Erro ao buscar dados do coordenador');
+        setLoading(false);
+        return;
+      }
+
+      // Salvar sessão no localStorage
+      const session = {
+        user: {
+          email: coordenador.email,
+          nome: coordenador.nome,
+          id: coordenador.id,
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      localStorage.setItem('auth_session', JSON.stringify(session));
+      
+      toast.success(`Bem-vindo(a), ${coordenador.nome}!`);
+      navigate('/');
+      
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao autenticar');
+      console.error('❌ Erro no login:', error);
+      toast.error('Erro ao fazer login: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Scale className="h-8 w-8 text-blue-600" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full">
+              <Scale className="h-10 w-10 text-blue-600" />
             </div>
           </div>
-          <CardTitle className="text-2xl">
-            {isSignUp ? 'Criar Conta' : 'Login'}
-          </CardTitle>
-          <CardDescription>
-            Sistema de Acompanhamento de Metas<br />
-            Prêmio CNJ de Qualidade - TJPB 2026
-          </CardDescription>
+          <div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
+              Acesso ao Sistema
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              Sistema de Acompanhamento de Metas<br />
+              <span className="font-semibold">Prêmio CNJ de Qualidade - TJPB 2026</span>
+            </CardDescription>
+          </div>
         </CardHeader>
+        
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-base font-medium flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-600" />
+                Email Institucional
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="seu.email@tjpb.jus.br"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
                 required
                 disabled={loading}
+                className="h-12 text-base"
+                autoComplete="email"
+                autoFocus
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use o email cadastrado na lista de coordenadores autorizados
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                minLength={6}
-              />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Lock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-900">
+                  <p className="font-medium mb-1">🔒 Login Simplificado</p>
+                  <p className="text-xs">
+                    Apenas coordenadores cadastrados na lista de importação podem acessar o sistema.
+                    Não é necessário senha - o acesso é controlado pelo email autorizado.
+                  </p>
+                </div>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Processando...' : isSignUp ? 'Criar Conta' : 'Entrar'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => setIsSignUp(!isSignUp)}
+
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
               disabled={loading}
             >
-              {isSignUp ? 'Já tem conta? Fazer login' : 'Não tem conta? Criar uma'}
+              {loading ? (
+                <>
+                  <span className="animate-pulse">Verificando acesso...</span>
+                </>
+              ) : (
+                'Acessar Sistema'
+              )}
             </Button>
+
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => navigate('/')}
+                className="text-sm text-muted-foreground"
+              >
+                Voltar para a página inicial
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

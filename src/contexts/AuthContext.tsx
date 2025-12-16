@@ -1,16 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
   email: string;
+  nome: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,24 +21,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificar sessão atual
-    const checkSession = async () => {
+    // Verificar sessão do localStorage
+    const checkSession = () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const sessionStr = localStorage.getItem('auth_session');
         
-        if (error) {
-          console.error('Erro ao verificar sessão:', error);
-          setUser(null);
-        } else if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-          });
+        if (sessionStr) {
+          const session = JSON.parse(sessionStr);
+          
+          // Verificar se a sessão não expirou (24 horas)
+          const sessionTime = new Date(session.timestamp).getTime();
+          const now = new Date().getTime();
+          const hoursDiff = (now - sessionTime) / (1000 * 60 * 60);
+          
+          if (hoursDiff < 24) {
+            setUser(session.user);
+            console.log('✅ Sessão válida:', session.user.nome);
+          } else {
+            console.log('⏰ Sessão expirada');
+            localStorage.removeItem('auth_session');
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
       } catch (error) {
-        console.error('Erro ao buscar sessão:', error);
+        console.error('Erro ao verificar sessão:', error);
+        localStorage.removeItem('auth_session');
         setUser(null);
       } finally {
         setLoading(false);
@@ -46,38 +55,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkSession();
-
-    // Listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔐 Auth state changed:', event);
-        
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-          });
-        } else {
-          setUser(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
+  const signOut = () => {
+    localStorage.removeItem('auth_session');
+    setUser(null);
+    navigate('/login');
   };
 
   return (

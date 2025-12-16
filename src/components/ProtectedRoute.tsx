@@ -13,8 +13,11 @@ const ProtectedRoute = ({ children, requireAuth = true }: ProtectedRouteProps) =
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <p className="text-sm text-muted-foreground">Verificando acesso...</p>
+        </div>
       </div>
     );
   }

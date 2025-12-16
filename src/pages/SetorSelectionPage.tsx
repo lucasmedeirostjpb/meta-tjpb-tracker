@@ -24,13 +24,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Building2, Users, ArrowLeft, Scale, LayoutList, Check, ChevronsUpDown, Target, FileText } from "lucide-react";
+import { Building2, Users, ArrowLeft, Scale, LayoutList, Check, ChevronsUpDown, Target, FileText, LogOut, LogIn, Edit } from "lucide-react";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 import { getSetoresUnicos, getCoordenadoresUnicos } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SetorSelectionPage = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [setores, setSetores] = useState<string[]>([]);
   const [coordenadores, setCoordenadores] = useState<string[]>([]);
@@ -116,6 +118,46 @@ const SetorSelectionPage = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Informações do usuário ou Login */}
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-medium text-gray-900">{user.nome}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate('/minhas-metas')}
+                    className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">Minhas Metas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={signOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => navigate('/login')}
+                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -136,7 +178,7 @@ const SetorSelectionPage = () => {
               Consultar Requisitos
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Escolha a melhor forma de visualizar e acompanhar os requisitos do Prêmio CNJ de Qualidade 2026
+              Escolha a melhor forma de consultar os requisitos do Prêmio CNJ de Qualidade 2026
             </p>
           </div>
 
@@ -152,7 +194,7 @@ const SetorSelectionPage = () => {
                   <CardTitle className="text-xl font-bold">{activeTab === "coordenador" ? "Por Coordenador" : "Por Setor"}</CardTitle>
                 </div>
                 <CardDescription className="text-base">
-                  Visualize apenas os requisitos do seu setor ou coordenação específica
+                  Consulte os requisitos de um setor ou coordenação específica
                 </CardDescription>
               </CardHeader>
               <CardContent>

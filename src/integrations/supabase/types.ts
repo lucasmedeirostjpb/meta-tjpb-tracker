@@ -171,6 +171,32 @@ export interface Database {
           created_at?: string
         }
       }
+      coordenadores_autorizados: {
+        Row: {
+          id: string
+          nome: string
+          email: string
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          email: string
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          email?: string
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

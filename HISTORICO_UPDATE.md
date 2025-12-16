@@ -1,4 +1,119 @@
-# Atualização do Sistema de Histórico - 01/12/2025
+# Histórico de Atualizações
+
+## 📋 Atualização: Importação de Coordenadores + Pontos Recebidos - 16/12/2025
+
+### ✨ Novos Recursos
+
+#### 1. 🔐 Sistema de Coordenadores Autorizados
+**Funcionalidade**: Importação de lista de coordenadores que podem acessar o sistema
+
+**Implementações**:
+- ✅ Nova tabela `coordenadores_autorizados` no banco de dados
+- ✅ Nova aba "Coordenadores" na página de importação
+- ✅ Importação simplificada com apenas 2 colunas (Nome e Email)
+- ✅ Validação de login - apenas emails importados podem criar conta/acessar
+- ✅ Opção de substituir lista existente ao reimportar
+- ✅ Emails automaticamente convertidos para minúsculas
+
+**Como Usar**:
+1. Prepare planilha Excel/CSV com colunas "Nome" e "Email"
+2. Acesse **Importar → Aba Coordenadores**
+3. Faça upload do arquivo
+4. Confirme mapeamento (automático)
+5. Marque "Substituir lista existente" se necessário
+6. Importe
+
+**Segurança**:
+- ✅ Apenas emails na lista podem criar conta
+- ✅ Apenas emails na lista podem fazer login
+- ✅ Validação antes de signup e signin
+
+#### 2. 📊 Importação de Pontos Já Alcançados
+**Funcionalidade**: Importar requisitos com pontos já conquistados
+
+**Implementações**:
+- ✅ Novo campo opcional "Pontos Recebidos/Alcançados" na importação de metas
+- ✅ Detecção automática de colunas: "Pontos Recebidos", "Pontos Alcançados", "Pontos Obtidos", etc.
+- ✅ Cálculo automático de percentual de cumprimento
+- ✅ Definição automática de status baseado no percentual:
+  - 100%+ → "Totalmente Cumprido" (Concluído)
+  - 1-99% → "Parcialmente Cumprido" (Em Andamento)
+  - 0% → "Não Cumprido" (Pendente)
+- ✅ Criação automática de registros de prestação de contas
+
+**Benefícios**:
+- Importação de dados históricos
+- Importação de acompanhamentos em andamento
+- Dispensa prestação de contas inicial manual
+- Metas já aparecem no dashboard com progresso
+
+### 📁 Arquivos Criados
+
+**Migrations**:
+- ✅ `supabase/migrations/20251216_criar_coordenadores_autorizados.sql`
+  - Tabela de coordenadores autorizados
+  - Índices para performance
+  - Políticas RLS públicas (sem autenticação)
+
+**Documentação**:
+- ✅ `public/assets/exemplo-coordenadores.md`
+  - Instruções de formato de planilha
+  - Exemplo em CSV
+  - Guia de importação
+
+### 🔧 Arquivos Modificados
+
+**Backend/API**:
+- ✅ `src/services/api.ts`
+  - Novos métodos:
+    - `getCoordenadoresAutorizados()` - Lista coordenadores ativos
+    - `isEmailAutorizado(email)` - Valida se email pode acessar
+    - `createCoordenadoresAutorizados()` - Importa lista
+    - `deleteAllCoordenadoresAutorizados()` - Limpa lista
+  - `createMetas()` atualizado para processar pontos_recebidos
+  - Criação automática de updates quando há pontos recebidos
+
+**Frontend**:
+- ✅ `src/pages/ImportPage.tsx`
+  - Novo design com Tabs (Metas | Coordenadores)
+  - Estados separados para cada tipo de importação
+  - Funções de importação de coordenadores
+  - Campo "Pontos Recebidos" adicionado ao mapeamento de metas
+  - Detecção automática de colunas de pontos
+  - Mensagem informativa sobre cálculo automático
+
+- ✅ `src/pages/LoginPage.tsx`
+  - Validação de email autorizado antes de signup
+  - Validação de email autorizado antes de signin
+  - Mensagens de erro claras
+
+**TypeScript**:
+- ✅ `src/integrations/supabase/types.ts`
+  - Nova interface `coordenadores_autorizados`
+  - Tipos Row, Insert e Update
+
+**Documentação**:
+- ✅ `README.md`
+  - Nova seção "Importação de Coordenadores Autorizados"
+  - Atualizada seção "Importação de Metas" com campo Pontos Recebidos
+  - Instruções completas de uso
+
+### 🎯 Impacto
+
+**Segurança**:
+- ✅ Controle centralizado de acesso via importação
+- ✅ Fácil adicionar/remover coordenadores
+- ✅ Validação em ambos signup e signin
+
+**Usabilidade**:
+- ✅ Importação de dados históricos facilitada
+- ✅ Menos trabalho manual de prestação de contas
+- ✅ Progresso visível imediatamente após importação
+- ✅ Interface organizada com tabs
+
+---
+
+## 📋 Atualização do Sistema de Histórico - 01/12/2025
 
 ## O que foi corrigido
 

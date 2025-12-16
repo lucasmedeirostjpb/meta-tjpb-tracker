@@ -18,12 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Search, Download, Filter, Scale, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Download, Filter, Scale, X, Copy, ChevronLeft, ChevronRight, LogOut, LogIn, Edit } from 'lucide-react';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getMetasWithUpdates } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Meta {
   id: string;
@@ -45,6 +46,7 @@ interface Meta {
 
 const TabelaCompletaPage = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -290,6 +292,44 @@ const TabelaCompletaPage = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              {/* Informações do usuário ou Login */}
+              {user ? (
+                <>
+                  <div className="text-right hidden lg:block">
+                    <p className="text-sm font-medium text-gray-900">{user.nome}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => navigate('/minhas-metas')}
+                    className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">Minhas Metas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={signOut}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sair</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/login')}
+                  className="gap-2"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              )}
+              
               <Button onClick={copyPontosToClipboard} variant="outline" className="gap-2">
                 <Copy className="h-4 w-4" />
                 <span className="hidden sm:inline">Copiar Pontos</span>
