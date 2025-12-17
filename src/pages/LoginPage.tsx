@@ -56,8 +56,15 @@ const LoginPage = () => {
 
       localStorage.setItem('auth_session', JSON.stringify(session));
       
+      // Disparar evento customizado para notificar o AuthContext
+      window.dispatchEvent(new Event('auth-changed'));
+      
       toast.success(`Bem-vindo(a), ${coordenador.nome}!`);
-      navigate('/');
+      
+      // Aguardar um pouco para garantir que o evento foi processado
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
       
     } catch (error: any) {
       console.error('❌ Erro no login:', error);

@@ -4,7 +4,7 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Award, AlertCircle, Scale, LogOut, User, Building2 } from "lucide-react";
+import { ArrowLeft, Award, AlertCircle, Scale, LogOut, User, Building2, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
