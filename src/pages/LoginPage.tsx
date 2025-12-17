@@ -85,11 +85,15 @@ const LoginPage = () => {
           </div>
           <div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-              Acesso ao Sistema
+              Eficiência em Ação
             </CardTitle>
             <CardDescription className="text-base mt-2">
               Sistema de Acompanhamento de Metas<br />
               <span className="font-semibold">Prêmio CNJ de Qualidade - TJPB 2026</span>
+              <br />
+              <span className="text-xs text-blue-700 font-semibold italic mt-1 block">
+                Unidos por resultados: TJPB no padrão Excelência
+              </span>
             </CardDescription>
           </div>
         </CardHeader>

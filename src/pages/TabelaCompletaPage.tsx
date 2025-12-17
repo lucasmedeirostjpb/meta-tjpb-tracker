@@ -286,8 +286,8 @@ const TabelaCompletaPage = () => {
                   <Scale className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
-                  <p className="text-xs text-gray-600">Tabela Completa de Requisitos</p>
+                  <h1 className="text-xl font-bold text-gray-900">Eficiência em Ação</h1>
+                  <p className="text-xs text-gray-600">TJPB - Tabela Completa</p>
                 </div>
               </div>
             </div>

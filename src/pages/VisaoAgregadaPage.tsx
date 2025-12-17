@@ -234,9 +234,9 @@ const VisaoAgregadaPage = () => {
                   <Scale className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
+                  <h1 className="text-xl font-bold text-gray-900">Eficiência em Ação</h1>
                   <p className="text-xs text-gray-600">
-                    Qualidade 2026 - Consolidado por {tipoConsolidacao === 'coordenador' ? 'Coordenador' : 'Setor'}
+                    TJPB - Consolidado por {tipoConsolidacao === 'coordenador' ? 'Coordenador' : 'Setor'}
                   </p>
                 </div>
               </div>

@@ -112,9 +112,9 @@ const SetorSelectionPage = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    TJPB - Prêmio CNJ
+                    Eficiência em Ação
                   </h1>
-                  <p className="text-xs text-gray-600">Qualidade 2026</p>
+                  <p className="text-xs text-gray-600">TJPB - Prêmio CNJ 2026</p>
                 </div>
               </div>
             </div>
@@ -179,6 +179,9 @@ const SetorSelectionPage = () => {
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Escolha a melhor forma de consultar os requisitos do Prêmio CNJ de Qualidade 2026
+            </p>
+            <p className="text-sm text-blue-700 font-semibold italic">
+              Unidos por resultados: TJPB no padrão Excelência
             </p>
           </div>
 

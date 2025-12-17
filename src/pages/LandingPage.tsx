@@ -147,9 +147,9 @@ const LandingPage = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-                  TJPB - Prêmio CNJ
+                  Eficiência em Ação
                 </h1>
-                <p className="text-xs text-gray-600 font-medium">Qualidade 2026</p>
+                <p className="text-xs text-gray-600 font-medium">TJPB - Prêmio CNJ 2026</p>
               </div>
             </div>
             
@@ -205,13 +205,17 @@ const LandingPage = () => {
           
           <h1 className="text-5xl md:text-7xl font-bold leading-tight">
             <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Prêmio CNJ
+              Eficiência em Ação
             </span>
             <br />
             <span className="text-gray-800">
-              de Qualidade
+              Prêmio CNJ de Qualidade
             </span>
           </h1>
+
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
+            Unidos por resultados: <span className="font-bold text-blue-700">TJPB no padrão Excelência</span>
+          </p>
 
           {user ? (
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 flex items-center gap-3 mt-6">
@@ -489,9 +493,12 @@ const LandingPage = () => {
             
             <div className="space-y-2">
               <p className="text-blue-200 font-medium">
-                Sistema de Gestão do Prêmio CNJ de Qualidade 2026
+                Eficiência em Ação - Prêmio CNJ de Qualidade 2026
               </p>
-              <p className="text-blue-300 text-sm">
+              <p className="text-sm text-blue-300 italic">
+                Unidos por resultados: TJPB no padrão Excelência
+              </p>
+              <p className="text-blue-300 text-sm mt-2">
                 © 2025 - Todos os direitos reservados
               </p>
             </div>

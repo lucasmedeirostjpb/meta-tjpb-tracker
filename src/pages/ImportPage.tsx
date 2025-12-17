@@ -410,9 +410,13 @@ const ImportPage = () => {
               <FileSpreadsheet className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Importação de Dados</CardTitle>
+          <CardTitle className="text-2xl">Eficiência em Ação - Importação de Dados</CardTitle>
           <CardDescription>
             Prêmio CNJ de Qualidade TJPB 2026
+            <br />
+            <span className="text-xs text-blue-700 font-semibold italic">
+              Unidos por resultados: TJPB no padrão Excelência
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

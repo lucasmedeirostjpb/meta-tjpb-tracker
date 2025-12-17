@@ -175,8 +175,8 @@ const DashboardPage = () => {
                   <Scale className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
-                  <p className="text-xs text-gray-600">Qualidade 2026</p>
+                  <h1 className="text-xl font-bold text-gray-900">Eficiência em Ação</h1>
+                  <p className="text-xs text-gray-600">TJPB - Prêmio CNJ 2026</p>
                 </div>
               </div>
             </div>

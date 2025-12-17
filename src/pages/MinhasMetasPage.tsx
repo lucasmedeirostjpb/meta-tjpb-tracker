@@ -172,8 +172,8 @@ const MinhasMetasPage = () => {
                   <Scale className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">TJPB - Prêmio CNJ</h1>
-                  <p className="text-xs text-gray-600">Minhas Metas</p>
+                  <h1 className="text-xl font-bold text-gray-900">Eficiência em Ação</h1>
+                  <p className="text-xs text-gray-600">TJPB - Minhas Metas</p>
                 </div>
               </div>
             </div>
@@ -212,6 +212,9 @@ const MinhasMetasPage = () => {
                 <p className="text-gray-600">Coordenador: {user?.nome}</p>
                 <p className="text-sm text-gray-500 mt-1">
                   {metas.length} requisito{metas.length !== 1 ? 's' : ''} sob sua coordenação
+                </p>
+                <p className="text-xs text-blue-700 font-semibold italic mt-2">
+                  Unidos por resultados: TJPB no padrão Excelência
                 </p>
               </div>
             </div>
