@@ -96,6 +96,8 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setPontosRecebidos(0);
     } else if (estimativa === 'Parcialmente Cumprido') {
       setStatus('Em Andamento');
+    } else if (estimativa === 'Em Andamento') {
+      setStatus('Em Andamento');
     } else if (estimativa === 'Não se Aplica') {
       setPontosRecebidos(0);
     }
@@ -162,6 +164,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     switch (s) {
       case 'Concluído': return 'bg-green-500 text-white hover:bg-green-500';
       case 'Em Andamento': return 'bg-yellow-500 text-white hover:bg-yellow-500';
+      case 'Parcialmente Cumprido': return 'bg-orange-500 text-white hover:bg-orange-500';
+      case 'Pendente': return 'bg-gray-500 text-white hover:bg-gray-500';
+      case 'N/A': return 'bg-gray-400 text-white hover:bg-gray-400';
       default: return 'bg-gray-500 text-white hover:bg-gray-500';
     }
   };
@@ -189,8 +194,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   // Determinar status atual baseado na estimativa (para exibição)
   const statusAtual = (() => {
     if (estimativa === 'Totalmente Cumprido') return 'Concluído';
-    if (estimativa === 'Parcialmente Cumprido') return 'Em Andamento';
+    if (estimativa === 'Parcialmente Cumprido') return 'Parcialmente Cumprido';
+    if (estimativa === 'Em Andamento') return 'Em Andamento';
     if (estimativa === 'Não Cumprido') return 'Pendente';
+    if (estimativa === 'Não se Aplica') return 'N/A';
     return status;
   })();
 
@@ -198,74 +205,49 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start gap-4 pr-8">
+          <div className="flex items-start justify-between gap-4 pr-8">
             <div className="flex-1">
-              <DialogTitle className="text-2xl mb-2">{meta.artigo} - {meta.requisito}</DialogTitle>
-              <DialogDescription className="text-base">{meta.item}</DialogDescription>
-              <div className="mt-2">
+              <DialogTitle className="text-xl">{meta.requisito}</DialogTitle>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-sm text-muted-foreground">{meta.artigo}</span>
                 <Badge className={getStatusColor(statusAtual)}>{statusAtual}</Badge>
               </div>
+              {meta.descricao && (
+                <p className="text-sm text-muted-foreground mt-2">{meta.descricao}</p>
+              )}
             </div>
           </div>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
           {/* Informações da Meta */}
-          <div className="border-l-4 border-blue-500 bg-muted/30 p-4 rounded-r-lg space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Eixo:</span>
-              <span>{meta.eixo}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div>
+              <p className="text-xs text-muted-foreground">Setor</p>
+              <p className="font-medium text-sm">{meta.setor_executor}</p>
             </div>
-            
-            {meta.descricao && (
-              <div className="text-sm">
-                <span className="font-medium">Descrição:</span>
-                <p className="mt-1 text-muted-foreground">{meta.descricao}</p>
+            {meta.coordenador && (
+              <div>
+                <p className="text-xs text-muted-foreground">Coordenador</p>
+                <p className="font-medium text-sm">{meta.coordenador}</p>
               </div>
             )}
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Setor</p>
-                  <p className="font-medium">{meta.setor_executor}</p>
-                </div>
-              </div>
-              {meta.coordenador && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Coordenador</p>
-                    <p className="font-medium">{meta.coordenador}</p>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Prazo</p>
-                  <p className="font-medium">
-                    {format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Pontos Aplicáveis</p>
-                  <p className="font-medium text-lg">{meta.pontos_aplicaveis}</p>
-                </div>
-              </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Prazo</p>
+              <p className="font-medium text-sm">
+                {format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Pontos</p>
+              <p className="font-bold text-lg">{meta.pontos_aplicaveis}</p>
             </div>
           </div>
 
           {/* Informações de Prestação de Contas */}
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-500" />
-              Prestação de Contas {!isEditable && '(Somente Leitura)'}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-base">
+              Prestação de Contas {!isEditable && '(Consulta)'}
             </h3>
 
             {isEditable ? (
@@ -282,6 +264,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     <SelectContent className="bg-card">
                       <SelectItem value="Totalmente Cumprido">Totalmente Cumprido</SelectItem>
                       <SelectItem value="Parcialmente Cumprido">Parcialmente Cumprido</SelectItem>
+                      <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                       <SelectItem value="Não Cumprido">Não Cumprido</SelectItem>
                       <SelectItem value="Não se Aplica">Não se Aplica</SelectItem>
                     </SelectContent>
@@ -290,46 +273,35 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                 {estimativa === 'Parcialmente Cumprido' && (
                   <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <Label className="text-sm font-medium">
-                      📊 Pontos Recebidos (Cumprimento Parcial) *
-                    </Label>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Pontos recebidos:</span>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={meta.pontos_aplicaveis}
-                            step="1"
-                            value={pontosRecebidos}
-                            onChange={(e) => setPontosRecebidos(Number(e.target.value))}
-                            className="bg-white w-20 text-center"
-                          />
-                          <span className="text-sm">
-                            / {meta.pontos_aplicaveis} <span className="text-muted-foreground">({percentualCalculado.toFixed(1)}%)</span>
-                          </span>
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Pontos Recebidos *</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max={meta.pontos_aplicaveis - 1}
+                          step="1"
+                          value={pontosRecebidos}
+                          onChange={(e) => {
+                            const valor = Number(e.target.value);
+                            if (valor >= meta.pontos_aplicaveis) {
+                              toast.error('Para cumprimento total, selecione "Totalmente Cumprido"');
+                              return;
+                            }
+                            setPontosRecebidos(valor);
+                          }}
+                          className="bg-white w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          de {meta.pontos_aplicaveis} ({percentualCalculado.toFixed(1)}%)
+                        </span>
                       </div>
-                      
-                      <Slider
-                        value={[pontosRecebidos]}
-                        onValueChange={(value) => setPontosRecebidos(value[0])}
-                        min={0}
-                        max={meta.pontos_aplicaveis}
-                        step={1}
-                        className="w-full"
-                      />
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Use o campo ou a barra para definir quantos pontos foram conquistados (0 a {meta.pontos_aplicaveis})
-                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="justificativa">Justificativa do Cumprimento Parcial *</Label>
+                      <Label htmlFor="justificativa" className="text-sm">Justificativa *</Label>
                       <Textarea
                         id="justificativa"
-                        placeholder="Explique por que a meta foi cumprida parcialmente e quantos pontos foram atingidos..."
+                        placeholder="Explique por que a meta foi cumprida parcialmente..."
                         rows={3}
                         value={justificativa}
                         onChange={(e) => setJustificativa(e.target.value)}
@@ -340,34 +312,29 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                 )}
 
                 {estimativa !== 'Parcialmente Cumprido' && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    <Label className="text-sm font-medium">Pontos Estimados</Label>
-                    <p className="text-sm mt-1 text-muted-foreground">
-                      {estimativa === 'Não se Aplica' || estimativa === 'Não Cumprido' 
-                        ? 'Não se aplica' 
-                        : `${meta.pontos_aplicaveis} pontos (100% de cumprimento)`}
-                    </p>
+                  <div className="text-sm text-muted-foreground">
+                    Pontos: {estimativa === 'Não se Aplica' || estimativa === 'Não Cumprido' || estimativa === 'Em Andamento'
+                      ? '0 (aguardando conclusão)' 
+                      : `${meta.pontos_aplicaveis} (100%)`}
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <Label htmlFor="acoes" className="text-sm font-medium">
-                    📋 Ações Planejadas / Executadas
+                    Ações Planejadas / Executadas
                   </Label>
                   <Textarea
                     id="acoes"
-                    placeholder="Descreva as iniciativas, medidas ou providências que estão sendo adotadas..."
-                    rows={5}
+                    placeholder="Descreva as iniciativas e providências adotadas..."
+                    rows={4}
                     value={acoes}
                     onChange={(e) => setAcoes(e.target.value)}
                   />
                 </div>
 
-                <div className="space-y-4 pt-4 border-t">
-                  <h4 className="font-medium">🔎 Informações Complementares</h4>
-
+                <div className="space-y-3 pt-3 border-t">
                   <div className="space-y-2">
-                    <Label htmlFor="link">Link de Evidência</Label>
+                    <Label htmlFor="link" className="text-sm">Link de Evidência</Label>
                     <Input
                       id="link"
                       type="url"
@@ -375,17 +342,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       value={linkEvidencia}
                       onChange={(e) => setLinkEvidencia(e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      URL com documentos, relatórios ou comprovações da execução
-                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="observacoes">Observações Adicionais</Label>
+                    <Label htmlFor="observacoes" className="text-sm">Observações</Label>
                     <Textarea
                       id="observacoes"
-                      placeholder="Adicione observações gerais sobre o andamento..."
-                      rows={3}
+                      placeholder="Observações gerais..."
+                      rows={2}
                       value={observacoes}
                       onChange={(e) => setObservacoes(e.target.value)}
                     />
@@ -424,17 +388,15 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               </>
             )}
 
-            {/* Pontos Recebidos (exibir sempre) */}
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pontos Recebidos{isEditable && ' (Estimativa)'}</p>
-                  <p className="text-3xl font-bold text-blue-600">{pontosRecebidos}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">de {meta.pontos_aplicaveis} pontos</p>
-                  <p className="text-xl font-semibold">{percentualCalculado.toFixed(1)}%</p>
-                </div>
+            {/* Pontos Recebidos */}
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div>
+                <p className="text-xs text-muted-foreground">Pontos Recebidos</p>
+                <p className="text-2xl font-bold text-blue-600">{pontosRecebidos}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">de {meta.pontos_aplicaveis}</p>
+                <p className="text-lg font-semibold">{percentualCalculado.toFixed(1)}%</p>
               </div>
             </div>
 

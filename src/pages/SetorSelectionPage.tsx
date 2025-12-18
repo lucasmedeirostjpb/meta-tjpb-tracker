@@ -100,11 +100,11 @@ const SetorSelectionPage = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => navigate('/')}
-                className="hover:bg-blue-100"
+                className="gap-2 hover:bg-blue-100"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
               </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
@@ -170,7 +170,11 @@ const SetorSelectionPage = () => {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-xl opacity-50"></div>
                 <div className="relative p-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl shadow-2xl">
-                  <Target className="h-14 w-14 text-white" />
+                  <img 
+                    src="/assets/images/tjpb_grande.png" 
+                    alt="TJPB" 
+                    className="h-14 w-14 object-contain brightness-0 invert"
+                  />
                 </div>
               </div>
             </div>

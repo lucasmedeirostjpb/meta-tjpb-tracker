@@ -276,10 +276,11 @@ const TabelaCompletaPage = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => navigate('/consultar')}
+                className="gap-2"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
               </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
@@ -501,7 +502,7 @@ const TabelaCompletaPage = () => {
                         {meta.pontos_aplicaveis}
                       </TableCell>
                       <TableCell className="text-center font-bold text-green-600 bg-green-50">
-                        {pontosRecebidos.toFixed(1)}
+                        {Math.round(pontosRecebidos)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge className={getStatusColor(meta.percentual_cumprimento)}>
@@ -542,7 +543,7 @@ const TabelaCompletaPage = () => {
           <div className="bg-white rounded-lg shadow-sm border p-4">
             <p className="text-sm text-muted-foreground mb-1">Total de Pontos Recebidos</p>
             <p className="text-3xl font-bold text-green-600">
-              {filteredMetas.reduce((sum, m) => sum + calcularPontosRecebidos(m), 0).toFixed(1)}
+              {Math.round(filteredMetas.reduce((sum, m) => sum + calcularPontosRecebidos(m), 0))}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4">

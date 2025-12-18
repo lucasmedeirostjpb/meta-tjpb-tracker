@@ -140,7 +140,16 @@ const MinhasMetasPage = () => {
   };
 
   const progress = calculateProgress();
-  const gruposPorEixo = groupByEixo();
+  const gruposPorSetor = groupBySetor();
+
+  const getEixoColor = (eixo: string) => {
+    const eixoLower = eixo.toLowerCase();
+    if (eixoLower.includes('governança')) return 'blue';
+    if (eixoLower.includes('produtividade')) return 'green';
+    if (eixoLower.includes('transparência') || eixoLower.includes('transparencia')) return 'purple';
+    if (eixoLower.includes('dados') || eixoLower.includes('tecnologia')) return 'orange';
+    return 'gray';
+  };
 
   if (loading) {
     return (
@@ -162,10 +171,11 @@ const MinhasMetasPage = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => navigate('/')}
+                className="gap-2"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
               </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
@@ -232,7 +242,7 @@ const MinhasMetasPage = () => {
                   {progress.percentual.toFixed(1)}%
                 </p>
                 <p className="text-sm text-gray-600">
-                  {progress.recebidos.toFixed(1)} / {progress.total} pts
+                  {Math.round(progress.recebidos)} / {progress.total} pts
                 </p>
               </div>
             </div>
@@ -244,24 +254,47 @@ const MinhasMetasPage = () => {
           </div>
         </div>
 
-        {/* Metas organizadas por Eixo */}
+        {/* Legenda de Cores dos Eixos */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Legenda dos Eixos Temáticos:</h4>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span className="text-sm text-gray-700">Governança</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span className="text-sm text-gray-700">Produtividade</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-purple-500 rounded"></div>
+              <span className="text-sm text-gray-700">Transparência</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <span className="text-sm text-gray-700">Dados e Tecnologia</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metas organizadas por Setor */}
         <div className="space-y-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
-              <Target className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg">
+              <Building2 className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Por Eixo Temático</h3>
+              <h3 className="text-xl font-bold text-gray-900">Por Setor Executor</h3>
               <p className="text-sm text-gray-600">
-                {Object.keys(gruposPorEixo).length} eixo{Object.keys(gruposPorEixo).length !== 1 ? 's' : ''} temático{Object.keys(gruposPorEixo).length !== 1 ? 's' : ''}
+                {Object.keys(gruposPorSetor).length} setor{Object.keys(gruposPorSetor).length !== 1 ? 'es' : ''}
               </p>
             </div>
           </div>
 
-          <Accordion type="multiple" defaultValue={Object.keys(gruposPorEixo)} className="space-y-4">
-            {Object.entries(gruposPorEixo).map(([eixo, metasDoEixo]) => {
-              const pontosEixo = metasDoEixo.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
-              const recebidosEixo = metasDoEixo.reduce((sum, meta) => {
+          <Accordion type="multiple" defaultValue={Object.keys(gruposPorSetor)} className="space-y-4">
+            {Object.entries(gruposPorSetor).map(([setor, metasDoSetor]) => {
+              const pontosSetor = metasDoSetor.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
+              const recebidosSetor = metasDoSetor.reduce((sum, meta) => {
                 if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
                   return sum + meta.pontos_aplicaveis;
                 } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido' && meta.pontos_estimados) {
@@ -269,22 +302,22 @@ const MinhasMetasPage = () => {
                 }
                 return sum;
               }, 0);
-              const percentualEixo = pontosEixo > 0 ? (recebidosEixo / pontosEixo) * 100 : 0;
+              const percentualSetor = pontosSetor > 0 ? (recebidosSetor / pontosSetor) * 100 : 0;
 
               return (
                 <AccordionItem 
-                  key={eixo} 
-                  value={eixo}
+                  key={setor} 
+                  value={setor}
                   className="border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
                 >
                   <AccordionTrigger className="px-6 py-4 hover:no-underline">
                     <div className="flex items-center justify-between w-full pr-4">
                       <div className="flex items-center gap-3 text-left">
-                        <Target className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <Building2 className="h-5 w-5 text-purple-600 flex-shrink-0" />
                         <div>
-                          <h4 className="font-semibold text-gray-900">{eixo}</h4>
+                          <h4 className="font-semibold text-gray-900">{setor}</h4>
                           <p className="text-sm text-gray-600">
-                            {metasDoEixo.length} requisito{metasDoEixo.length !== 1 ? 's' : ''}
+                            {metasDoSetor.length} requisito{metasDoSetor.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </div>
@@ -293,101 +326,33 @@ const MinhasMetasPage = () => {
                           <Badge 
                             variant="outline"
                             className={`${
-                              percentualEixo >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
-                              percentualEixo >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                              percentualEixo > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                              percentualSetor >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
+                              percentualSetor >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                              percentualSetor > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
                               'bg-gray-100 text-gray-800 border-gray-300'
                             }`}
                           >
-                            {percentualEixo.toFixed(1)}%
+                            {percentualSetor.toFixed(1)}%
                           </Badge>
                           <p className="text-xs text-gray-600 mt-1">
-                            {recebidosEixo.toFixed(1)} / {pontosEixo} pts
+                            {Math.round(recebidosSetor)} / {pontosSetor} pts
                           </p>
                         </div>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-6 pt-2">
-                    <Accordion 
-                      type="multiple" 
-                      defaultValue={Object.keys(
-                        metasDoEixo.reduce((grupos, meta) => {
-                          if (!grupos[meta.setor_executor]) grupos[meta.setor_executor] = [];
-                          grupos[meta.setor_executor].push(meta);
-                          return grupos;
-                        }, {} as Record<string, Meta[]>)
-                      )}
-                      className="space-y-2"
-                    >
-                      {Object.entries(
-                        metasDoEixo.reduce((grupos, meta) => {
-                          if (!grupos[meta.setor_executor]) grupos[meta.setor_executor] = [];
-                          grupos[meta.setor_executor].push(meta);
-                          return grupos;
-                        }, {} as Record<string, Meta[]>)
-                      ).map(([setor, metasDoSetor]) => {
-                        const pontosSetor = metasDoSetor.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
-                        const recebidosSetor = metasDoSetor.reduce((sum, meta) => {
-                          if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
-                            return sum + meta.pontos_aplicaveis;
-                          } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido' && meta.pontos_estimados) {
-                            return sum + meta.pontos_estimados;
-                          }
-                          return sum;
-                        }, 0);
-                        const percentualSetor = pontosSetor > 0 ? (recebidosSetor / pontosSetor) * 100 : 0;
-
-                        return (
-                          <AccordionItem 
-                            key={setor} 
-                            value={setor}
-                            className="border rounded-lg bg-gray-50"
-                          >
-                            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-100">
-                              <div className="flex items-center justify-between w-full pr-4">
-                                <div className="flex items-center gap-2 text-left">
-                                  <Building2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                                  <div>
-                                    <h5 className="font-medium text-gray-900 text-sm">{setor}</h5>
-                                    <p className="text-xs text-gray-600">
-                                      {metasDoSetor.length} requisito{metasDoSetor.length !== 1 ? 's' : ''}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <Badge 
-                                    variant="outline"
-                                    className={`text-xs ${
-                                      percentualSetor >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
-                                      percentualSetor >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                      percentualSetor > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                                      'bg-gray-100 text-gray-800 border-gray-300'
-                                    }`}
-                                  >
-                                    {percentualSetor.toFixed(1)}%
-                                  </Badge>
-                                  <p className="text-xs text-gray-600 mt-1">
-                                    {recebidosSetor.toFixed(1)} / {pontosSetor} pts
-                                  </p>
-                                </div>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4 pt-2">
-                              <div className="space-y-3">
-                                {metasDoSetor.map((meta) => (
-                                  <MetaCard
-                                    key={meta.id}
-                                    meta={meta}
-                                    onClick={() => handleMetaClick(meta)}
-                                  />
-                                ))}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {metasDoSetor
+                        .sort((a, b) => a.eixo.localeCompare(b.eixo))
+                        .map((meta) => (
+                          <MetaCard
+                            key={meta.id}
+                            meta={meta}
+                            onClick={() => handleMetaClick(meta)}
+                          />
+                        ))}
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );

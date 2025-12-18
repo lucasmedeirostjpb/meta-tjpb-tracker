@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.updates (
   meta_id UUID NOT NULL REFERENCES public.metas_base(id) ON DELETE CASCADE,
   setor_executor TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'Pendente' CHECK (status IN ('Pendente', 'Em Andamento', 'Concluído')),
-  estimativa_cumprimento TEXT CHECK (estimativa_cumprimento IN ('Totalmente Cumprido', 'Parcialmente Cumprido', 'Não Cumprido', 'Não se Aplica')),
+  estimativa_cumprimento TEXT CHECK (estimativa_cumprimento IN ('Totalmente Cumprido', 'Parcialmente Cumprido', 'Em Andamento', 'Não Cumprido', 'Não se Aplica')),
   pontos_estimados NUMERIC(5,2) DEFAULT 0,
   percentual_cumprimento NUMERIC(5,2) DEFAULT 0,
   acoes_planejadas TEXT,

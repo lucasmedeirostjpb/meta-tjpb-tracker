@@ -1,33 +1,31 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { api } from "@/services/api";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { 
+  ArrowLeft, 
+  Scale, 
+  Users, 
+  Building2, 
+  Target,
+  LogOut,
+  LogIn,
+  Edit,
+  Award
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
+import { getMetasWithUpdates } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { api } from "@/services/api";
-import { toast } from "sonner";
-import { mockMetas, mockUpdates } from "@/lib/mockData";
-import { 
-  ArrowLeft, 
-  Scale, 
-  Target, 
-  User, 
-  AlertCircle,
-  TrendingUp,
-  Building2,
-  Users,
-  LogOut,
-  LogIn,
-  Edit
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface Meta {
   id: string;
@@ -75,27 +73,11 @@ const VisaoAgregadaPage = () => {
     try {
       if (isMockMode) {
         console.log('🎭 [VISAO AGREGADA] Usando modo MOCK');
-        const metasWithUpdates = mockMetas.map(meta => {
-          const update = mockUpdates.find(u => u.meta_id === meta.id);
-          return {
-            ...meta,
-            status: update?.status,
-            link_evidencia: update?.link_evidencia,
-            observacoes: update?.observacoes,
-            update_id: update?.id,
-          };
-        });
-        console.log('✅ [VISAO AGREGADA] Metas carregadas (MOCK):', metasWithUpdates.length);
-        setMetas(metasWithUpdates);
+        const data = getMetasWithUpdates();
+        setMetas(data);
       } else {
         console.log('🌐 [VISAO AGREGADA] Usando Supabase REAL');
         const data = await api.getMetas();
-        console.log('✅ [VISAO AGREGADA] Metas recebidas:', data.length);
-        if (data.length > 0) {
-          console.log('📊 [VISAO AGREGADA] Primeira meta:', data[0]);
-          console.log('📊 [VISAO AGREGADA] Exemplo de status:', data[0].status);
-          console.log('📊 [VISAO AGREGADA] Exemplo de pontos:', data[0].pontos_estimados);
-        }
         setMetas(data);
       }
     } catch (error: any) {
@@ -106,27 +88,34 @@ const VisaoAgregadaPage = () => {
     }
   };
 
-  const groupByEixoAndAgrupador = () => {
-    const grupos: { 
-      [eixo: string]: { 
-        [agrupador: string]: Meta[] 
-      } 
-    } = {};
+  // Agrupar por Coordenador ou Setor
+  const groupByAgrupador = () => {
+    const grupos: Record<string, Meta[]> = {};
 
     metas.forEach(meta => {
-      // Remover numeração do início do eixo
-      const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
       const agrupador = tipoConsolidacao === 'coordenador' 
         ? (meta.coordenador || 'Sem Coordenador')
         : (meta.setor_executor || 'Sem Setor');
 
+      if (!grupos[agrupador]) {
+        grupos[agrupador] = [];
+      }
+      grupos[agrupador].push(meta);
+    });
+
+    return grupos;
+  };
+
+  // Agrupar metas por eixo dentro de um agrupador
+  const groupByEixo = (metasAgrupador: Meta[]) => {
+    const grupos: Record<string, Meta[]> = {};
+    
+    metasAgrupador.forEach(meta => {
+      const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
       if (!grupos[eixoLimpo]) {
-        grupos[eixoLimpo] = {};
+        grupos[eixoLimpo] = [];
       }
-      if (!grupos[eixoLimpo][agrupador]) {
-        grupos[eixoLimpo][agrupador] = [];
-      }
-      grupos[eixoLimpo][agrupador].push(meta);
+      grupos[eixoLimpo].push(meta);
     });
 
     return grupos;
@@ -195,14 +184,11 @@ const VisaoAgregadaPage = () => {
     setModalOpen(true);
   };
 
-  const grupos = groupByEixoAndAgrupador();
+  const grupos = groupByAgrupador();
   const totalGeral = getTotalPontos(metas);
   const progressoGeral = calculateProgress(metas);
 
-  // Calcular total de agrupadores únicos
-  const totalAgrupadores = new Set(
-    metas.map(m => tipoConsolidacao === 'coordenador' ? m.coordenador : m.setor_executor).filter(Boolean)
-  ).size;
+  const totalAgrupadores = Object.keys(grupos).length;
 
   if (loading) {
     return (
@@ -224,10 +210,11 @@ const VisaoAgregadaPage = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => navigate('/consultar')}
+                className="gap-2"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
               </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
@@ -307,184 +294,70 @@ const VisaoAgregadaPage = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Resumo Geral */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Target className="h-8 w-8 text-blue-600" />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Progresso Geral</h2>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Header com Informações Gerais */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
+              {tipoConsolidacao === 'coordenador' ? (
+                <Users className="h-8 w-8 text-blue-600" />
+              ) : (
+                <Building2 className="h-8 w-8 text-blue-600" />
+              )}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Visão Consolidada - {tipoConsolidacao === 'coordenador' ? 'Por Coordenador' : 'Por Setor'}
+              </h2>
+              <p className="text-gray-600">Eficiência em Ação - Prêmio CNJ de Qualidade 2026</p>
+              <p className="text-xs text-blue-700 font-semibold italic mt-1">
+                Unidos por resultados: TJPB no padrão Excelência
+              </p>
+            </div>
+          </div>
+
+          {/* Progresso Geral */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold text-gray-900">Progresso Geral</span>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-blue-600">
+                  {progressoGeral.toFixed(1)}%
+                </p>
                 <p className="text-sm text-gray-600">
-                  {metas.length} requisitos em {Object.keys(grupos).length} eixos • 
-                  {totalAgrupadores} {tipoConsolidacao === 'coordenador' ? 'coordenadores' : 'setores'}
+                  {Math.round(totalGeral.recebidos)} / {totalGeral.aplicaveis} pts
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-4xl font-bold text-blue-600">
-                {progressoGeral.toFixed(1)}%
-              </p>
-              <p className="text-sm text-gray-600">
-                {totalGeral.recebidos.toFixed(1)} / {totalGeral.aplicaveis} pts
-              </p>
-            </div>
+            <Progress value={progressoGeral} className="h-3" />
           </div>
-          <Progress value={progressoGeral} className="h-3" />
         </div>
 
-        {/* Acordeões por Eixo */}
-        <div className="space-y-4">
-          {Object.entries(grupos).map(([eixo, agrupadores]) => {
-            const metasDoEixo = Object.values(agrupadores).flat();
-            const progressoEixo = calculateProgress(metasDoEixo);
-            const pontosEixo = getTotalPontos(metasDoEixo);
-            const cor = getEixoColor(eixo);
-
-            return (
-              <div key={eixo} className={`bg-white rounded-lg shadow-sm border-l-4 ${
-                cor === 'blue' ? 'border-blue-500' :
-                cor === 'green' ? 'border-green-500' :
-                cor === 'purple' ? 'border-purple-500' :
-                cor === 'orange' ? 'border-orange-500' :
-                'border-gray-500'
-              }`}>
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value={eixo} className="border-0">
-                    <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-3">
-                          <div className={
-                            cor === 'blue' ? 'p-2 bg-blue-100 rounded-lg' :
-                            cor === 'green' ? 'p-2 bg-green-100 rounded-lg' :
-                            cor === 'purple' ? 'p-2 bg-purple-100 rounded-lg' :
-                            cor === 'orange' ? 'p-2 bg-orange-100 rounded-lg' :
-                            'p-2 bg-gray-100 rounded-lg'
-                          }>
-                            <Target className={
-                              cor === 'blue' ? 'h-5 w-5 text-blue-600' :
-                              cor === 'green' ? 'h-5 w-5 text-green-600' :
-                              cor === 'purple' ? 'h-5 w-5 text-purple-600' :
-                              cor === 'orange' ? 'h-5 w-5 text-orange-600' :
-                              'h-5 w-5 text-gray-600'
-                            } />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">{eixo}</h3>
-                            <p className="text-sm text-gray-600">
-                              {metasDoEixo.length} requisitos • {Object.keys(agrupadores).length} {tipoConsolidacao === 'coordenador' ? 'coordenadores' : 'setores'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <Badge className={
-                              cor === 'blue' ? 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100' :
-                              cor === 'green' ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-100' :
-                              cor === 'purple' ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-100' :
-                              cor === 'orange' ? 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100' :
-                              'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100'
-                            }>
-                              {progressoEixo.toFixed(1)}%
-                            </Badge>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {pontosEixo.recebidos.toFixed(1)} / {pontosEixo.aplicaveis} pts
-                            </p>
-                          </div>
-                          <div className="w-24">
-                            <Progress value={progressoEixo} className="h-2" />
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      {/* Acordeões por Agrupador (Coordenador ou Setor) */}
-                      <Accordion type="multiple" className="space-y-2">
-                        {Object.entries(agrupadores)
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([agrupador, metasAgrupador]) => {
-                            const progressoAgrupador = calculateProgress(metasAgrupador);
-                            const pontosAgrupador = getTotalPontos(metasAgrupador);
-
-                            return (
-                              <AccordionItem 
-                                key={agrupador} 
-                                value={agrupador}
-                                className="border rounded-lg bg-gray-50"
-                              >
-                                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-100">
-                                  <div className="flex items-center justify-between w-full pr-4">
-                                    <div className="flex items-center gap-3">
-                                      {tipoConsolidacao === 'coordenador' ? (
-                                        <User className="h-4 w-4 text-gray-600" />
-                                      ) : (
-                                        <Building2 className="h-4 w-4 text-gray-600" />
-                                      )}
-                                      <div className="text-left">
-                                        <h4 className="font-medium text-gray-900">{agrupador}</h4>
-                                        <p className="text-xs text-gray-600">
-                                          {metasAgrupador.length} requisitos neste eixo
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <Badge variant="secondary" className="text-xs">
-                                          {progressoAgrupador.toFixed(1)}%
-                                        </Badge>
-                                        <p className="text-xs text-gray-600 mt-0.5">
-                                          {pontosAgrupador.recebidos.toFixed(1)} / {pontosAgrupador.aplicaveis} pts
-                                        </p>
-                                      </div>
-                                      <div className="w-20">
-                                        <Progress value={progressoAgrupador} className="h-1.5" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 pb-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-                                    {metasAgrupador.map(meta => (
-                                      <MetaCard
-                                        key={meta.id}
-                                        meta={meta}
-                                        onClick={() => handleMetaClick(meta)}
-                                      />
-                                    ))}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          })}
-                      </Accordion>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Estatísticas Footer */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-            <TrendingUp className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{Object.keys(grupos).length}</p>
-            <p className="text-sm text-gray-600">Eixos</p>
-          </div>
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
             {tipoConsolidacao === 'coordenador' ? (
-              <User className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
             ) : (
-              <Building2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <Building2 className="h-6 w-6 text-blue-600 mx-auto mb-2" />
             )}
             <p className="text-2xl font-bold text-gray-900">{totalAgrupadores}</p>
             <p className="text-sm text-gray-600">{tipoConsolidacao === 'coordenador' ? 'Coordenadores' : 'Setores'}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-            <Target className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+            <Target className="h-6 w-6 text-green-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-gray-900">{metas.length}</p>
             <p className="text-sm text-gray-600">Requisitos</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+            <Award className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-gray-900">
+              {totalGeral.recebidos.toFixed(0)}
+            </p>
+            <p className="text-sm text-gray-600">Pontos Alcançados</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
             <Scale className="h-6 w-6 text-orange-600 mx-auto mb-2" />
@@ -494,6 +367,102 @@ const VisaoAgregadaPage = () => {
             <p className="text-sm text-gray-600">Pontos Totais</p>
           </div>
         </div>
+
+        {/* Legenda de Cores dos Eixos */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Legenda dos Eixos Temáticos:</h4>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span className="text-sm text-gray-700">Governança</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span className="text-sm text-gray-700">Produtividade</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-purple-500 rounded"></div>
+              <span className="text-sm text-gray-700">Transparência</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <span className="text-sm text-gray-700">Dados e Tecnologia</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Lista de Coordenadores/Setores */}
+        <div className="space-y-4">
+          <Accordion type="multiple" className="space-y-4">
+            {Object.entries(grupos)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([agrupador, metasAgrupador]) => {
+                const progressoAgrupador = calculateProgress(metasAgrupador);
+                const pontosAgrupador = getTotalPontos(metasAgrupador);
+
+                return (
+                  <AccordionItem 
+                    key={agrupador} 
+                    value={agrupador}
+                    className="border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3 text-left">
+                          {tipoConsolidacao === 'coordenador' ? (
+                            <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-purple-600 flex-shrink-0" />
+                          )}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-lg">{agrupador}</h4>
+                            <p className="text-sm text-gray-600">
+                              {metasAgrupador.length} requisito{metasAgrupador.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <Badge 
+                              variant="outline"
+                              className={`${
+                                progressoAgrupador >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
+                                progressoAgrupador >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                progressoAgrupador > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                                'bg-gray-100 text-gray-800 border-gray-300'
+                              }`}
+                            >
+                              {progressoAgrupador.toFixed(1)}%
+                            </Badge>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {Math.round(pontosAgrupador.recebidos)} / {pontosAgrupador.aplicaveis} pts
+                            </p>
+                          </div>
+                          <div className="w-32 hidden md:block">
+                            <Progress value={progressoAgrupador} className="h-2" />
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-6 pt-2">
+                      {/* Lista de Requisitos em grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {metasAgrupador
+                          .sort((a, b) => a.eixo.localeCompare(b.eixo))
+                          .map((meta) => (
+                            <MetaCard
+                              key={meta.id}
+                              meta={meta}
+                              onClick={() => handleMetaClick(meta)}
+                            />
+                          ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+          </Accordion>
+        </div>
       </div>
 
       <MetaModal
@@ -502,8 +471,6 @@ const VisaoAgregadaPage = () => {
         onClose={() => setModalOpen(false)}
         onUpdate={() => {
           setModalOpen(false);
-          // Removido: loadMetas();
-          // A meta já foi atualizada no modal, não precisa recarregar tudo
         }}
       />
     </div>

@@ -16,6 +16,7 @@ interface Meta {
   coordenador?: string;
   deadline: string;
   status?: string;
+  estimativa_cumprimento?: string;
 }
 
 interface MetaCardProps {
@@ -56,15 +57,31 @@ const getStatusColor = (status: string) => {
       return 'bg-green-500 text-white hover:bg-green-500 border-green-600';
     case 'Em Andamento':
       return 'bg-yellow-500 text-white hover:bg-yellow-500 border-yellow-600';
+    case 'Parcialmente Cumprido':
+      return 'bg-orange-500 text-white hover:bg-orange-500 border-orange-600';
     default:
       return 'bg-gray-500 text-white hover:bg-gray-500 border-gray-600';
   }
+};
+
+const getStatusLabel = (meta: Meta) => {
+  // Se tem estimativa_cumprimento, usar ela para determinar o label
+  if (meta.estimativa_cumprimento) {
+    if (meta.estimativa_cumprimento === 'Totalmente Cumprido') return 'Concluído';
+    if (meta.estimativa_cumprimento === 'Parcialmente Cumprido') return 'Parcialmente Cumprido';
+    if (meta.estimativa_cumprimento === 'Em Andamento') return 'Em Andamento';
+    if (meta.estimativa_cumprimento === 'Não Cumprido') return 'Pendente';
+    if (meta.estimativa_cumprimento === 'Não se Aplica') return 'N/A';
+  }
+  // Fallback para o status direto
+  return meta.status || 'Pendente';
 };
 
 const MetaCard = ({ meta, onClick }: MetaCardProps) => {
   const deadline = parseISO(meta.deadline);
   const daysUntilDeadline = differenceInDays(deadline, new Date());
   const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline >= 0;
+  const statusLabel = getStatusLabel(meta);
 
   return (
     <Card 
@@ -77,8 +94,8 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
             <Building2 className="h-3 w-3 text-blue-600" />
             <span className="font-medium text-blue-700">{meta.setor_executor}</span>
           </div>
-          <Badge className={getStatusColor(meta.status || 'Pendente')}>
-            {meta.status || 'Pendente'}
+          <Badge className={getStatusColor(statusLabel)}>
+            {statusLabel}
           </Badge>
         </div>
         <h3 className="font-semibold text-base line-clamp-2">{meta.requisito}</h3>

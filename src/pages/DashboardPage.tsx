@@ -165,10 +165,11 @@ const DashboardPage = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => navigate('/consultar')}
+                className="gap-2"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
               </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 rounded-lg">
@@ -225,7 +226,7 @@ const DashboardPage = () => {
             </div>
             <Progress value={progress} className="h-3" />
             <p className="text-xs text-muted-foreground">
-              {metas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0).toFixed(1)} de{' '}
+              {Math.round(metas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0))} de{' '}
               {metas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pontos
             </p>
           </div>
@@ -252,7 +253,7 @@ const DashboardPage = () => {
                           {setorMetas.length} metas
                         </span>
                         <span>
-                          {setorMetas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0).toFixed(1)}/
+                          {Math.round(setorMetas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0))}/
                           {setorMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pts
                         </span>
                       </div>

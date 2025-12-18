@@ -83,10 +83,11 @@ const HistoricoPage = () => {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              size="icon"
               onClick={() => navigate(-1)}
+              className="gap-2"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
             </Button>
             <div className="flex items-center gap-2">
               <History className="h-6 w-6 text-blue-600" />

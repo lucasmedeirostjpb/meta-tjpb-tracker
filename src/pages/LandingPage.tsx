@@ -199,9 +199,11 @@ const LandingPage = () => {
       {/* Hero Section - Redesenhado */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-5xl mx-auto text-center space-y-8">
-          <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm px-6 py-2 hover:from-blue-700 hover:to-indigo-700 cursor-default shadow-lg">
-            Tribunal de Justiça da Paraíba
-          </Badge>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-blue-600 tracking-wide uppercase">
+              Tribunal de Justiça da Paraíba
+            </p>
+          </div>
           
           <h1 className="text-5xl md:text-7xl font-bold leading-tight">
             <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
