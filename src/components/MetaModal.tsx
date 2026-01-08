@@ -119,7 +119,13 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
     setSaving(true);
     try {
-      const percentualCalculado = (pontosRecebidos / meta.pontos_aplicaveis) * 100;
+      // Para "Em Andamento", não calcular percentual (é apenas estimativa)
+      let percentualCalculado = 0;
+      if (estimativa === 'Parcialmente Cumprido') {
+        percentualCalculado = (pontosRecebidos / meta.pontos_aplicaveis) * 100;
+      } else if (estimativa === 'Totalmente Cumprido') {
+        percentualCalculado = 100;
+      }
 
       const updateData = {
         meta_id: meta.id,
@@ -159,7 +165,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   
   if (!meta) return null;
 
-  const percentualCalculado = (pontosRecebidos / meta.pontos_aplicaveis) * 100;
+  // Calcular percentual apenas para Parcialmente Cumprido e Totalmente Cumprido
+  let percentualCalculado = 0;
+  if (estimativa === 'Parcialmente Cumprido') {
+    percentualCalculado = (pontosRecebidos / meta.pontos_aplicaveis) * 100;
+  } else if (estimativa === 'Totalmente Cumprido') {
+    percentualCalculado = 100;
+  }
+  
   const getStatusColor = (s: string) => {
     switch (s) {
       case 'Concluído': return 'bg-green-500 text-white hover:bg-green-500';
@@ -311,9 +324,41 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                   </div>
                 )}
 
-                {estimativa !== 'Parcialmente Cumprido' && (
+                {estimativa === 'Em Andamento' && (
+                  <div className="space-y-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Pontos Estimados *</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="20"
+                          step="0.5"
+                          value={pontosRecebidos}
+                          onChange={(e) => {
+                            const valor = Number(e.target.value);
+                            if (valor > 20) {
+                              toast.error('Para "Em Andamento", o máximo é 20 pontos');
+                              return;
+                            }
+                            setPontosRecebidos(valor);
+                          }}
+                          className="bg-white w-20 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          (máximo 20 pontos)
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      💡 Informe quantos pontos você estima que serão recebidos quando a meta for concluída.
+                    </p>
+                  </div>
+                )}
+
+                {estimativa !== 'Parcialmente Cumprido' && estimativa !== 'Em Andamento' && (
                   <div className="text-sm text-muted-foreground">
-                    Pontos: {estimativa === 'Não se Aplica' || estimativa === 'Não Cumprido' || estimativa === 'Em Andamento'
+                    Pontos: {estimativa === 'Não se Aplica' || estimativa === 'Não Cumprido'
                       ? '0 (aguardando conclusão)' 
                       : `${meta.pontos_aplicaveis} (100%)`}
                   </div>
@@ -391,12 +436,23 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
             {/* Pontos Recebidos */}
             <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div>
-                <p className="text-xs text-muted-foreground">Pontos Recebidos</p>
+                <p className="text-xs text-muted-foreground">
+                  {estimativa === 'Em Andamento' ? 'Pontos Estimados' : 'Pontos Recebidos'}
+                </p>
                 <p className="text-2xl font-bold text-blue-600">{pontosRecebidos}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">de {meta.pontos_aplicaveis}</p>
-                <p className="text-lg font-semibold">{percentualCalculado.toFixed(1)}%</p>
+                {estimativa === 'Em Andamento' ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">máximo 20</p>
+                    <p className="text-lg font-semibold">Estimativa</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">de {meta.pontos_aplicaveis}</p>
+                    <p className="text-lg font-semibold">{percentualCalculado.toFixed(1)}%</p>
+                  </>
+                )}
               </div>
             </div>
 
