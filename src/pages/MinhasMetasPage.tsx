@@ -261,17 +261,17 @@ const MinhasMetasPage = () => {
             </div>
             
             {/* Barra de progresso composta */}
-            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden flex">
               {/* Parte verde - pontos efetivados */}
               <div
-                className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-500"
+                className="h-full bg-green-500 transition-all duration-500"
                 style={{ width: `${Math.min(progress.percentual, 100)}%` }}
               />
-              {/* Parte azul - pontos estimados (overflow) */}
+              {/* Parte azul - pontos estimados (lado a lado) */}
               {progress.estimados > 0 && (
                 <div
-                  className="absolute top-0 left-0 h-full bg-blue-400 transition-all duration-500"
-                  style={{ width: `${Math.min(progress.percentualComEstimados, 100)}%` }}
+                  className="h-full bg-blue-400 transition-all duration-500"
+                  style={{ width: `${Math.min(progress.percentualComEstimados - progress.percentual, 100 - progress.percentual)}%` }}
                 />
               )}
             </div>
