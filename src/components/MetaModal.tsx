@@ -332,13 +332,13 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                         <Input
                           type="number"
                           min="0"
-                          max="20"
+                          max={meta.pontos_aplicaveis}
                           step="0.5"
                           value={pontosRecebidos}
                           onChange={(e) => {
                             const valor = Number(e.target.value);
-                            if (valor > 20) {
-                              toast.error('Para "Em Andamento", o máximo é 20 pontos');
+                            if (valor > meta.pontos_aplicaveis) {
+                              toast.error(`Para "Em Andamento", o máximo é ${meta.pontos_aplicaveis} pontos`);
                               return;
                             }
                             setPontosRecebidos(valor);
@@ -346,7 +346,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                           className="bg-white w-20 text-center"
                         />
                         <span className="text-sm text-muted-foreground">
-                          (máximo 20 pontos)
+                          (máximo {meta.pontos_aplicaveis} pontos)
                         </span>
                       </div>
                     </div>
@@ -444,7 +444,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               <div className="text-right">
                 {estimativa === 'Em Andamento' ? (
                   <>
-                    <p className="text-xs text-muted-foreground">máximo 20</p>
+                    <p className="text-xs text-muted-foreground">máximo {meta.pontos_aplicaveis}</p>
                     <p className="text-lg font-semibold">Estimativa</p>
                   </>
                 ) : (

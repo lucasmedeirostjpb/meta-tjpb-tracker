@@ -85,6 +85,8 @@ const MinhasMetasPage = () => {
 
   const calculateProgress = () => {
     const total = metas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    
+    // Pontos efetivados (Totalmente + Parcialmente Cumprido)
     const recebidos = metas.reduce((sum, meta) => {
       if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
         return sum + meta.pontos_aplicaveis;
@@ -94,10 +96,21 @@ const MinhasMetasPage = () => {
       return sum;
     }, 0);
 
+    // Pontos estimados (Em Andamento)
+    const estimados = metas.reduce((sum, meta) => {
+      if (meta.estimativa_cumprimento === 'Em Andamento' && meta.pontos_estimados) {
+        return sum + meta.pontos_estimados;
+      }
+      return sum;
+    }, 0);
+
     return {
       total,
       recebidos,
+      estimados,
+      totalComEstimados: recebidos + estimados,
       percentual: total > 0 ? (recebidos / total) * 100 : 0,
+      percentualComEstimados: total > 0 ? ((recebidos + estimados) / total) * 100 : 0,
     };
   };
 
@@ -238,15 +251,55 @@ const MinhasMetasPage = () => {
                 <span className="font-semibold text-gray-900">Progresso Geral</span>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-green-600">
                   {progress.percentual.toFixed(1)}%
                 </p>
                 <p className="text-sm text-gray-600">
-                  {Math.round(progress.recebidos)} / {progress.total} pts
+                  {Math.round(progress.recebidos)} pts efetivados
                 </p>
               </div>
             </div>
-            <Progress value={progress.percentual} className="h-3" />
+            
+            {/* Barra de progresso composta */}
+            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+              {/* Parte verde - pontos efetivados */}
+              <div
+                className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-500"
+                style={{ width: `${Math.min(progress.percentual, 100)}%` }}
+              />
+              {/* Parte azul - pontos estimados (overflow) */}
+              {progress.estimados > 0 && (
+                <div
+                  className="absolute top-0 left-0 h-full bg-blue-400 transition-all duration-500"
+                  style={{ width: `${Math.min(progress.percentualComEstimados, 100)}%` }}
+                />
+              )}
+            </div>
+            
+            {/* Legenda */}
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Efetivados: {Math.round(progress.recebidos)} pts</span>
+                </div>
+                {progress.estimados > 0 && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    <span>Estimados: {Math.round(progress.estimados)} pts</span>
+                  </div>
+                )}
+              </div>
+              <span className="font-semibold">
+                Total: {Math.round(progress.totalComEstimados)} / {progress.total} pts
+                {progress.estimados > 0 && (
+                  <span className="text-blue-600 ml-1">
+                    ({progress.percentualComEstimados.toFixed(1)}%)
+                  </span>
+                )}
+              </span>
+            </div>
+            
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <AlertCircle className="h-4 w-4" />
               <span>Clique em qualquer meta para preencher ou atualizar a prestação de contas</span>
