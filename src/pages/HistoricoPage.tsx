@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import type { Atividade } from '@/integrations/supabase/types';
+import type { Atividade, Dificuldade } from '@/integrations/supabase/types';
 
 interface HistoricoItem {
   id: string;
@@ -24,6 +24,8 @@ interface HistoricoItem {
   observacoes_novo: string | null;
   atividades_anterior: Atividade[] | null;
   atividades_novo: Atividade[] | null;
+  dificuldade_anterior: Dificuldade | null;
+  dificuldade_novo: Dificuldade | null;
   created_at: string;
   meta?: {
     eixo: string;
@@ -64,6 +66,7 @@ const HistoricoPage = () => {
       criacao: 'Criação',
       atualizacao_status: 'Atualização de Status',
       atualizacao_atividades: 'Atualização de Atividades',
+      atualizacao_dificuldade: 'Atualização de Dificuldade',
       adicao_evidencia: 'Adição de Evidência',
       edicao_observacoes: 'Edição de Observações',
       atualizacao_completa: 'Atualização Completa',
@@ -76,11 +79,21 @@ const HistoricoPage = () => {
       criacao: 'default',
       atualizacao_status: 'secondary',
       atualizacao_atividades: 'secondary',
+      atualizacao_dificuldade: 'secondary',
       adicao_evidencia: 'outline',
       edicao_observacoes: 'outline',
       atualizacao_completa: 'secondary',
     };
     return variants[acao] || 'default';
+  };
+
+  const getDificuldadeTextColor = (dificuldade: Dificuldade) => {
+    switch (dificuldade) {
+      case 'Sem dificuldades': return 'text-green-600 font-semibold';
+      case 'Alerta': return 'text-yellow-600 font-semibold';
+      case 'Situação crítica': return 'text-red-600 font-semibold';
+      default: return 'text-gray-600';
+    }
   };
 
   const compararAtividades = (anterior: Atividade[] | null, novo: Atividade[] | null) => {
@@ -233,6 +246,20 @@ const HistoricoPage = () => {
                       ) : (
                         <p className="text-xs text-gray-500">Nenhuma mudança detectada</p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Exibir mudança de dificuldade */}
+                  {item.dificuldade_anterior && item.dificuldade_novo && item.dificuldade_anterior !== item.dificuldade_novo && (
+                    <div className="text-sm mt-3 pt-3 border-t">
+                      <strong>Nível de Dificuldade:</strong>{' '}
+                      <span className={getDificuldadeTextColor(item.dificuldade_anterior)}>
+                        {item.dificuldade_anterior}
+                      </span>
+                      {' → '}
+                      <span className={getDificuldadeTextColor(item.dificuldade_novo)}>
+                        {item.dificuldade_novo}
+                      </span>
                     </div>
                   )}
                 </CardContent>

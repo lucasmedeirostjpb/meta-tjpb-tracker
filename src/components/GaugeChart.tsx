@@ -17,11 +17,19 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ value, size = 320 }) => {
           cornerRadius: 1,
           subArcs: [
             {
-              limit: 80,
+              limit: 75,
               color: '#e5e7eb',
               showTick: true,
               tooltip: {
                 text: 'Progresso padrão'
+              }
+            },
+            {
+              limit: 80,
+              color: '#333b4dff',
+              showTick: true,
+              tooltip: {
+                text: 'SELO PRATA - 75%'
               }
             },
             {

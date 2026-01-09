@@ -4,6 +4,15 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ArrowLeft, 
   Scale, 
@@ -13,13 +22,15 @@ import {
   LogOut,
   LogIn,
   Edit,
-  Award
+  Award,
+  Filter
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
 import { getMetasWithUpdates } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Dificuldade } from "@/integrations/supabase/types";
 import {
   Accordion,
   AccordionContent,
@@ -48,6 +59,7 @@ interface Meta {
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
+  dificuldade?: Dificuldade;
 }
 
 const VisaoAgregadaPage = () => {
@@ -62,6 +74,7 @@ const VisaoAgregadaPage = () => {
   const [selectedMeta, setSelectedMeta] = useState<Meta | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [filtrosDificuldade, setFiltrosDificuldade] = useState<Dificuldade[]>([]);
 
   useEffect(() => {
     loadMetas();
@@ -92,7 +105,12 @@ const VisaoAgregadaPage = () => {
   const groupByAgrupador = () => {
     const grupos: Record<string, Meta[]> = {};
 
-    metas.forEach(meta => {
+    // Aplicar filtro de dificuldade
+    const metasFiltradas = filtrosDificuldade.length === 0
+      ? metas
+      : metas.filter(meta => meta.dificuldade && filtrosDificuldade.includes(meta.dificuldade));
+
+    metasFiltradas.forEach(meta => {
       const agrupador = tipoConsolidacao === 'coordenador' 
         ? (meta.coordenador || 'Sem Coordenador')
         : (meta.setor_executor || 'Sem Setor');
@@ -197,6 +215,22 @@ const VisaoAgregadaPage = () => {
     }
     
     return 'gray';
+  };
+
+  const toggleDificuldade = (dificuldade: Dificuldade) => {
+    setFiltrosDificuldade(prev => 
+      prev.includes(dificuldade)
+        ? prev.filter(d => d !== dificuldade)
+        : [...prev, dificuldade]
+    );
+  };
+
+  const contarPorDificuldade = () => {
+    return {
+      semDificuldades: metas.filter(m => !m.dificuldade || m.dificuldade === 'Sem dificuldades').length,
+      alerta: metas.filter(m => m.dificuldade === 'Alerta').length,
+      critica: metas.filter(m => m.dificuldade === 'Situação crítica').length,
+    };
   };
 
   const handleMetaClick = (meta: Meta) => {
@@ -394,7 +428,7 @@ const VisaoAgregadaPage = () => {
         </div>
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
             {tipoConsolidacao === 'coordenador' ? (
               <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
@@ -423,6 +457,16 @@ const VisaoAgregadaPage = () => {
             </p>
             <p className="text-sm text-gray-600">Pontos Totais</p>
           </div>
+          <div className="bg-yellow-50 rounded-lg shadow-sm border-2 border-yellow-300 p-4 text-center">
+            <div className="h-6 w-6 mx-auto mb-2 bg-yellow-500 rounded-full"></div>
+            <p className="text-2xl font-bold text-yellow-700">{contarPorDificuldade().alerta}</p>
+            <p className="text-sm text-gray-600">Em Alerta</p>
+          </div>
+          <div className="bg-red-50 rounded-lg shadow-sm border-2 border-red-300 p-4 text-center">
+            <div className="h-6 w-6 mx-auto mb-2 bg-red-500 rounded-full"></div>
+            <p className="text-2xl font-bold text-red-700">{contarPorDificuldade().critica}</p>
+            <p className="text-sm text-gray-600">Situação Crítica</p>
+          </div>
         </div>
 
         {/* Legenda de Cores dos Eixos */}
@@ -444,6 +488,75 @@ const VisaoAgregadaPage = () => {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-orange-500 rounded"></div>
               <span className="text-sm text-gray-700">Dados e Tecnologia</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtro de Dificuldade */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-start gap-3">
+            <Filter className="h-5 w-5 text-gray-600 mt-1" />
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 block mb-3">Filtrar por Dificuldade:</label>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="alerta"
+                    checked={filtrosDificuldade.includes('Alerta')}
+                    onCheckedChange={() => toggleDificuldade('Alerta')}
+                  />
+                  <label
+                    htmlFor="alerta"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    Alerta ({contarPorDificuldade().alerta})
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="critica"
+                    checked={filtrosDificuldade.includes('Situação crítica')}
+                    onCheckedChange={() => toggleDificuldade('Situação crítica')}
+                  />
+                  <label
+                    htmlFor="critica"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    Situação Crítica ({contarPorDificuldade().critica})
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="sem-dificuldades"
+                    checked={filtrosDificuldade.includes('Sem dificuldades')}
+                    onCheckedChange={() => toggleDificuldade('Sem dificuldades')}
+                  />
+                  <label
+                    htmlFor="sem-dificuldades"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    Sem Dificuldades ({contarPorDificuldade().semDificuldades})
+                  </label>
+                </div>
+              </div>
+              {filtrosDificuldade.length > 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {filtrosDificuldade.length} filtro{filtrosDificuldade.length > 1 ? 's' : ''} ativo{filtrosDificuldade.length > 1 ? 's' : ''}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFiltrosDificuldade([])}
+                    className="h-6 text-xs"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

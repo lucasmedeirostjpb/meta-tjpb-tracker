@@ -7,6 +7,7 @@ export type Json =
   | Json[]
 
 export type AtividadeStatus = 'Concluída' | 'Em andamento' | 'Não iniciada';
+export type Dificuldade = 'Sem dificuldades' | 'Alerta' | 'Situação crítica';
 
 export interface Atividade {
   id: string;
@@ -78,6 +79,7 @@ export interface Database {
           link_evidencia: string | null
           observacoes: string | null
           atividades: Atividade[] | null
+          dificuldade: Dificuldade | null
           created_at: string
           updated_at: string
         }
@@ -95,6 +97,7 @@ export interface Database {
           link_evidencia?: string | null
           observacoes?: string | null
           atividades?: Atividade[] | null
+          dificuldade?: Dificuldade | null
           created_at?: string
           updated_at?: string
         }
@@ -112,6 +115,7 @@ export interface Database {
           link_evidencia?: string | null
           observacoes?: string | null
           atividades?: Atividade[] | null
+          dificuldade?: Dificuldade | null
           created_at?: string
           updated_at?: string
         }
@@ -134,8 +138,13 @@ export interface Database {
           justificativa_parcial_anterior: string | null
           justificativa_parcial_novo: string | null
           link_evidencia_anterior: string | null
+          link_evidencia_novo: string | null
+          observacoes_anterior: string | null
+          observacoes_novo: string | null
           atividades_anterior: Atividade[] | null
           atividades_novo: Atividade[] | null
+          dificuldade_anterior: Dificuldade | null
+          dificuldade_novo: Dificuldade | null
           created_at: string
         }
         Insert: {
@@ -160,6 +169,8 @@ export interface Database {
           observacoes_novo?: string | null
           atividades_anterior?: Atividade[] | null
           atividades_novo?: Atividade[] | null
+          dificuldade_anterior?: Dificuldade | null
+          dificuldade_novo?: Dificuldade | null
           created_at?: string
         }
         Update: {
@@ -183,10 +194,9 @@ export interface Database {
           observacoes_anterior?: string | null
           observacoes_novo?: string | null
           atividades_anterior?: Atividade[] | null
-          atividades_novo?: Atividade[] string | null
-          link_evidencia_novo?: string | null
-          observacoes_anterior?: string | null
-          observacoes_novo?: string | null
+          atividades_novo?: Atividade[] | null
+          dificuldade_anterior?: Dificuldade | null
+          dificuldade_novo?: Dificuldade | null
           created_at?: string
         }
       }

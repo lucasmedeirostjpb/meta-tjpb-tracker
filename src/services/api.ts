@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database, Atividade } from '@/integrations/supabase/types';
+import type { Database, Atividade, Dificuldade } from '@/integrations/supabase/types';
 
 type UpdateData = {
   id: string;
@@ -12,6 +12,7 @@ type UpdateData = {
   acoes_planejadas?: string | null;
   justificativa_parcial?: string | null;
   atividades?: Atividade[] | null;
+  dificuldade?: Dificuldade | null;
   updated_at: string;
 };
 
@@ -26,6 +27,7 @@ type Meta = Database['public']['Tables']['metas_base']['Row'] & {
   acoes_planejadas?: string;
   justificativa_parcial?: string;
   atividades?: Atividade[];
+  dificuldade?: Dificuldade;
   updates?: UpdateData[];
 };
 
@@ -142,6 +144,7 @@ export const api = {
           acoes_planejadas: update?.acoes_planejadas || '',
           justificativa_parcial: update?.justificativa_parcial || '',
           atividades: update?.atividades || [],
+          dificuldade: update?.dificuldade || 'Sem dificuldades',
         };
       });
 
@@ -257,6 +260,7 @@ export const api = {
     link_evidencia?: string;
     observacoes?: string;
     atividades?: Atividade[];
+    dificuldade?: Dificuldade;
   }) {
     console.log('💾 [API] Salvando update para meta:', updateData.meta_id);
     console.log('📋 [API] Atividades recebidas:', {
@@ -288,6 +292,7 @@ export const api = {
           link_evidencia: updateData.link_evidencia,
           observacoes: updateData.observacoes,
           atividades: updateData.atividades,
+          dificuldade: updateData.dificuldade,
           data_prestacao: new Date().toISOString(),
         })
         .eq('id', existing.id);
@@ -316,6 +321,7 @@ export const api = {
           link_evidencia: updateData.link_evidencia,
           observacoes: updateData.observacoes,
           atividades: updateData.atividades,
+          dificuldade: updateData.dificuldade,
           data_prestacao: new Date().toISOString(),
         });
 

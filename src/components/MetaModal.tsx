@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock, Plus, Trash2 } from "lucide-react";
-import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
+import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
 
 interface Meta {
   id: string;
@@ -49,6 +49,7 @@ interface Meta {
   acoes_planejadas?: string;
   justificativa_parcial?: string;
   atividades?: Atividade[];
+  dificuldade?: Dificuldade;
 }
 
 interface MetaModalProps {
@@ -70,6 +71,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [linkEvidencia, setLinkEvidencia] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
   const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [dificuldade, setDificuldade] = useState<Dificuldade>('Sem dificuldades');
   const [saving, setSaving] = useState(false);
 
   // Gerar ID único para novas atividades
@@ -95,6 +97,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setLinkEvidencia(meta.link_evidencia || '');
       setObservacoes(meta.observacoes || '');
       setAtividades(meta.atividades || []);
+      setDificuldade(meta.dificuldade || 'Sem dificuldades');
     }
   }, [meta?.id, open]);
 
@@ -175,6 +178,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         link_evidencia: linkEvidencia,
         observacoes,
         atividades: atividades,
+        dificuldade: dificuldade,
       };
 
       console.log('💾 [MODAL] Salvando com atividades:', {
@@ -192,6 +196,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       meta.percentual_cumprimento = percentualCalculado;
       meta.pontos_estimados = pontosRecebidos;
       meta.atividades = atividades;
+      meta.dificuldade = dificuldade;
       meta.acoes_planejadas = acoes;
       meta.justificativa_parcial = justificativa;
       meta.link_evidencia = linkEvidencia;
@@ -233,6 +238,15 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       case 'Concluída': return 'bg-green-100 text-green-800 border-green-300';
       case 'Em andamento': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'Não iniciada': return 'bg-gray-100 text-gray-800 border-gray-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getDificuldadeColor = (d: Dificuldade) => {
+    switch (d) {
+      case 'Sem dificuldades': return 'bg-green-100 text-green-800 border-green-300';
+      case 'Alerta': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Situação crítica': return 'bg-red-100 text-red-800 border-red-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
@@ -522,6 +536,38 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                 <div className="space-y-3 pt-3 border-t">
                   <div className="space-y-2">
+                    <Label htmlFor="dificuldade" className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Nível de Dificuldade
+                    </Label>
+                    <Select value={dificuldade} onValueChange={(value) => setDificuldade(value as Dificuldade)}>
+                      <SelectTrigger id="dificuldade">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Sem dificuldades">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            Sem dificuldades
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Alerta">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            Alerta
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Situação crítica">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            Situação crítica
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="link" className="text-sm">Link de Evidência</Label>
                     <Input
                       id="link"
@@ -652,6 +698,23 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     <Label className="text-sm font-medium text-muted-foreground">Ações Planejadas / Executadas (histórico)</Label>
                     <div className="bg-muted rounded-lg p-3">
                       <p className="text-sm whitespace-pre-wrap">{acoes}</p>
+                    </div>
+                  </div>
+                )}
+
+                {dificuldade && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Nível de Dificuldade
+                    </Label>
+                    <div>
+                      <Badge 
+                        variant="outline" 
+                        className={`${getDificuldadeColor(dificuldade)} text-sm px-3 py-1`}
+                      >
+                        {dificuldade}
+                      </Badge>
                     </div>
                   </div>
                 )}

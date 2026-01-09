@@ -149,7 +149,6 @@ const MinhasMetasPage = () => {
     await fetchMetas();
     setModalOpen(false);
     setSelectedMeta(null);
-    toast.success('Meta atualizada com sucesso!');
   };
 
   const progress = calculateProgress();

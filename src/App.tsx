@@ -13,6 +13,7 @@ import VisaoAgregadaPage from "./pages/VisaoAgregadaPage";
 import TabelaCompletaPage from "./pages/TabelaCompletaPage";
 import MinhasMetasPage from "./pages/MinhasMetasPage";
 import HistoricoPage from "./pages/HistoricoPage";
+import GerenciamentoAtividadesPage from "./pages/GerenciamentoAtividadesPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/consolidado" element={<VisaoAgregadaPage />} />
             <Route path="/tabela" element={<TabelaCompletaPage />} />
             <Route path="/historico" element={<HistoricoPage />} />
+            <Route path="/atividades" element={<GerenciamentoAtividadesPage />} />
             
             {/* Rotas Protegidas */}
             <Route 

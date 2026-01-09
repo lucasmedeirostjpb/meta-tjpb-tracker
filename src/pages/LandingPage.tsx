@@ -305,6 +305,39 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Botão Gerenciamento de Atividades */}
+      <section className="container mx-auto px-4 pb-12">
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-2 border-indigo-300 bg-gradient-to-r from-indigo-50 to-purple-50 hover:shadow-2xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg">
+                    <LayoutList className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">
+                      Gerenciamento de Atividades
+                    </h3>
+                    <p className="text-gray-600">
+                      Visualize todas as atividades pendentes em um só lugar
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => navigate('/atividades')}
+                  className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all px-6 py-6 text-base"
+                >
+                  <LayoutList className="h-5 w-5" />
+                  Acessar Atividades
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Velocímetro e Gráfico de Barras */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
@@ -319,7 +352,7 @@ const LandingPage = () => {
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
                 Progresso Geral
               </CardTitle>
-              <CardDescription className="text-lg font-medium">Rumo à excelência</CardDescription>
+              <CardDescription className="text-lg font-medium">Rumo à Excelência</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Velocímetro */}
@@ -338,20 +371,27 @@ const LandingPage = () => {
               </div>
               
               {/* Marcações dos Selos */}
-              <div className="space-y-3 mt-6">
-                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50 transition-all hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <Award className="h-7 w-7 text-yellow-600" />
-                    <span className="font-bold text-lg text-yellow-900">SELO OURO</span>
+              <div className="space-y-2 mt-6">
+                <div className="flex items-center justify-between p-3 rounded-lg border-2 border-gray-400 bg-gray-50 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-gray-600" />
+                    <span className="font-bold text-sm text-gray-900">SELO PRATA</span>
                   </div>
-                  <span className="text-2xl font-bold text-yellow-700">80%</span>
+                  <span className="text-xl font-bold text-gray-700">75%</span>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-blue-400 bg-blue-50 transition-all hover:shadow-md">
-                  <div className="flex items-center gap-3">
-                    <Award className="h-7 w-7 text-blue-600" />
-                    <span className="font-bold text-lg text-blue-900">SELO DIAMANTE</span>
+                <div className="flex items-center justify-between p-3 rounded-lg border-2 border-yellow-400 bg-yellow-50 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-yellow-600" />
+                    <span className="font-bold text-sm text-yellow-900">SELO OURO</span>
                   </div>
-                  <span className="text-2xl font-bold text-blue-700">85%</span>
+                  <span className="text-xl font-bold text-yellow-700">80%</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border-2 border-blue-400 bg-blue-50 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-blue-600" />
+                    <span className="font-bold text-sm text-blue-900">SELO DIAMANTE</span>
+                  </div>
+                  <span className="text-xl font-bold text-blue-700">85%</span>
                 </div>
               </div>
             </CardContent>
