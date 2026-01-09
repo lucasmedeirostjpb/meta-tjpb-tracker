@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, Atividade } from '@/integrations/supabase/types';
 
 type UpdateData = {
   id: string;
@@ -11,6 +11,7 @@ type UpdateData = {
   percentual_cumprimento?: number | null;
   acoes_planejadas?: string | null;
   justificativa_parcial?: string | null;
+  atividades?: Atividade[] | null;
   updated_at: string;
 };
 
@@ -24,6 +25,7 @@ type Meta = Database['public']['Tables']['metas_base']['Row'] & {
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
+  atividades?: Atividade[];
   updates?: UpdateData[];
 };
 
@@ -124,6 +126,10 @@ export const api = {
       const metasComUpdates = metasData.map(meta => {
         const update = updatesData?.find(u => u.meta_id === meta.id);
         
+        if (update && update.atividades) {
+          console.log(`📋 [API] Meta ${meta.requisito.substring(0, 30)}... tem ${update.atividades.length} atividades`);
+        }
+        
         return {
           ...meta,
           status: update?.status || 'Pendente',
@@ -135,6 +141,7 @@ export const api = {
           percentual_cumprimento: update?.percentual_cumprimento || 0,
           acoes_planejadas: update?.acoes_planejadas || '',
           justificativa_parcial: update?.justificativa_parcial || '',
+          atividades: update?.atividades || [],
         };
       });
 
@@ -249,8 +256,13 @@ export const api = {
     justificativa_parcial?: string;
     link_evidencia?: string;
     observacoes?: string;
+    atividades?: Atividade[];
   }) {
     console.log('💾 [API] Salvando update para meta:', updateData.meta_id);
+    console.log('📋 [API] Atividades recebidas:', {
+      count: updateData.atividades?.length || 0,
+      atividades: updateData.atividades
+    });
 
     // Verificar se já existe um update para esta meta
     const { data: existing } = await supabase
@@ -275,6 +287,7 @@ export const api = {
           justificativa_parcial: updateData.justificativa_parcial,
           link_evidencia: updateData.link_evidencia,
           observacoes: updateData.observacoes,
+          atividades: updateData.atividades,
           data_prestacao: new Date().toISOString(),
         })
         .eq('id', existing.id);
@@ -284,7 +297,7 @@ export const api = {
         throw error;
       }
 
-      console.log('✅ [API] Update atualizado com sucesso');
+      console.log('✅ [API] Update atualizado com sucesso (incluindo atividades)');
     } else {
       console.log('➕ [API] Criando novo update...');
       
@@ -302,6 +315,7 @@ export const api = {
           justificativa_parcial: updateData.justificativa_parcial,
           link_evidencia: updateData.link_evidencia,
           observacoes: updateData.observacoes,
+          atividades: updateData.atividades,
           data_prestacao: new Date().toISOString(),
         });
 
@@ -310,7 +324,7 @@ export const api = {
         throw error;
       }
 
-      console.log('✅ [API] Update criado com sucesso');
+      console.log('✅ [API] Update criado com sucesso (incluindo atividades)');
     }
   },
 
@@ -495,10 +509,15 @@ export const api = {
         cor: getEixoCor(nome),
       }));
 
+      const totalPontosAplicaveis = metasData?.reduce((sum, m) => sum + (m.pontos_aplicaveis || 0), 0) || 0;
+      const percentualGeral = totalPontosAplicaveis > 0 ? (totalPontos / totalPontosAplicaveis) * 100 : 0;
+
       const stats = {
         eixos: eixosMap.size,
         requisitos: totalRequisitos,
         pontosTotais: Math.round(totalPontos),
+        pontosAplicaveis: totalPontosAplicaveis,
+        percentualGeral: percentualGeral,
         setores: setoresSet.size,
         eixosData,
       };

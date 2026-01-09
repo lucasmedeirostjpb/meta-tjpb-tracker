@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import type { Atividade } from '@/integrations/supabase/types';
 
 interface HistoricoItem {
   id: string;
@@ -21,6 +22,8 @@ interface HistoricoItem {
   link_evidencia_novo: string | null;
   observacoes_anterior: string | null;
   observacoes_novo: string | null;
+  atividades_anterior: Atividade[] | null;
+  atividades_novo: Atividade[] | null;
   created_at: string;
   meta?: {
     eixo: string;
@@ -60,8 +63,10 @@ const HistoricoPage = () => {
     const labels: Record<string, string> = {
       criacao: 'Criação',
       atualizacao_status: 'Atualização de Status',
+      atualizacao_atividades: 'Atualização de Atividades',
       adicao_evidencia: 'Adição de Evidência',
       edicao_observacoes: 'Edição de Observações',
+      atualizacao_completa: 'Atualização Completa',
     };
     return labels[acao] || acao;
   };
@@ -70,10 +75,57 @@ const HistoricoPage = () => {
     const variants: Record<string, "default" | "secondary" | "outline"> = {
       criacao: 'default',
       atualizacao_status: 'secondary',
+      atualizacao_atividades: 'secondary',
       adicao_evidencia: 'outline',
       edicao_observacoes: 'outline',
+      atualizacao_completa: 'secondary',
     };
     return variants[acao] || 'default';
+  };
+
+  const compararAtividades = (anterior: Atividade[] | null, novo: Atividade[] | null) => {
+    const atividadesAnt = anterior || [];
+    const atividadesNov = novo || [];
+    
+    const mudancas: string[] = [];
+    
+    // Atividades removidas
+    atividadesAnt.forEach(ant => {
+      const existe = atividadesNov.find(n => n.id === ant.id);
+      if (!existe) {
+        mudancas.push(`❌ Removida: "${ant.acao}"`);
+      }
+    });
+    
+    // Atividades adicionadas
+    atividadesNov.forEach(nov => {
+      const existia = atividadesAnt.find(a => a.id === nov.id);
+      if (!existia) {
+        mudancas.push(`➕ Adicionada: "${nov.acao}" (${nov.responsavel}, prazo: ${nov.prazo ? format(parseISO(nov.prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'sem prazo'}, status: ${nov.status})`);
+      }
+    });
+    
+    // Atividades modificadas
+    atividadesAnt.forEach(ant => {
+      const nov = atividadesNov.find(n => n.id === ant.id);
+      if (nov) {
+        const alteracoes: string[] = [];
+        if (ant.acao !== nov.acao) alteracoes.push(`ação: "${ant.acao}" → "${nov.acao}"`);
+        if (ant.responsavel !== nov.responsavel) alteracoes.push(`responsável: "${ant.responsavel}" → "${nov.responsavel}"`);
+        if (ant.prazo !== nov.prazo) {
+          const prazoAnt = ant.prazo ? format(parseISO(ant.prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'sem prazo';
+          const prazoNov = nov.prazo ? format(parseISO(nov.prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'sem prazo';
+          alteracoes.push(`prazo: ${prazoAnt} → ${prazoNov}`);
+        }
+        if (ant.status !== nov.status) alteracoes.push(`status: ${ant.status} → ${nov.status}`);
+        
+        if (alteracoes.length > 0) {
+          mudancas.push(`✏️ Modificada: "${nov.acao}" (${alteracoes.join(', ')})`);
+        }
+      }
+    });
+    
+    return mudancas;
   };
 
   return (
@@ -165,6 +217,22 @@ const HistoricoPage = () => {
                     <div className="text-sm">
                       <strong>Observações:</strong>
                       <p className="mt-1 text-gray-700">{item.observacoes_novo}</p>
+                    </div>
+                  )}
+
+                  {/* Exibir mudanças nas atividades */}
+                  {(item.atividades_anterior || item.atividades_novo) && (
+                    <div className="text-sm mt-3 pt-3 border-t">
+                      <strong className="block mb-2">Mudanças nas Atividades:</strong>
+                      {compararAtividades(item.atividades_anterior, item.atividades_novo).length > 0 ? (
+                        <ul className="list-none space-y-1 text-gray-700">
+                          {compararAtividades(item.atividades_anterior, item.atividades_novo).map((mudanca, idx) => (
+                            <li key={idx} className="text-xs leading-relaxed">{mudanca}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-gray-500">Nenhuma mudança detectada</p>
+                      )}
                     </div>
                   )}
                 </CardContent>

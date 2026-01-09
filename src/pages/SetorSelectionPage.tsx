@@ -204,7 +204,7 @@ const SetorSelectionPage = () => {
                   Consulte os requisitos de um setor ou coordenação específica
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="coordenador" className="flex items-center gap-2">
@@ -269,7 +269,7 @@ const SetorSelectionPage = () => {
                     <Button
                       onClick={handleAccessSetor}
                       disabled={!selectedSetor || loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 mt-4"
                       size="lg"
                     >
                       <Building2 className="mr-2 h-5 w-5" />
@@ -329,7 +329,7 @@ const SetorSelectionPage = () => {
                     <Button
                       onClick={handleAccessCoordenador}
                       disabled={!selectedCoordenador || loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 mt-4"
                       size="lg"
                     >
                       <Users className="mr-2 h-5 w-5" />
@@ -353,13 +353,13 @@ const SetorSelectionPage = () => {
                   Visualize todos os requisitos organizados em uma visão completa
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
                     <p className="text-sm text-purple-900 font-medium">Escolha o tipo de consolidação:</p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 mb-4">
                     <Button
                       onClick={() => navigate('/consolidado?tipo=coordenador')}
                       variant="outline"
@@ -401,14 +401,23 @@ const SetorSelectionPage = () => {
                   Visualize todos os requisitos em formato de tabela com filtros avançados
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={() => navigate('/tabela')}
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white h-12"
-                >
-                  <FileText className="mr-2 h-5 w-5" />
-                  Abrir Tabela Completa
-                </Button>
+              <CardContent className="pt-2">
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                    <p className="text-sm text-green-900 font-medium">
+                      Visualização completa com filtros, busca e exportação para Excel
+                    </p>
+                  </div>
+                  
+                  <Button
+                    onClick={() => navigate('/tabela')}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 mt-4"
+                    size="lg"
+                  >
+                    <FileText className="mr-2 h-5 w-5" />
+                    Abrir Tabela Completa
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

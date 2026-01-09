@@ -4,7 +4,7 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Award, AlertCircle, Scale, LogOut } from "lucide-react";
+import { ArrowLeft, Award, AlertCircle, Scale, LogOut, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
@@ -83,17 +83,33 @@ const DashboardPage = () => {
 
   const calculateProgress = () => {
     const totalPontos = metas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    
+    // Pontos efetivados (Totalmente + Parcialmente Cumprido)
     const pontosRecebidos = metas.reduce((sum, meta) => {
-      // Usar pontos_estimados se disponível, senão calcular do percentual
-      if (meta.pontos_estimados !== undefined && meta.pontos_estimados !== null) {
+      if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
+        return sum + meta.pontos_aplicaveis;
+      } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido' && meta.pontos_estimados) {
         return sum + meta.pontos_estimados;
       }
-      // Fallback para cálculo via percentual
-      const percentual = meta.percentual_cumprimento || 0;
-      return sum + (meta.pontos_aplicaveis * percentual / 100);
+      return sum;
     }, 0);
 
-    return totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0;
+    // Pontos estimados (Em Andamento)
+    const pontosEstimados = metas.reduce((sum, meta) => {
+      if (meta.estimativa_cumprimento === 'Em Andamento' && meta.pontos_estimados) {
+        return sum + meta.pontos_estimados;
+      }
+      return sum;
+    }, 0);
+
+    return {
+      total: totalPontos,
+      recebidos: pontosRecebidos,
+      estimados: pontosEstimados,
+      totalComEstimados: pontosRecebidos + pontosEstimados,
+      percentual: totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0,
+      percentualComEstimados: totalPontos > 0 ? ((pontosRecebidos + pontosEstimados) / totalPontos) * 100 : 0,
+    };
   };
 
   const groupByEixo = () => {
@@ -219,16 +235,61 @@ const DashboardPage = () => {
               Progresso {tipo === 'coordenador' ? 'da Coordenação' : 'do Setor'}
             </h2>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Pontos conquistados</span>
-              <span className="font-bold text-2xl text-primary">{progress.toFixed(1)}%</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold text-gray-900">Performance Geral</span>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-green-600">
+                  {progress.percentual.toFixed(1)}%
+                </p>
+                <p className="text-sm text-gray-600">
+                  {Math.round(progress.recebidos)} pts efetivados
+                </p>
+              </div>
             </div>
-            <Progress value={progress} className="h-3" />
-            <p className="text-xs text-muted-foreground">
-              {Math.round(metas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0))} de{' '}
-              {metas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pontos
-            </p>
+            
+            {/* Barra de progresso composta */}
+            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden flex">
+              {/* Parte verde - pontos efetivados */}
+              <div
+                className="h-full bg-green-500 transition-all duration-500"
+                style={{ width: `${Math.min(progress.percentual, 100)}%` }}
+              />
+              {/* Parte azul - pontos estimados (lado a lado) */}
+              {progress.estimados > 0 && (
+                <div
+                  className="h-full bg-blue-400 transition-all duration-500"
+                  style={{ width: `${Math.min(progress.percentualComEstimados - progress.percentual, 100 - progress.percentual)}%` }}
+                />
+              )}
+            </div>
+            
+            {/* Legenda */}
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Efetivados: {Math.round(progress.recebidos)} pts</span>
+                </div>
+                {progress.estimados > 0 && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    <span>Estimados: {Math.round(progress.estimados)} pts</span>
+                  </div>
+                )}
+              </div>
+              <span className="font-semibold">
+                Total: {Math.round(progress.totalComEstimados)} / {progress.total} pts
+                {progress.estimados > 0 && (
+                  <span className="text-blue-600 ml-1">
+                    ({progress.percentualComEstimados.toFixed(1)}%)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 

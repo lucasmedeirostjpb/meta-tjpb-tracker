@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit } from 'lucide-react';
+import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit, Gauge, BarChart3 } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { RadialBarChart, RadialBar, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { api } from '@/services/api';
 import { mockMetas } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import GaugeChart from '@/components/GaugeChart';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -16,6 +19,8 @@ const LandingPage = () => {
     eixos: 4,
     requisitos: 0,
     pontosTotais: 0,
+    pontosAplicaveis: 0,
+    percentualGeral: 0,
     setores: 0,
     eixosData: [] as Array<{ nome: string; pontos: number; pontosRecebidos: number; percentual: number; cor: string }>
   });
@@ -49,7 +54,8 @@ const LandingPage = () => {
         console.log('🎭 [LANDING] Usando modo MOCK');
         // Usar dados mock
         const totalRequisitos = mockMetas.length;
-        const totalPontos = mockMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
+        const totalPontosAplicaveis = mockMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
+        const pontosRecebidos = 0;
         const setoresUnicos = new Set(mockMetas.map(m => m.setor_executor)).size;
         
         const eixosMap = new Map<string, { pontos: number; pontosRecebidos: number; cor: string }>();
@@ -79,7 +85,9 @@ const LandingPage = () => {
         setStats({
           eixos: 4,
           requisitos: totalRequisitos,
-          pontosTotais: totalPontos,
+          pontosTotais: pontosRecebidos,
+          pontosAplicaveis: totalPontosAplicaveis,
+          percentualGeral: totalPontosAplicaveis > 0 ? (pontosRecebidos / totalPontosAplicaveis) * 100 : 0,
           setores: setoresUnicos,
           eixosData
         });
@@ -276,7 +284,7 @@ const LandingPage = () => {
           {[
             { label: 'Eixos Temáticos', value: stats.eixos, color: 'from-blue-500 to-blue-600', icon: Target },
             { label: 'Requisitos', value: stats.requisitos, color: 'from-green-500 to-green-600', icon: CheckCircle2 },
-            { label: 'Pontos Totais', value: stats.pontosTotais, color: 'from-purple-500 to-purple-600', icon: Award },
+            { label: 'Pontos Aplicáveis', value: stats.pontosAplicaveis, color: 'from-purple-500 to-purple-600', icon: Award },
             { label: 'Setores', value: stats.setores, color: 'from-orange-500 to-orange-600', icon: Users },
           ].map((stat, index) => {
             const Icon = stat.icon;
@@ -294,6 +302,117 @@ const LandingPage = () => {
               </Card>
             );
           })}
+        </div>
+      </section>
+
+      {/* Velocímetro e Gráfico de Barras */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          {/* Velocímetro - DESTAQUE */}
+          <Card className="border-4 border-blue-500 shadow-2xl bg-gradient-to-br from-white via-blue-50 to-white">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-3">
+                <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full shadow-lg">
+                  <Gauge className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
+                Progresso Geral
+              </CardTitle>
+              <CardDescription className="text-lg font-medium">Rumo à excelência</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Velocímetro */}
+              <div className="flex justify-center">
+                <GaugeChart value={stats.percentualGeral} size={380} />
+              </div>
+              
+              {/* Percentual e Pontos */}
+              <div className="text-center space-y-2">
+                <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {stats.percentualGeral.toFixed(1)}%
+                </div>
+                <div className="text-base text-gray-600 font-medium">
+                  {stats.pontosTotais} de {stats.pontosAplicaveis} pontos alcançados
+                </div>
+              </div>
+              
+              {/* Marcações dos Selos */}
+              <div className="space-y-3 mt-6">
+                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-3">
+                    <Award className="h-7 w-7 text-yellow-600" />
+                    <span className="font-bold text-lg text-yellow-900">SELO OURO</span>
+                  </div>
+                  <span className="text-2xl font-bold text-yellow-700">80%</span>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-blue-400 bg-blue-50 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-3">
+                    <Award className="h-7 w-7 text-blue-600" />
+                    <span className="font-bold text-lg text-blue-900">SELO DIAMANTE</span>
+                  </div>
+                  <span className="text-2xl font-bold text-blue-700">85%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Barras Simples */}
+          <Card className="border-2 shadow-lg">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <BarChart3 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Comparativo dos Eixos</CardTitle>
+                  <CardDescription className="text-base">Pontos alcançados por eixo temático</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-100px)]">
+              <div className="space-y-8 h-full flex flex-col justify-between py-4">
+                {stats.eixosData.map((eixo) => {
+                  const colors = {
+                    blue: { bg: 'bg-blue-500', text: 'text-blue-700', border: 'border-blue-500' },
+                    green: { bg: 'bg-green-500', text: 'text-green-700', border: 'border-green-500' },
+                    purple: { bg: 'bg-purple-500', text: 'text-purple-700', border: 'border-purple-500' },
+                    orange: { bg: 'bg-orange-500', text: 'text-orange-700', border: 'border-orange-500' }
+                  };
+                  const color = colors[eixo.cor as keyof typeof colors] || colors.blue;
+                  const barWidth = (eixo.pontosRecebidos / eixo.pontos) * 100;
+
+                  return (
+                    <div key={eixo.nome} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
+                        <span className={`font-bold text-base ${color.text}`}>
+                          {Math.round(eixo.pontosRecebidos)} pts
+                        </span>
+                      </div>
+                      <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
+                        <div
+                          className={`h-full ${color.bg} transition-all duration-1000 ease-out flex items-center justify-end pr-3`}
+                          style={{ width: `${Math.min(barWidth, 100)}%` }}
+                        >
+                          <span className="text-sm font-bold text-white">
+                            {eixo.percentual.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Legenda */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-500 text-center font-medium">
+                  Total: {stats.pontosTotais} de {stats.pontosAplicaveis} pontos ({stats.percentualGeral.toFixed(1)}%)
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 

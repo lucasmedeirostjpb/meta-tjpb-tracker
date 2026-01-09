@@ -125,32 +125,52 @@ const VisaoAgregadaPage = () => {
     if (metasSubset.length === 0) return 0;
     
     const pontosRecebidos = metasSubset.reduce((sum, m) => {
-      // Usar pontos_estimados se disponível, senão calcular do percentual
-      if (m.pontos_estimados !== undefined && m.pontos_estimados !== null) {
+      if (m.estimativa_cumprimento === 'Totalmente Cumprido') {
+        return sum + m.pontos_aplicaveis;
+      } else if (m.estimativa_cumprimento === 'Parcialmente Cumprido' && m.pontos_estimados) {
         return sum + m.pontos_estimados;
       }
-      // Fallback para cálculo via percentual
-      const percentual = m.percentual_cumprimento || 0;
-      return sum + (percentual * m.pontos_aplicaveis / 100);
+      return sum;
     }, 0);
-    
+
+    const pontosEstimados = metasSubset.reduce((sum, m) => {
+      if (m.estimativa_cumprimento === 'Em Andamento' && m.pontos_estimados) {
+        return sum + m.pontos_estimados;
+      }
+      return sum;
+    }, 0);
+
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
     
-    return pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0;
+    return {
+      recebidos: pontosRecebidos,
+      estimados: pontosEstimados,
+      aplicaveis: pontosAplicaveis,
+      percentual: pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0,
+      percentualComEstimados: pontosAplicaveis > 0 ? ((pontosRecebidos + pontosEstimados) / pontosAplicaveis) * 100 : 0,
+    };
   };
 
   const getTotalPontos = (metasSubset: Meta[]) => {
     const pontosRecebidos = metasSubset.reduce((sum, m) => {
-      // Usar pontos_estimados se disponível, senão calcular do percentual
-      if (m.pontos_estimados !== undefined && m.pontos_estimados !== null) {
+      if (m.estimativa_cumprimento === 'Totalmente Cumprido') {
+        return sum + m.pontos_aplicaveis;
+      } else if (m.estimativa_cumprimento === 'Parcialmente Cumprido' && m.pontos_estimados) {
         return sum + m.pontos_estimados;
       }
-      // Fallback para cálculo via percentual
-      const percentual = m.percentual_cumprimento || 0;
-      return sum + (percentual * m.pontos_aplicaveis / 100);
+      return sum;
     }, 0);
+
+    const pontosEstimados = metasSubset.reduce((sum, m) => {
+      if (m.estimativa_cumprimento === 'Em Andamento' && m.pontos_estimados) {
+        return sum + m.pontos_estimados;
+      }
+      return sum;
+    }, 0);
+
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
-    return { recebidos: pontosRecebidos, aplicaveis: pontosAplicaveis };
+    
+    return { recebidos: pontosRecebidos, estimados: pontosEstimados, aplicaveis: pontosAplicaveis };
   };
 
   const getEixoColor = (eixo: string) => {
@@ -324,15 +344,52 @@ const VisaoAgregadaPage = () => {
                 <span className="font-semibold text-gray-900">Progresso Geral</span>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-blue-600">
-                  {progressoGeral.toFixed(1)}%
+                <p className="text-3xl font-bold text-green-600">
+                  {calculateProgress(metas).percentual.toFixed(1)}%
                 </p>
                 <p className="text-sm text-gray-600">
-                  {Math.round(totalGeral.recebidos)} / {totalGeral.aplicaveis} pts
+                  {Math.round(totalGeral.recebidos)} pts efetivados
                 </p>
               </div>
             </div>
-            <Progress value={progressoGeral} className="h-3" />
+            
+            {/* Barra de progresso composta */}
+            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden flex">
+              <div
+                className="h-full bg-green-500 transition-all duration-500"
+                style={{ width: `${Math.min(calculateProgress(metas).percentual, 100)}%` }}
+              />
+              {totalGeral.estimados > 0 && (
+                <div
+                  className="h-full bg-blue-400 transition-all duration-500"
+                  style={{ width: `${Math.min(calculateProgress(metas).percentualComEstimados - calculateProgress(metas).percentual, 100 - calculateProgress(metas).percentual)}%` }}
+                />
+              )}
+            </div>
+            
+            {/* Legenda */}
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Efetivados: {Math.round(totalGeral.recebidos)} pts</span>
+                </div>
+                {totalGeral.estimados > 0 && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    <span>Estimados: {Math.round(totalGeral.estimados)} pts</span>
+                  </div>
+                )}
+              </div>
+              <span className="font-semibold">
+                Total: {Math.round(totalGeral.recebidos + totalGeral.estimados)} / {totalGeral.aplicaveis} pts
+                {totalGeral.estimados > 0 && (
+                  <span className="text-blue-600 ml-1">
+                    ({calculateProgress(metas).percentualComEstimados.toFixed(1)}%)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -426,20 +483,31 @@ const VisaoAgregadaPage = () => {
                             <Badge 
                               variant="outline"
                               className={`${
-                                progressoAgrupador >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
-                                progressoAgrupador >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                progressoAgrupador > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                                progressoAgrupador.percentual >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
+                                progressoAgrupador.percentual >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                progressoAgrupador.percentual > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
                                 'bg-gray-100 text-gray-800 border-gray-300'
                               }`}
                             >
-                              {progressoAgrupador.toFixed(1)}%
+                              {progressoAgrupador.percentual.toFixed(1)}%
                             </Badge>
                             <p className="text-xs text-gray-600 mt-1">
                               {Math.round(pontosAgrupador.recebidos)} / {pontosAgrupador.aplicaveis} pts
                             </p>
                           </div>
                           <div className="w-32 hidden md:block">
-                            <Progress value={progressoAgrupador} className="h-2" />
+                            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                              <div
+                                className="h-full bg-green-500 transition-all"
+                                style={{ width: `${Math.min(progressoAgrupador.percentual, 100)}%` }}
+                              />
+                              {pontosAgrupador.estimados > 0 && (
+                                <div
+                                  className="h-full bg-blue-400 transition-all"
+                                  style={{ width: `${Math.min(progressoAgrupador.percentualComEstimados - progressoAgrupador.percentual, 100 - progressoAgrupador.percentual)}%` }}
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

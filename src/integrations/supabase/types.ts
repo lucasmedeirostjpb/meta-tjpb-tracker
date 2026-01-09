@@ -6,6 +6,16 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type AtividadeStatus = 'Concluída' | 'Em andamento' | 'Não iniciada';
+
+export interface Atividade {
+  id: string;
+  acao: string;
+  responsavel: string;
+  prazo: string;
+  status: AtividadeStatus;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -67,6 +77,7 @@ export interface Database {
           justificativa_parcial: string | null
           link_evidencia: string | null
           observacoes: string | null
+          atividades: Atividade[] | null
           created_at: string
           updated_at: string
         }
@@ -83,6 +94,7 @@ export interface Database {
           justificativa_parcial?: string | null
           link_evidencia?: string | null
           observacoes?: string | null
+          atividades?: Atividade[] | null
           created_at?: string
           updated_at?: string
         }
@@ -99,6 +111,7 @@ export interface Database {
           justificativa_parcial?: string | null
           link_evidencia?: string | null
           observacoes?: string | null
+          atividades?: Atividade[] | null
           created_at?: string
           updated_at?: string
         }
@@ -121,9 +134,8 @@ export interface Database {
           justificativa_parcial_anterior: string | null
           justificativa_parcial_novo: string | null
           link_evidencia_anterior: string | null
-          link_evidencia_novo: string | null
-          observacoes_anterior: string | null
-          observacoes_novo: string | null
+          atividades_anterior: Atividade[] | null
+          atividades_novo: Atividade[] | null
           created_at: string
         }
         Insert: {
@@ -146,6 +158,8 @@ export interface Database {
           link_evidencia_novo?: string | null
           observacoes_anterior?: string | null
           observacoes_novo?: string | null
+          atividades_anterior?: Atividade[] | null
+          atividades_novo?: Atividade[] | null
           created_at?: string
         }
         Update: {
@@ -165,6 +179,11 @@ export interface Database {
           justificativa_parcial_anterior?: string | null
           justificativa_parcial_novo?: string | null
           link_evidencia_anterior?: string | null
+          link_evidencia_novo?: string | null
+          observacoes_anterior?: string | null
+          observacoes_novo?: string | null
+          atividades_anterior?: Atividade[] | null
+          atividades_novo?: Atividade[] string | null
           link_evidencia_novo?: string | null
           observacoes_anterior?: string | null
           observacoes_novo?: string | null

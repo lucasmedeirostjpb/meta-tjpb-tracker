@@ -25,7 +25,8 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock } from "lucide-react";
+import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock, Plus, Trash2 } from "lucide-react";
+import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
 
 interface Meta {
   id: string;
@@ -47,6 +48,7 @@ interface Meta {
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
+  atividades?: Atividade[];
 }
 
 interface MetaModalProps {
@@ -67,13 +69,23 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [justificativa, setJustificativa] = useState<string>('');
   const [linkEvidencia, setLinkEvidencia] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
+  const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Gerar ID único para novas atividades
+  const generateId = () => `atividade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   useEffect(() => {
     if (meta && open) {
       const statusInicial = meta.status || 'Pendente';
       const estimativaInicial = meta.estimativa_cumprimento || 'Não se Aplica';
       const pontosInicial = meta.pontos_estimados || 0;
+      
+      console.log('📋 [MODAL] Carregando meta:', {
+        id: meta.id,
+        atividades: meta.atividades,
+        atividades_count: meta.atividades?.length || 0
+      });
       
       setStatus(statusInicial);
       setEstimativa(estimativaInicial);
@@ -82,6 +94,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
       setObservacoes(meta.observacoes || '');
+      setAtividades(meta.atividades || []);
     }
   }, [meta?.id, open]);
 
@@ -102,6 +115,29 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setPontosRecebidos(0);
     }
   }, [estimativa, isEditable, meta]);
+
+  const handleAddAtividade = () => {
+    setAtividades([
+      ...atividades,
+      {
+        id: generateId(),
+        acao: '',
+        responsavel: '',
+        prazo: '',
+        status: 'Não iniciada'
+      }
+    ]);
+  };
+
+  const handleRemoveAtividade = (id: string) => {
+    setAtividades(atividades.filter(a => a.id !== id));
+  };
+
+  const handleUpdateAtividade = (id: string, field: keyof Atividade, value: string) => {
+    setAtividades(atividades.map(a => 
+      a.id === id ? { ...a, [field]: value } : a
+    ));
+  };
 
   const handleSave = async () => {
     if (!meta || !isEditable) return;
@@ -138,7 +174,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         justificativa_parcial: justificativa,
         link_evidencia: linkEvidencia,
         observacoes,
+        atividades: atividades,
       };
+
+      console.log('💾 [MODAL] Salvando com atividades:', {
+        meta_id: meta.id,
+        atividades_count: atividades.length,
+        atividades: atividades
+      });
 
       await api.createUpdate(updateData);
 
@@ -148,6 +191,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       meta.estimativa_cumprimento = estimativa;
       meta.percentual_cumprimento = percentualCalculado;
       meta.pontos_estimados = pontosRecebidos;
+      meta.atividades = atividades;
       meta.acoes_planejadas = acoes;
       meta.justificativa_parcial = justificativa;
       meta.link_evidencia = linkEvidencia;
@@ -184,10 +228,20 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     }
   };
 
+  const getAtividadeStatusColor = (s: AtividadeStatus) => {
+    switch (s) {
+      case 'Concluída': return 'bg-green-100 text-green-800 border-green-300';
+      case 'Em andamento': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Não iniciada': return 'bg-gray-100 text-gray-800 border-gray-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
   const getAcaoIcon = (acao: string) => {
     switch (acao) {
       case 'criacao': return '✨';
       case 'atualizacao_status': return '🔄';
+      case 'atualizacao_atividades': return '📋';
       case 'adicao_evidencia': return '🔍';
       case 'edicao_observacoes': return '📝';
       default: return '📋';
@@ -198,6 +252,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     switch (acao) {
       case 'criacao': return 'Criação inicial';
       case 'atualizacao_status': return 'Atualização de status';
+      case 'atualizacao_atividades': return 'Atualização de atividades';
       case 'adicao_evidencia': return 'Adição de evidência';
       case 'edicao_observacoes': return 'Edição de observações';
       default: return acao;
@@ -216,7 +271,8 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <div className="max-h-[90vh] overflow-y-auto px-6 py-6">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="flex-1">
@@ -364,18 +420,105 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="acoes" className="text-sm font-medium">
-                    Ações Planejadas / Executadas
-                  </Label>
-                  <Textarea
-                    id="acoes"
-                    placeholder="Descreva as iniciativas e providências adotadas..."
-                    rows={4}
-                    value={acoes}
-                    onChange={(e) => setAcoes(e.target.value)}
-                  />
+                {/* Seção de Atividades */}
+                <div className="space-y-3 pt-3 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Atividades</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddAtividade}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Atividade
+                    </Button>
+                  </div>
+
+                  {atividades.length === 0 ? (
+                    <div className="text-sm text-gray-500 text-center py-6 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
+                      Nenhuma atividade adicionada. Clique em "Adicionar Atividade" para começar.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {atividades.map((atividade, index) => (
+                        <div key={atividade.id} className="p-4 bg-gray-50 border border-gray-300 rounded-lg shadow-sm space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Atividade {index + 1}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveAtividade(atividade.id)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1 md:col-span-2">
+                              <Label className="text-xs">Ação</Label>
+                              <Input
+                                placeholder="Descreva a ação..."
+                                value={atividade.acao}
+                                onChange={(e) => handleUpdateAtividade(atividade.id, 'acao', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-xs">Responsável</Label>
+                              <Input
+                                placeholder="Nome do responsável"
+                                value={atividade.responsavel}
+                                onChange={(e) => handleUpdateAtividade(atividade.id, 'responsavel', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-xs">Prazo</Label>
+                              <Input
+                                type="date"
+                                value={atividade.prazo}
+                                onChange={(e) => handleUpdateAtividade(atividade.id, 'prazo', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-1 md:col-span-2">
+                              <Label className="text-xs">Status</Label>
+                              <Select
+                                value={atividade.status}
+                                onValueChange={(value) => handleUpdateAtividade(atividade.id, 'status', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Concluída">✅ Concluída</SelectItem>
+                                  <SelectItem value="Em andamento">🔄 Em andamento</SelectItem>
+                                  <SelectItem value="Não iniciada">⏸️ Não iniciada</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Campo legado - Ações Planejadas (mantido mas ocultável) */}
+                {acoes && (
+                  <details className="space-y-2 pt-3 border-t">
+                    <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                      📝 Ações Planejadas/Executadas (dados antigos)
+                    </summary>
+                    <div className="bg-muted rounded-lg p-3 mt-2">
+                      <p className="text-sm whitespace-pre-wrap">{acoes}</p>
+                    </div>
+                  </details>
+                )}
 
                 <div className="space-y-3 pt-3 border-t">
                   <div className="space-y-2">
@@ -468,9 +611,45 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                   </div>
                 )}
 
+                {/* Exibir Atividades */}
+                {atividades && atividades.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Atividades</Label>
+                    <div className="space-y-2">
+                      {atividades.map((atividade, index) => (
+                        <div key={atividade.id} className="bg-blue-50/30 border border-blue-200 rounded-lg p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{index + 1}. {atividade.acao}</p>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                <div>
+                                  <span className="font-medium">Responsável:</span> {atividade.responsavel}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Prazo:</span> {
+                                    atividade.prazo 
+                                      ? format(parseISO(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
+                                      : '-'
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className={getAtividadeStatusColor(atividade.status)}
+                            >
+                              {atividade.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {acoes && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Ações Planejadas / Executadas</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Ações Planejadas / Executadas (histórico)</Label>
                     <div className="bg-muted rounded-lg p-3">
                       <p className="text-sm whitespace-pre-wrap">{acoes}</p>
                     </div>
@@ -516,6 +695,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               </Button>
             )}
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
