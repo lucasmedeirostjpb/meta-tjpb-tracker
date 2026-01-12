@@ -377,10 +377,10 @@ export const api = {
   },
 
   // ==================== HISTÓRICO ====================
+  // Reescrito em 2026-01-12 - Incluir setor_executor e coordenador
 
-  // Última atualização: 2026-01-12 - Incluir setor_executor e coordenador
   async getHistorico(limit = 100): Promise<HistoricoItem[]> {
-    console.log('📜 [API] Buscando histórico (limit:', limit, ')');
+    console.log(`📜 [API] Buscando histórico (limite: ${limit})`);
     
     const { data, error } = await supabase
       .from('historico_alteracoes')
@@ -417,7 +417,7 @@ export const api = {
   },
 
   async getHistoricoByMeta(metaId: string): Promise<HistoricoItem[]> {
-    console.log('📜 [API] Buscando histórico da meta:', metaId);
+    console.log(`📜 [API] Buscando histórico da meta: ${metaId}`);
     
     const { data, error } = await supabase
       .from('historico_alteracoes')
