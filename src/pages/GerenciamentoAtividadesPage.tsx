@@ -12,7 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check } from 'lucide-react';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
@@ -42,7 +55,14 @@ const GerenciamentoAtividadesPage = () => {
   const [filteredAtividades, setFilteredAtividades] = useState<AtividadeComMeta[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<string>('todas');
   const [filtroSetor, setFiltroSetor] = useState<string>('todos');
+  const [filtroResponsavel, setFiltroResponsavel] = useState<string>('todos');
+  const [filtroCoordenador, setFiltroCoordenador] = useState<string>('todos');
   const [setores, setSetores] = useState<string[]>([]);
+  const [responsaveis, setResponsaveis] = useState<string[]>([]);
+  const [coordenadores, setCoordenadores] = useState<string[]>([]);
+  const [openSetor, setOpenSetor] = useState(false);
+  const [openResponsavel, setOpenResponsavel] = useState(false);
+  const [openCoordenador, setOpenCoordenador] = useState(false);
 
   useEffect(() => {
     fetchAtividades();
@@ -50,7 +70,7 @@ const GerenciamentoAtividadesPage = () => {
 
   useEffect(() => {
     aplicarFiltros();
-  }, [atividades, filtroStatus, filtroSetor]);
+  }, [atividades, filtroStatus, filtroSetor, filtroResponsavel, filtroCoordenador]);
 
   const fetchAtividades = async () => {
     try {
@@ -60,6 +80,8 @@ const GerenciamentoAtividadesPage = () => {
       // Extrair todas as atividades de todas as metas
       const todasAtividades: AtividadeComMeta[] = [];
       const setoresUnicos = new Set<string>();
+      const responsaveisUnicos = new Set<string>();
+      const coordenadoresUnicos = new Set<string>();
 
       metas.forEach((meta: Meta) => {
         if (meta.atividades && meta.atividades.length > 0) {
@@ -72,13 +94,21 @@ const GerenciamentoAtividadesPage = () => {
               meta_setor: meta.setor_executor,
               meta_coordenador: meta.coordenador,
             });
+            if (atividade.responsavel && atividade.responsavel.trim()) {
+              responsaveisUnicos.add(atividade.responsavel.trim());
+            }
           });
           setoresUnicos.add(meta.setor_executor);
+          if (meta.coordenador && meta.coordenador.trim()) {
+            coordenadoresUnicos.add(meta.coordenador.trim());
+          }
         }
       });
 
       setAtividades(todasAtividades);
       setSetores(Array.from(setoresUnicos).sort());
+      setResponsaveis(Array.from(responsaveisUnicos).sort());
+      setCoordenadores(Array.from(coordenadoresUnicos).sort());
     } catch (error) {
       console.error('Erro ao carregar atividades:', error);
     } finally {
@@ -97,6 +127,16 @@ const GerenciamentoAtividadesPage = () => {
     // Filtro por setor
     if (filtroSetor !== 'todos') {
       resultado = resultado.filter(a => a.meta_setor === filtroSetor);
+    }
+
+    // Filtro por responsável
+    if (filtroResponsavel !== 'todos') {
+      resultado = resultado.filter(a => a.responsavel === filtroResponsavel);
+    }
+
+    // Filtro por coordenador
+    if (filtroCoordenador !== 'todos') {
+      resultado = resultado.filter(a => a.meta_coordenador === filtroCoordenador);
     }
 
     setFilteredAtividades(resultado);
@@ -221,11 +261,11 @@ const GerenciamentoAtividadesPage = () => {
             <Filter className="h-5 w-5 text-gray-600" />
             <h2 className="font-semibold text-gray-900">Filtros</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Status</label>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -239,17 +279,176 @@ const GerenciamentoAtividadesPage = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Setor</label>
-              <Select value={filtroSetor} onValueChange={setFiltroSetor}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os setores</SelectItem>
-                  {setores.map(setor => (
-                    <SelectItem key={setor} value={setor}>{setor}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openSetor} onOpenChange={setOpenSetor}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openSetor}
+                    className="w-full justify-between"
+                  >
+                    {filtroSetor === 'todos' ? 'Todos os setores' : filtroSetor}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar setor..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="todos"
+                          onSelect={() => {
+                            setFiltroSetor('todos');
+                            setOpenSetor(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              filtroSetor === 'todos' ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          Todos os setores
+                        </CommandItem>
+                        {setores.map((setor) => (
+                          <CommandItem
+                            key={setor}
+                            value={setor}
+                            onSelect={(currentValue) => {
+                              setFiltroSetor(currentValue);
+                              setOpenSetor(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                filtroSetor === setor ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {setor}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Responsável</label>
+              <Popover open={openResponsavel} onOpenChange={setOpenResponsavel}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openResponsavel}
+                    className="w-full justify-between"
+                  >
+                    {filtroResponsavel === 'todos' ? 'Todos os responsáveis' : filtroResponsavel}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar responsável..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum responsável encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="todos"
+                          onSelect={() => {
+                            setFiltroResponsavel('todos');
+                            setOpenResponsavel(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              filtroResponsavel === 'todos' ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          Todos os responsáveis
+                        </CommandItem>
+                        {responsaveis.map((resp) => (
+                          <CommandItem
+                            key={resp}
+                            value={resp}
+                            onSelect={(currentValue) => {
+                              setFiltroResponsavel(currentValue);
+                              setOpenResponsavel(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                filtroResponsavel === resp ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {resp}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Coordenador</label>
+              <Popover open={openCoordenador} onOpenChange={setOpenCoordenador}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCoordenador}
+                    className="w-full justify-between"
+                  >
+                    {filtroCoordenador === 'todos' ? 'Todos os coordenadores' : filtroCoordenador}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar coordenador..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum coordenador encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="todos"
+                          onSelect={() => {
+                            setFiltroCoordenador('todos');
+                            setOpenCoordenador(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              filtroCoordenador === 'todos' ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          Todos os coordenadores
+                        </CommandItem>
+                        {coordenadores.map((coord) => (
+                          <CommandItem
+                            key={coord}
+                            value={coord}
+                            onSelect={(currentValue) => {
+                              setFiltroCoordenador(currentValue);
+                              setOpenCoordenador(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                filtroCoordenador === coord ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {coord}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </Card>

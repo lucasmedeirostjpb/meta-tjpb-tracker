@@ -19,14 +19,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock, Plus, Trash2 } from "lucide-react";
+import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock, Plus, Trash2, Check, ChevronsUpDown, Info } from "lucide-react";
 import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
+import { useResponsaveis } from '@/hooks/useResponsaveis';
 
 interface Meta {
   id: string;
@@ -62,6 +76,7 @@ interface MetaModalProps {
 
 const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaModalProps) => {
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
+  const { responsaveis: responsaveisExistentes } = useResponsaveis();
   
   const [status, setStatus] = useState<string>('Pendente');
   const [estimativa, setEstimativa] = useState<string>('Não se Aplica');
@@ -73,6 +88,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [dificuldade, setDificuldade] = useState<Dificuldade>('Sem dificuldades');
   const [saving, setSaving] = useState(false);
+  const [openResponsavelPopovers, setOpenResponsavelPopovers] = useState<Record<string, boolean>>({});
 
   // Gerar ID único para novas atividades
   const generateId = () => `atividade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -140,6 +156,19 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     setAtividades(atividades.map(a => 
       a.id === id ? { ...a, [field]: value } : a
     ));
+  };
+
+  const toggleResponsavelPopover = (atividadeId: string, isOpen: boolean) => {
+    setOpenResponsavelPopovers(prev => ({
+      ...prev,
+      [atividadeId]: isOpen
+    }));
+  };
+
+  const getFilteredResponsaveis = (searchTerm: string) => {
+    if (!searchTerm) return responsaveisExistentes;
+    const search = searchTerm.toLowerCase();
+    return responsaveisExistentes.filter(r => r.toLowerCase().includes(search));
   };
 
   const handleSave = async () => {
@@ -482,16 +511,81 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                             </div>
 
                             <div className="space-y-1">
-                              <Label className="text-xs">Responsável</Label>
-                              <Input
-                                placeholder="Nome do responsável"
-                                value={atividade.responsavel}
-                                onChange={(e) => handleUpdateAtividade(atividade.id, 'responsavel', e.target.value)}
-                              />
+                              <div className="flex items-center gap-1 h-5">
+                                <Label className="text-xs">Responsável</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-center h-3.5 w-3.5 hover:opacity-70 transition-opacity"
+                                    >
+                                      <Info className="h-3.5 w-3.5 text-blue-500" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 text-xs" side="top">
+                                    <p className="font-medium mb-1">💡 Dica:</p>
+                                    <p>Caso haja mais de um responsável, informe o principal no campo "Responsável" e indique os outros no campo "Ação".</p>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <Popover 
+                                open={openResponsavelPopovers[atividade.id] || false}
+                                onOpenChange={(isOpen) => toggleResponsavelPopover(atividade.id, isOpen)}
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={openResponsavelPopovers[atividade.id] || false}
+                                    className="w-full justify-between text-left font-normal"
+                                    type="button"
+                                  >
+                                    <span className={atividade.responsavel ? "text-foreground" : "text-muted-foreground"}>
+                                      {atividade.responsavel || "Insira um novo responsável ou selecione da lista..."}
+                                    </span>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+                                  <Command>
+                                    <CommandInput 
+                                      placeholder="Digite o nome do responsável..."
+                                      value={atividade.responsavel}
+                                      onValueChange={(value) => handleUpdateAtividade(atividade.id, 'responsavel', value)}
+                                    />
+                                    <CommandList>
+                                      <CommandEmpty>
+                                        <div className="text-sm text-muted-foreground p-2">
+                                          Digite para adicionar novo responsável
+                                        </div>
+                                      </CommandEmpty>
+                                      <CommandGroup heading="Responsáveis existentes">
+                                        {getFilteredResponsaveis(atividade.responsavel).map((resp) => (
+                                          <CommandItem
+                                            key={resp}
+                                            value={resp}
+                                            onSelect={(currentValue) => {
+                                              handleUpdateAtividade(atividade.id, 'responsavel', currentValue);
+                                              toggleResponsavelPopover(atividade.id, false);
+                                            }}
+                                          >
+                                            <Check
+                                              className={`mr-2 h-4 w-4 ${
+                                                atividade.responsavel === resp ? "opacity-100" : "opacity-0"
+                                              }`}
+                                            />
+                                            {resp}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                             </div>
 
                             <div className="space-y-1">
-                              <Label className="text-xs">Prazo</Label>
+                              <Label className="text-xs h-5 flex items-center">Prazo</Label>
                               <Input
                                 type="date"
                                 value={atividade.prazo}
