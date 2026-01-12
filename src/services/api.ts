@@ -388,7 +388,9 @@ export const api = {
         metas_base (
           eixo,
           artigo,
-          requisito
+          requisito,
+          setor_executor,
+          coordenador
         )
       `)
       .order('created_at', { ascending: false })
@@ -407,6 +409,10 @@ export const api = {
         eixo: item.metas_base.eixo,
         artigo: item.metas_base.artigo,
         requisito: item.metas_base.requisito,
+        setor_executor: item.metas_base.setor_executor,
+        coordenador: item.metas_base.coordenador,
+        setor_executor: item.metas_base.setor_executor,
+        coordenador: item.metas_base.coordenador,
       } : undefined,
     }));
   },
@@ -416,7 +422,16 @@ export const api = {
     
     const { data, error } = await supabase
       .from('historico_alteracoes')
-      .select('*')
+      .select(`
+        *,
+        metas_base (
+          eixo,
+          artigo,
+          requisito,
+          setor_executor,
+          coordenador
+        )
+      `)
       .eq('meta_id', metaId)
       .order('created_at', { ascending: false });
 
@@ -426,7 +441,17 @@ export const api = {
     }
 
     console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados para a meta`);
-    return data || [];
+    
+    return (data || []).map(item => ({
+      ...item,
+      meta: item.metas_base ? {
+        eixo: item.metas_base.eixo,
+        artigo: item.metas_base.artigo,
+        requisito: item.metas_base.requisito,
+        setor_executor: item.metas_base.setor_executor,
+        coordenador: item.metas_base.coordenador,
+      } : undefined,
+    }));
   },
 
   // ==================== ESTATÍSTICAS ====================

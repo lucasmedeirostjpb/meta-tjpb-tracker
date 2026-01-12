@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, History } from 'lucide-react';
+import { ArrowLeft, History, Building2, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -31,6 +31,8 @@ interface HistoricoItem {
     eixo: string;
     artigo: string;
     requisito: string;
+    setor_executor?: string;
+    coordenador?: string;
   };
 }
 
@@ -178,14 +180,30 @@ const HistoricoPage = () => {
             {historico.map((item) => (
               <Card key={item.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
                       <CardTitle className="text-lg">
                         {item.meta?.requisito || 'Meta desconhecida'}
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="mt-1">
                         {item.meta?.artigo} - {item.meta?.eixo}
                       </CardDescription>
+                      
+                      {/* Indicadores de Setor e Coordenador */}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {item.meta?.setor_executor && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Building2 className="h-3 w-3 mr-1" />
+                            {item.meta.setor_executor}
+                          </Badge>
+                        )}
+                        {item.meta?.coordenador && (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                            <Users className="h-3 w-3 mr-1" />
+                            {item.meta.coordenador}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <Badge variant={getAcaoBadgeVariant(item.acao)}>
                       {getAcaoLabel(item.acao)}
