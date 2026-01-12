@@ -427,7 +427,7 @@ const LandingPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
                         <span className={`font-bold text-base ${color.text}`}>
-                          {Math.round(eixo.pontosRecebidos)} pts
+                          {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts
                         </span>
                       </div>
                       <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
