@@ -378,6 +378,7 @@ export const api = {
 
   // ==================== HISTÓRICO ====================
 
+  // Última atualização: 2026-01-12 - Incluir setor_executor e coordenador
   async getHistorico(limit = 100): Promise<HistoricoItem[]> {
     console.log('📜 [API] Buscando histórico (limit:', limit, ')');
     

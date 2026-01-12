@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import type { Atividade, Dificuldade } from '@/integrations/supabase/types';
 
+// Versão: 2026-01-12 - Com setor e coordenador
 interface HistoricoItem {
   id: string;
   meta_id: string;
