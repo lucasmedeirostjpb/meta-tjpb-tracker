@@ -412,8 +412,6 @@ export const api = {
         requisito: item.metas_base.requisito,
         setor_executor: item.metas_base.setor_executor,
         coordenador: item.metas_base.coordenador,
-        setor_executor: item.metas_base.setor_executor,
-        coordenador: item.metas_base.coordenador,
       } : undefined,
     }));
   },
