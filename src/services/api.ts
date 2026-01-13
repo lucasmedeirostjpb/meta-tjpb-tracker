@@ -3,9 +3,6 @@ import type { Database, Atividade, Dificuldade } from '@/integrations/supabase/t
 
 type UpdateData = {
   id: string;
-  status: string;
-  link_evidencia?: string | null;
-  observacoes?: string | null;
   estimativa_cumprimento?: string | null;
   pontos_estimados?: number | null;
   percentual_cumprimento?: number | null;
@@ -17,7 +14,6 @@ type UpdateData = {
 };
 
 type Meta = Database['public']['Tables']['metas_base']['Row'] & {
-  status?: string;
   link_evidencia?: string;
   observacoes?: string;
   update_id?: string;
@@ -134,7 +130,6 @@ export const api = {
         
         return {
           ...meta,
-          status: update?.status || 'Pendente',
           link_evidencia: update?.link_evidencia || '',
           observacoes: update?.observacoes || '',
           update_id: update?.id,
@@ -188,25 +183,20 @@ export const api = {
           const pontosAplicaveis = meta.pontos_aplicaveis || 0;
           const percentual = pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0;
 
-          // Determinar estimativa e status
+          // Determinar estimativa
           let estimativa: string;
-          let status: string;
 
           if (percentual >= 100) {
             estimativa = 'Totalmente Cumprido';
-            status = 'Concluído';
           } else if (percentual > 0) {
             estimativa = 'Parcialmente Cumprido';
-            status = 'Em Andamento';
           } else {
             estimativa = 'Não Cumprido';
-            status = 'Pendente';
           }
 
           updatesData.push({
             meta_id: meta.id,
             setor_executor: meta.setor_executor,
-            status,
             estimativa_cumprimento: estimativa,
             pontos_estimados: pontosRecebidos,
             percentual_cumprimento: Math.min(percentual, 100),
@@ -251,7 +241,6 @@ export const api = {
   async createUpdate(updateData: {
     meta_id: string;
     setor_executor: string;
-    status: string;
     estimativa_cumprimento?: string;
     pontos_estimados?: number;
     percentual_cumprimento?: number;
@@ -283,7 +272,6 @@ export const api = {
         .from('updates')
         .update({
           setor_executor: updateData.setor_executor,
-          status: updateData.status,
           estimativa_cumprimento: updateData.estimativa_cumprimento,
           pontos_estimados: updateData.pontos_estimados,
           percentual_cumprimento: updateData.percentual_cumprimento,
@@ -312,7 +300,6 @@ export const api = {
         .insert({
           meta_id: updateData.meta_id,
           setor_executor: updateData.setor_executor,
-          status: updateData.status,
           estimativa_cumprimento: updateData.estimativa_cumprimento,
           pontos_estimados: updateData.pontos_estimados,
           percentual_cumprimento: updateData.percentual_cumprimento,

@@ -53,7 +53,6 @@ interface Meta {
   setor_executor: string;
   coordenador?: string;
   deadline: string;
-  status?: string;
   link_evidencia?: string;
   observacoes?: string;
   update_id?: string;
@@ -78,7 +77,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const { responsaveis: responsaveisExistentes } = useResponsaveis();
   
-  const [status, setStatus] = useState<string>('Pendente');
   const [estimativa, setEstimativa] = useState<string>('Não se Aplica');
   const [pontosRecebidos, setPontosRecebidos] = useState<number>(0);
   const [acoes, setAcoes] = useState<string>('');
@@ -95,7 +93,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
   useEffect(() => {
     if (meta && open) {
-      const statusInicial = meta.status || 'Pendente';
       const estimativaInicial = meta.estimativa_cumprimento || 'Não se Aplica';
       const pontosInicial = meta.pontos_estimados || 0;
       
@@ -105,7 +102,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         atividades_count: meta.atividades?.length || 0
       });
       
-      setStatus(statusInicial);
       setEstimativa(estimativaInicial);
       setPontosRecebidos(pontosInicial);
       setAcoes(meta.acoes_planejadas || '');
@@ -116,24 +112,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setDificuldade(meta.dificuldade || 'Sem dificuldades');
     }
   }, [meta?.id, open]);
-
-  useEffect(() => {
-    if (!isEditable) return;
-    
-    if (estimativa === 'Totalmente Cumprido') {
-      setStatus('Concluído');
-      if (meta) setPontosRecebidos(meta.pontos_aplicaveis);
-    } else if (estimativa === 'Não Cumprido') {
-      setStatus('Pendente');
-      setPontosRecebidos(0);
-    } else if (estimativa === 'Parcialmente Cumprido') {
-      setStatus('Em Andamento');
-    } else if (estimativa === 'Em Andamento') {
-      setStatus('Em Andamento');
-    } else if (estimativa === 'Não se Aplica') {
-      setPontosRecebidos(0);
-    }
-  }, [estimativa, isEditable, meta]);
 
   const handleAddAtividade = () => {
     setAtividades([
@@ -198,7 +176,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       const updateData = {
         meta_id: meta.id,
         setor_executor: meta.setor_executor,
-        status,
         estimativa_cumprimento: estimativa,
         percentual_cumprimento: percentualCalculado,
         pontos_estimados: pontosRecebidos,
@@ -220,7 +197,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
       toast.success('Prestação de contas salva com sucesso!');
       
-      meta.status = status;
       meta.estimativa_cumprimento = estimativa;
       meta.percentual_cumprimento = percentualCalculado;
       meta.pontos_estimados = pontosRecebidos;
@@ -302,15 +278,17 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     }
   };
 
-  // Determinar status atual baseado na estimativa (para exibição)
-  const statusAtual = (() => {
-    if (estimativa === 'Totalmente Cumprido') return 'Concluído';
-    if (estimativa === 'Parcialmente Cumprido') return 'Parcialmente Cumprido';
-    if (estimativa === 'Em Andamento') return 'Em Andamento';
-    if (estimativa === 'Não Cumprido') return 'Pendente';
-    if (estimativa === 'Não se Aplica') return 'N/A';
-    return status;
-  })();
+  // Mapeamento de cores para estimativa de cumprimento
+  const getEstimativaColor = (est: string) => {
+    switch (est) {
+      case 'Totalmente Cumprido': return 'bg-green-500 text-white hover:bg-green-500';
+      case 'Parcialmente Cumprido': return 'bg-orange-500 text-white hover:bg-orange-500';
+      case 'Em Andamento': return 'bg-yellow-500 text-white hover:bg-yellow-500';
+      case 'Não Cumprido': return 'bg-gray-500 text-white hover:bg-gray-500';
+      case 'Não se Aplica': return 'bg-gray-400 text-white hover:bg-gray-400';
+      default: return 'bg-gray-500 text-white hover:bg-gray-500';
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -322,7 +300,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               <DialogTitle className="text-xl">{meta.requisito}</DialogTitle>
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-sm text-muted-foreground">{meta.artigo}</span>
-                <Badge className={getStatusColor(statusAtual)}>{statusAtual}</Badge>
+                <Badge className={getEstimativaColor(estimativa)}>{estimativa}</Badge>
               </div>
               {meta.descricao && (
                 <p className="text-sm text-muted-foreground mt-2">{meta.descricao}</p>
@@ -698,19 +676,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
             ) : (
               <>
                 {/* MODO SOMENTE LEITURA */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Estimativa de Cumprimento</Label>
-                    <div className="bg-muted rounded-lg p-3">
-                      <p className="font-medium">{estimativa}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <div className="bg-muted rounded-lg p-3">
-                      <Badge className={getStatusColor(status)}>{status}</Badge>
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Estimativa de Cumprimento</Label>
+                  <div className="bg-muted rounded-lg p-3">
+                    <Badge className={getEstimativaColor(estimativa)}>{estimativa}</Badge>
                   </div>
                 </div>
               </>

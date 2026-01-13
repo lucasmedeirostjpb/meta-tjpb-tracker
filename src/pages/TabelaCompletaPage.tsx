@@ -42,6 +42,15 @@ interface Meta {
   pontos_estimados?: number;
   percentual_cumprimento?: number;
   observacoes?: string;
+  acoes_planejadas?: string;
+  justificativa_parcial?: string;
+  atividades?: Array<{
+    id: string;
+    acao: string;
+    responsavel: string;
+    prazo: string;
+    status: string;
+  }>;
 }
 
 const TabelaCompletaPage = () => {
@@ -176,12 +185,38 @@ const TabelaCompletaPage = () => {
       'Pontos Aplicáveis 2026',
       'Pontos Recebidos 2026',
       'Performance',
+      'Status',
       'Deadline',
+      'Ações - Legado',
+      'Atividade 1',
+      'Atividade 2',
+      'Atividade 3',
+      'Atividade 4',
+      'Atividade 5',
+      'Justificativa para Parcial',
       'Observação'
     ];
 
     const rows = filteredMetas.map(meta => {
       const pontosRecebidos = calcularPontosRecebidos(meta);
+      
+      // Formatar atividades
+      const atividade1 = meta.atividades?.[0] 
+        ? `${meta.atividades[0].acao} | Resp: ${meta.atividades[0].responsavel} | Prazo: ${meta.atividades[0].prazo ? format(parseISO(meta.atividades[0].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[0].status}`
+        : '';
+      const atividade2 = meta.atividades?.[1]
+        ? `${meta.atividades[1].acao} | Resp: ${meta.atividades[1].responsavel} | Prazo: ${meta.atividades[1].prazo ? format(parseISO(meta.atividades[1].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[1].status}`
+        : '';
+      const atividade3 = meta.atividades?.[2]
+        ? `${meta.atividades[2].acao} | Resp: ${meta.atividades[2].responsavel} | Prazo: ${meta.atividades[2].prazo ? format(parseISO(meta.atividades[2].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[2].status}`
+        : '';
+      const atividade4 = meta.atividades?.[3]
+        ? `${meta.atividades[3].acao} | Resp: ${meta.atividades[3].responsavel} | Prazo: ${meta.atividades[3].prazo ? format(parseISO(meta.atividades[3].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[3].status}`
+        : '';
+      const atividade5 = meta.atividades?.[4]
+        ? `${meta.atividades[4].acao} | Resp: ${meta.atividades[4].responsavel} | Prazo: ${meta.atividades[4].prazo ? format(parseISO(meta.atividades[4].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[4].status}`
+        : '';
+
       return [
         meta.eixo,
         meta.coordenador || '',
@@ -193,7 +228,15 @@ const TabelaCompletaPage = () => {
         meta.pontos_aplicaveis,
         pontosRecebidos.toFixed(2),
         `${meta.percentual_cumprimento?.toFixed(1) || '0.0'}%`,
+        meta.estimativa_cumprimento || 'Não se Aplica',
         format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR }),
+        meta.acoes_planejadas || '',
+        atividade1,
+        atividade2,
+        atividade3,
+        atividade4,
+        atividade5,
+        meta.justificativa_parcial || '',
         meta.observacoes || ''
       ];
     });
@@ -212,21 +255,74 @@ const TabelaCompletaPage = () => {
     toast.success('Tabela exportada com sucesso!');
   };
 
-  const copyPontosToClipboard = () => {
-    // Criar dados para copiar no formato de coluna do Google Sheets
-    const header = 'Pontos Recebidos\n';
-    const pontosData = filteredMetas.map(meta => {
-      const pontosRecebidos = calcularPontosRecebidos(meta);
-      return pontosRecebidos.toFixed(2);
-    }).join('\n');
+  const copyColumnToClipboard = (columnName: string) => {
+    let header = '';
+    let data: string[] = [];
 
-    const textToCopy = header + pontosData;
+    switch (columnName) {
+      case 'pontos_recebidos':
+        header = 'Pontos Recebidos';
+        data = filteredMetas.map(meta => calcularPontosRecebidos(meta).toFixed(2));
+        break;
+      case 'pontos_aplicaveis':
+        header = 'Pontos Aplicáveis';
+        data = filteredMetas.map(meta => meta.pontos_aplicaveis.toString());
+        break;
+      case 'performance':
+        header = 'Performance';
+        data = filteredMetas.map(meta => `${meta.percentual_cumprimento?.toFixed(1) || '0.0'}%`);
+        break;
+      case 'status':
+        header = 'Status';
+        data = filteredMetas.map(meta => meta.estimativa_cumprimento || 'Não se Aplica');
+        break;
+      case 'eixo':
+        header = 'Eixo';
+        data = filteredMetas.map(meta => meta.eixo);
+        break;
+      case 'coordenador':
+        header = 'Coordenador';
+        data = filteredMetas.map(meta => meta.coordenador || '');
+        break;
+      case 'setor':
+        header = 'Setor Executor';
+        data = filteredMetas.map(meta => meta.setor_executor);
+        break;
+      case 'requisito':
+        header = 'Requisito';
+        data = filteredMetas.map(meta => meta.requisito);
+        break;
+      case 'deadline':
+        header = 'Deadline';
+        data = filteredMetas.map(meta => format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR }));
+        break;
+      case 'acoes':
+        header = 'Ações - Legado';
+        data = filteredMetas.map(meta => meta.acoes_planejadas || '');
+        break;
+      case 'justificativa':
+        header = 'Justificativa para Parcial';
+        data = filteredMetas.map(meta => meta.justificativa_parcial || '');
+        break;
+      case 'observacoes':
+        header = 'Observação';
+        data = filteredMetas.map(meta => meta.observacoes || '');
+        break;
+      default:
+        return;
+    }
+
+    const textToCopy = header + '\n' + data.join('\n');
 
     navigator.clipboard.writeText(textToCopy).then(() => {
-      toast.success(`${filteredMetas.length + 1} valores copiados! Cole no Google Sheets com Ctrl+V`);
+      toast.success(`Coluna "${header}" copiada! ${filteredMetas.length + 1} valores copiados.`);
     }).catch(() => {
       toast.error('Erro ao copiar para área de transferência');
     });
+  };
+
+  const copyPontosToClipboard = () => {
+    copyColumnToClipboard('pontos_recebidos');
   };
 
   const calcularPontosRecebidos = (meta: Meta): number => {
@@ -254,6 +350,33 @@ const TabelaCompletaPage = () => {
     if (percentual < 50) return 'bg-red-100 text-red-800';
     if (percentual < 100) return 'bg-yellow-100 text-yellow-800';
     return 'bg-green-100 text-green-800';
+  };
+
+  const getStatusBadgeColor = (estimativa?: string) => {
+    switch (estimativa) {
+      case 'Totalmente Cumprido': return 'bg-green-100 text-green-800 border-green-300';
+      case 'Parcialmente Cumprido': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Em Andamento': return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'Não Cumprido': return 'bg-red-100 text-red-800 border-red-300';
+      case 'Não se Aplica': return 'bg-gray-100 text-gray-800 border-gray-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const formatAtividade = (atividade: { acao: string; responsavel: string; prazo: string; status: string }) => {
+    const prazoFormatado = atividade.prazo 
+      ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR })
+      : 'Sem prazo';
+    return (
+      <div className="text-xs space-y-1">
+        <p className="font-medium text-gray-900">{atividade.acao}</p>
+        <p className="text-gray-600">👤 {atividade.responsavel}</p>
+        <p className="text-gray-600">📅 {prazoFormatado}</p>
+        <Badge variant="outline" className="text-xs">
+          {atividade.status}
+        </Badge>
+      </div>
+    );
   };
 
   if (loading) {
@@ -341,10 +464,28 @@ const TabelaCompletaPage = () => {
                 </Button>
               )}
               
-              <Button onClick={copyPontosToClipboard} variant="outline" className="gap-2">
-                <Copy className="h-4 w-4" />
-                <span className="hidden sm:inline">Copiar Pontos</span>
-              </Button>
+              {/* Dropdown para copiar colunas */}
+              <Select onValueChange={(value) => copyColumnToClipboard(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <Copy className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Copiar Coluna</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pontos_recebidos">📊 Pontos Recebidos</SelectItem>
+                  <SelectItem value="pontos_aplicaveis">🎯 Pontos Aplicáveis</SelectItem>
+                  <SelectItem value="performance">📈 Performance</SelectItem>
+                  <SelectItem value="status">✅ Status</SelectItem>
+                  <SelectItem value="eixo">📋 Eixo</SelectItem>
+                  <SelectItem value="coordenador">👤 Coordenador</SelectItem>
+                  <SelectItem value="setor">🏢 Setor Executor</SelectItem>
+                  <SelectItem value="requisito">📝 Requisito</SelectItem>
+                  <SelectItem value="deadline">📅 Deadline</SelectItem>
+                  <SelectItem value="acoes">💼 Ações - Legado</SelectItem>
+                  <SelectItem value="justificativa">📄 Justificativa Parcial</SelectItem>
+                  <SelectItem value="observacoes">💬 Observações</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button onClick={exportToCSV} className="gap-2">
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Exportar CSV</span>
@@ -481,14 +622,22 @@ const TabelaCompletaPage = () => {
                   <TableHead className="min-w-[100px] text-center bg-white border-b-2 border-gray-200">Pontos Aplicáveis</TableHead>
                   <TableHead className="min-w-[100px] text-center bg-green-50 border-b-2 border-green-300 font-semibold">Pontos Recebidos</TableHead>
                   <TableHead className="min-w-[100px] text-center bg-white border-b-2 border-gray-200">Performance</TableHead>
+                  <TableHead className="min-w-[120px] bg-white border-b-2 border-gray-200">Status</TableHead>
                   <TableHead className="min-w-[120px] bg-white border-b-2 border-gray-200">Deadline</TableHead>
+                  <TableHead className="min-w-[250px] bg-amber-50 border-b-2 border-amber-300">Ações - Legado</TableHead>
+                  <TableHead className="min-w-[250px] bg-blue-50 border-b-2 border-blue-300">Atividade 1</TableHead>
+                  <TableHead className="min-w-[250px] bg-blue-50 border-b-2 border-blue-300">Atividade 2</TableHead>
+                  <TableHead className="min-w-[250px] bg-blue-50 border-b-2 border-blue-300">Atividade 3</TableHead>
+                  <TableHead className="min-w-[250px] bg-blue-50 border-b-2 border-blue-300">Atividade 4</TableHead>
+                  <TableHead className="min-w-[250px] bg-blue-50 border-b-2 border-blue-300">Atividade 5</TableHead>
+                  <TableHead className="min-w-[300px] bg-yellow-50 border-b-2 border-yellow-300">Justificativa para Parcial</TableHead>
                   <TableHead className="min-w-[200px] bg-white border-b-2 border-gray-200">Observação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredMetas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       Nenhum requisito encontrado com os filtros aplicados
                     </TableCell>
                   </TableRow>
@@ -520,7 +669,36 @@ const TabelaCompletaPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={getStatusBadgeColor(meta.estimativa_cumprimento)}
+                        >
+                          {meta.estimativa_cumprimento || 'Não se Aplica'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground bg-amber-50/30">
+                        {meta.acoes_planejadas || '-'}
+                      </TableCell>
+                      <TableCell className="bg-blue-50/30">
+                        {meta.atividades?.[0] ? formatAtividade(meta.atividades[0]) : '-'}
+                      </TableCell>
+                      <TableCell className="bg-blue-50/30">
+                        {meta.atividades?.[1] ? formatAtividade(meta.atividades[1]) : '-'}
+                      </TableCell>
+                      <TableCell className="bg-blue-50/30">
+                        {meta.atividades?.[2] ? formatAtividade(meta.atividades[2]) : '-'}
+                      </TableCell>
+                      <TableCell className="bg-blue-50/30">
+                        {meta.atividades?.[3] ? formatAtividade(meta.atividades[3]) : '-'}
+                      </TableCell>
+                      <TableCell className="bg-blue-50/30">
+                        {meta.atividades?.[4] ? formatAtividade(meta.atividades[4]) : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground bg-yellow-50/30">
+                        {meta.justificativa_parcial || '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {meta.observacoes || '-'}
