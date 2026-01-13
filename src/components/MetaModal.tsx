@@ -597,11 +597,22 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                 {/* Campo legado - Ações Planejadas (mantido mas ocultável) */}
                 {acoes && (
                   <details className="space-y-2 pt-3 border-t">
-                    <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                    <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground flex items-center gap-2">
                       📝 Ações Planejadas/Executadas (dados antigos)
+                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-300">
+                        ⚠️ Campo em descontinuação
+                      </Badge>
                     </summary>
-                    <div className="bg-muted rounded-lg p-3 mt-2">
-                      <p className="text-sm whitespace-pre-wrap">{acoes}</p>
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-orange-800 font-medium">
+                          ⚠️ Este campo será removido em breve. Use apenas o campo "Atividades" para registrar novas ações.
+                        </p>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <p className="text-sm whitespace-pre-wrap text-gray-700">{acoes}</p>
+                      </div>
                     </div>
                   </details>
                 )}
@@ -758,9 +769,22 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                 {acoes && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Ações Planejadas / Executadas (histórico)</Label>
-                    <div className="bg-muted rounded-lg p-3">
-                      <p className="text-sm whitespace-pre-wrap">{acoes}</p>
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      Ações Planejadas / Executadas (histórico)
+                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-300">
+                        ⚠️ Campo descontinuado
+                      </Badge>
+                    </Label>
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <p className="text-xs text-orange-800 font-medium">
+                          Este campo será removido em breve. Dados mantidos apenas para histórico.
+                        </p>
+                      </div>
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="text-sm whitespace-pre-wrap">{acoes}</p>
+                      </div>
                     </div>
                   </div>
                 )}

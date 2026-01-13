@@ -44,7 +44,14 @@ const SetorSelectionPage = () => {
   const [openCoordenador, setOpenCoordenador] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    // Evitar buscar dados novamente se acabou de importar
+    const hasImported = window.history.state?.usr?.fromImport;
+    if (!hasImported) {
+      fetchData();
+    } else {
+      // Se veio de importação, apenas marcar como não loading
+      setLoading(false);
+    }
   }, []);
 
   const fetchData = async () => {

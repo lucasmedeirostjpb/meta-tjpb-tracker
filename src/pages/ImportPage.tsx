@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileSpreadsheet, AlertCircle, Check, Users } from "lucide-react";
 import { api } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,7 +44,17 @@ const ImportPage = () => {
     pontos_recebidos: '',
     setor_executor: '',
     coordenador: '',
-    deadline: ''
+    deadline: '',
+    status: '',
+    performance: '',
+    acoes_legado: '',
+    atividade_1: '',
+    atividade_2: '',
+    atividade_3: '',
+    atividade_4: '',
+    atividade_5: '',
+    justificativa_parcial: '',
+    observacoes: ''
   });
 
   // Estados para importação de coordenadores
@@ -69,7 +80,17 @@ const ImportPage = () => {
       pontos_recebidos: '',
       setor_executor: '',
       coordenador: '',
-      deadline: ''
+      deadline: '',
+      status: '',
+      performance: '',
+      acoes_legado: '',
+      atividade_1: '',
+      atividade_2: '',
+      atividade_3: '',
+      atividade_4: '',
+      atividade_5: '',
+      justificativa_parcial: '',
+      observacoes: ''
     };
 
     headers.forEach(header => {
@@ -119,9 +140,128 @@ const ImportPage = () => {
       else if (headerLower === 'deadline' || headerLower.includes('prazo') || headerLower.includes('data')) {
         mapping.deadline = header;
       }
+      // Mapeamento de Status/Estimativa
+      else if (headerLower === 'status' || headerLower.includes('estimativa')) {
+        mapping.status = header;
+      }
+      // Mapeamento de Performance
+      else if (headerLower === 'performance' || (headerLower.includes('percentual') && headerLower.includes('cumprimento'))) {
+        mapping.performance = header;
+      }
+      // Mapeamento de Ações - Legado
+      else if ((headerLower.includes('aç') || headerLower.includes('ac')) && headerLower.includes('legado')) {
+        mapping.acoes_legado = header;
+      }
+      // Mapeamento de Atividades 1-5
+      else if (headerLower.includes('atividade 1') || headerLower === 'atividade 1') {
+        mapping.atividade_1 = header;
+      }
+      else if (headerLower.includes('atividade 2') || headerLower === 'atividade 2') {
+        mapping.atividade_2 = header;
+      }
+      else if (headerLower.includes('atividade 3') || headerLower === 'atividade 3') {
+        mapping.atividade_3 = header;
+      }
+      else if (headerLower.includes('atividade 4') || headerLower === 'atividade 4') {
+        mapping.atividade_4 = header;
+      }
+      else if (headerLower.includes('atividade 5') || headerLower === 'atividade 5') {
+        mapping.atividade_5 = header;
+      }
+      // Mapeamento de Justificativa para Parcial
+      else if (headerLower.includes('justificativa')) {
+        mapping.justificativa_parcial = header;
+      }
+      // Mapeamento de Observações
+      else if (headerLower.includes('observaç') || headerLower.includes('observac')) {
+        mapping.observacoes = header;
+      }
     });
 
     return mapping;
+  };
+
+  // Função para mapear valores de status
+  const mapearStatus = (statusOriginal: string): string => {
+    if (!statusOriginal) return '';
+    
+    const statusLower = statusOriginal.toLowerCase().trim();
+    
+    // Mapeamento de variações comuns
+    const mapeamento: { [key: string]: string } = {
+      'cumprido': 'Totalmente Cumprido',
+      'totalmente cumprido': 'Totalmente Cumprido',
+      'total': 'Totalmente Cumprido',
+      '100%': 'Totalmente Cumprido',
+      'completo': 'Totalmente Cumprido',
+      'concluído': 'Totalmente Cumprido',
+      'concluido': 'Totalmente Cumprido',
+      'finalizado': 'Totalmente Cumprido',
+      
+      'parcial': 'Parcialmente Cumprido',
+      'parcialmente': 'Parcialmente Cumprido',
+      'parcialmente cumprido': 'Parcialmente Cumprido',
+      
+      'em andamento': 'Em Andamento',
+      'andamento': 'Em Andamento',
+      'progresso': 'Em Andamento',
+      'em progresso': 'Em Andamento',
+      
+      'não cumprido': 'Não Cumprido',
+      'nao cumprido': 'Não Cumprido',
+      'não iniciado': 'Não Cumprido',
+      'nao iniciado': 'Não Cumprido',
+      'pendente': 'Não Cumprido',
+      'não': 'Não Cumprido',
+      'nao': 'Não Cumprido',
+      '0%': 'Não Cumprido',
+      'zero': 'Não Cumprido'
+    };
+    
+    // Buscar correspondência no mapeamento
+    if (mapeamento[statusLower]) {
+      return mapeamento[statusLower];
+    }
+    
+    // Se não encontrou, retornar o original (será tratado como valor válido se já estiver no formato correto)
+    return statusOriginal.trim();
+  };
+
+  // Função para parsear atividade do formato CSV
+  const parseAtividadeFromCSV = (atividadeTexto: string, index: number): any | null => {
+    if (!atividadeTexto || atividadeTexto.trim() === '' || atividadeTexto === '-') {
+      return null;
+    }
+
+    try {
+      // Formato: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status"
+      const parts = atividadeTexto.split('|').map(p => p.trim());
+      
+      const acao = parts[0] || '';
+      const responsavel = parts[1]?.replace('Resp:', '').trim() || '';
+      const prazoStr = parts[2]?.replace('Prazo:', '').trim() || '';
+      const status = parts[3]?.replace('Status:', '').trim() || 'Não iniciada';
+
+      // Converter prazo de dd/MM/yyyy para yyyy-MM-dd
+      let prazo = '';
+      if (prazoStr && prazoStr !== 'Sem prazo') {
+        const prazoparts = prazoStr.split('/');
+        if (prazoparts.length === 3) {
+          prazo = `${prazoparts[2]}-${prazoparts[1]}-${prazoparts[0]}`;
+        }
+      }
+
+      return {
+        id: `atividade-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+        acao,
+        responsavel,
+        prazo,
+        status: status as any
+      };
+    } catch (error) {
+      console.warn(`⚠️ Erro ao parsear atividade ${index + 1}:`, error);
+      return null;
+    }
   };
 
   // Funções para importação de coordenadores
@@ -130,13 +270,17 @@ const ImportPage = () => {
     if (selectedFile) {
       setCoordenadoresFile(selectedFile);
       
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+      try {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const wb = XLSX.read(arrayBuffer, { 
+          type: 'array',
+          codepage: 65001,
+          raw: false,
+          defval: ''
+        });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
         
         if (data.length > 0) {
           const rawHeaders = (data[0] as string[]).map((h, idx) => {
@@ -169,8 +313,10 @@ const ImportPage = () => {
           setCoordenadoresMapping(autoMapping);
           setShowCoordenadoresMapping(true);
         }
-      };
-      reader.readAsBinaryString(selectedFile);
+      } catch (error) {
+        console.error('Erro ao ler arquivo:', error);
+        toast.error('Erro ao ler arquivo. Verifique o formato.');
+      }
     }
   };
 
@@ -271,14 +417,18 @@ const ImportPage = () => {
     if (selectedFile) {
       setFile(selectedFile);
       
-      // Extrair headers do arquivo
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+      // Extrair headers do arquivo com encoding UTF-8
+      try {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const wb = XLSX.read(arrayBuffer, { 
+          type: 'array',
+          codepage: 65001,
+          raw: false,
+          defval: ''
+        });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
         if (data.length > 0) {
           // Filtrar headers vazios e garantir unicidade
           const rawHeaders = (data[0] as string[]).map((h, idx) => {
@@ -300,8 +450,10 @@ const ImportPage = () => {
           
           setShowMapping(true);
         }
-      };
-      reader.readAsBinaryString(selectedFile);
+      } catch (error) {
+        console.error('Erro ao ler arquivo:', error);
+        toast.error('Erro ao ler arquivo. Verifique o formato.');
+      }
     }
   };
 
@@ -313,7 +465,7 @@ const ImportPage = () => {
 
     // Validar mapeamento
     const requiredFields = ['eixo', 'item', 'artigo', 'requisito', 'pontos_aplicaveis', 'deadline'];
-    const missingFields = requiredFields.filter(field => !columnMapping[field as keyof typeof columnMapping]);
+    const missingFields = requiredFields.filter(field => !columnMapping[field as keyof typeof columnMapping] || columnMapping[field as keyof typeof columnMapping] === '__none__');
     
     if (missingFields.length > 0) {
       toast.error(`Campos obrigatórios não mapeados: ${missingFields.join(', ')}`);
@@ -329,9 +481,28 @@ const ImportPage = () => {
       }
 
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      
+      // Detectar separador do arquivo com UTF-8
+      const text = new TextDecoder('utf-8').decode(data.slice(0, 1000));
+      const firstLine = text.split('\n')[0];
+      const hasSemicolon = firstLine.includes(';');
+      const separator = hasSemicolon ? ';' : ',';
+      
+      console.log(`📊 Separador detectado: ${separator === ';' ? 'ponto e vírgula' : 'vírgula'}`);
+      
+      const workbook = XLSX.read(data, {
+        raw: false,
+        type: 'array',
+        codepage: 65001, // UTF-8
+        FS: separator
+      });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        raw: false,
+        defval: ''
+      }) as any[];
+
+      console.log(`📦 ${jsonData.length} linhas detectadas`);
 
       const metas = jsonData.filter(row => row[columnMapping.eixo]).map((row, index) => {
         let deadlineFormatted = null; // Usar null em vez de string vazia
@@ -370,29 +541,142 @@ const ImportPage = () => {
 
         // Processar pontos recebidos se fornecido
         let pontos_recebidos: number | undefined;
-        if (columnMapping.pontos_recebidos && row[columnMapping.pontos_recebidos] !== undefined && row[columnMapping.pontos_recebidos] !== null && row[columnMapping.pontos_recebidos] !== '') {
-          pontos_recebidos = parseFloat(String(row[columnMapping.pontos_recebidos]).replace(',', '.'));
+        if (columnMapping.pontos_recebidos && columnMapping.pontos_recebidos !== '__none__' && row[columnMapping.pontos_recebidos] !== undefined && row[columnMapping.pontos_recebidos] !== null && row[columnMapping.pontos_recebidos] !== '') {
+          const valorStr = String(row[columnMapping.pontos_recebidos]).replace(',', '.');
+          pontos_recebidos = parseFloat(valorStr);
+          
+          if (isNaN(pontos_recebidos)) {
+            pontos_recebidos = undefined;
+          }
+        }
+
+        // Processar pontos aplicáveis
+        let pontosAplicaveis = 0;
+        if (columnMapping.pontos_aplicaveis && columnMapping.pontos_aplicaveis !== '__none__' && row[columnMapping.pontos_aplicaveis]) {
+          const valorStr = String(row[columnMapping.pontos_aplicaveis]).replace(',', '.');
+          pontosAplicaveis = parseInt(valorStr) || 0;
         }
 
         return {
-          eixo: row[columnMapping.eixo] || '',
-          item: row[columnMapping.item] || '',
-          artigo: row[columnMapping.artigo] || '',
-          requisito: row[columnMapping.requisito] || '',
-          descricao: row[columnMapping.descricao] || '',
-          pontos_aplicaveis: parseInt(row[columnMapping.pontos_aplicaveis] || '0'),
-          setor_executor: row[columnMapping.setor_executor] || '',
-          coordenador: row[columnMapping.coordenador] || '',
+          eixo: String(row[columnMapping.eixo] || '').trim(),
+          item: String(row[columnMapping.item] || '').trim(),
+          artigo: String(row[columnMapping.artigo] || '').trim(),
+          requisito: String(row[columnMapping.requisito] || '').trim(),
+          descricao: (columnMapping.descricao && columnMapping.descricao !== '__none__') ? String(row[columnMapping.descricao] || '').trim() : '',
+          pontos_aplicaveis: pontosAplicaveis,
+          setor_executor: (columnMapping.setor_executor && columnMapping.setor_executor !== '__none__') ? String(row[columnMapping.setor_executor] || '').trim() : '',
+          coordenador: (columnMapping.coordenador && columnMapping.coordenador !== '__none__') ? String(row[columnMapping.coordenador] || '').trim() : '',
           deadline: deadlineFormatted,
           linha_planilha: index + 2,
           pontos_recebidos,
+          // Dados adicionais para criar update
+          _updateData: {
+            status: (columnMapping.status && columnMapping.status !== '__none__') ? mapearStatus(String(row[columnMapping.status] || '').trim()) : '',
+            performance: (columnMapping.performance && columnMapping.performance !== '__none__' && row[columnMapping.performance]) ? parseFloat(String(row[columnMapping.performance]).replace(',', '.').replace('%', '')) : undefined,
+            acoes_planejadas: (columnMapping.acoes_legado && columnMapping.acoes_legado !== '__none__') ? String(row[columnMapping.acoes_legado] || '').trim() : '',
+            justificativa_parcial: (columnMapping.justificativa_parcial && columnMapping.justificativa_parcial !== '__none__') ? String(row[columnMapping.justificativa_parcial] || '').trim() : '',
+            observacoes: (columnMapping.observacoes && columnMapping.observacoes !== '__none__') ? String(row[columnMapping.observacoes] || '').trim() : '',
+            atividades: [
+              (columnMapping.atividade_1 && columnMapping.atividade_1 !== '__none__') ? parseAtividadeFromCSV(String(row[columnMapping.atividade_1] || ''), 0) : null,
+              (columnMapping.atividade_2 && columnMapping.atividade_2 !== '__none__') ? parseAtividadeFromCSV(String(row[columnMapping.atividade_2] || ''), 1) : null,
+              (columnMapping.atividade_3 && columnMapping.atividade_3 !== '__none__') ? parseAtividadeFromCSV(String(row[columnMapping.atividade_3] || ''), 2) : null,
+              (columnMapping.atividade_4 && columnMapping.atividade_4 !== '__none__') ? parseAtividadeFromCSV(String(row[columnMapping.atividade_4] || ''), 3) : null,
+              (columnMapping.atividade_5 && columnMapping.atividade_5 !== '__none__') ? parseAtividadeFromCSV(String(row[columnMapping.atividade_5] || ''), 4) : null,
+            ].filter(Boolean)
+          }
         };
       });
 
-      await api.createMetas(metas);
+      console.log(`✅ ${metas.length} metas processadas`);
+
+      // Separar _updateData antes de enviar para o banco
+      const metasParaInserir = metas.map(({ _updateData, ...meta }) => meta);
+      
+      await api.createMetas(metasParaInserir);
+      
+      // Criar updates se houver dados adicionais
+      const metasComUpdate = metas.filter(m => 
+        m._updateData.status || 
+        m._updateData.acoes_planejadas || 
+        m._updateData.justificativa_parcial || 
+        m._updateData.observacoes || 
+        m._updateData.atividades.length > 0
+      );
+      
+      if (metasComUpdate.length > 0) {
+        console.log(`📋 Criando updates para ${metasComUpdate.length} metas...`);
+        
+        // Buscar apenas as metas recém-criadas usando os identificadores únicos
+        const { data: metasCriadas } = await supabase
+          .from('metas_base')
+          .select('id, eixo, requisito, artigo')
+          .in('eixo', [...new Set(metasComUpdate.map(m => m.eixo))]);
+        
+        if (!metasCriadas) {
+          throw new Error('Erro ao buscar metas criadas');
+        }
+        
+        // Preparar todos os updates em um array
+        const updatesParaCriar = [];
+        const valoresStatusValidos = ['Totalmente Cumprido', 'Parcialmente Cumprido', 'Em Andamento', 'Não Cumprido', 'Não se Aplica'];
+        
+        for (const meta of metasComUpdate) {
+          const metaCriada = metasCriadas.find(m => 
+            m.eixo === meta.eixo && 
+            m.requisito === meta.requisito && 
+            m.artigo === meta.artigo
+          );
+          
+          if (metaCriada && meta._updateData) {
+            // Usar percentual do CSV se disponível, senão calcular a partir de pontos
+            let percentual = meta._updateData.performance;
+            if (percentual === undefined && meta.pontos_recebidos !== undefined && meta.pontos_aplicaveis > 0) {
+              percentual = (meta.pontos_recebidos / meta.pontos_aplicaveis) * 100;
+            }
+
+            // Validar se o status é um valor permitido pelo banco
+            const statusValido = meta._updateData.status && valoresStatusValidos.includes(meta._updateData.status) 
+              ? meta._updateData.status 
+              : null;
+
+            updatesParaCriar.push({
+              meta_id: metaCriada.id,
+              setor_executor: meta.setor_executor,
+              estimativa_cumprimento: statusValido,
+              acoes_planejadas: meta._updateData.acoes_planejadas || null,
+              justificativa_parcial: meta._updateData.justificativa_parcial || null,
+              observacoes: meta._updateData.observacoes || null,
+              atividades: meta._updateData.atividades.length > 0 ? meta._updateData.atividades : null,
+              pontos_estimados: meta.pontos_recebidos || null,
+              percentual_cumprimento: percentual || null,
+              data_prestacao: new Date().toISOString()
+            });
+          }
+        }
+        
+        // Inserir todos os updates de uma vez
+        if (updatesParaCriar.length > 0) {
+          const { error: updateError } = await supabase
+            .from('updates')
+            .insert(updatesParaCriar);
+          
+          if (updateError) {
+            console.error('❌ Erro ao criar updates:', updateError);
+            throw updateError;
+          }
+          
+          console.log(`✅ ${updatesParaCriar.length} updates criados com sucesso`);
+        }
+      }
 
       toast.success(`${metas.length} metas importadas com sucesso!`);
-      navigate('/setor-selection');
+      
+      // Aguardar antes de navegar e usar state para indicar que veio de importação
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      navigate('/setor-selection', { 
+        replace: true,
+        state: { fromImport: true }
+      });
     } catch (error: any) {
       console.error('Erro ao importar dados:', error);
       toast.error('Erro ao importar os dados: ' + (error.message || 'Erro desconhecido'));
@@ -487,47 +771,161 @@ const ImportPage = () => {
                           </p>
                         </div>
 
-                        <div className="grid gap-4">
-                          {Object.entries({
-                            eixo: 'Eixo *',
-                            item: 'Item *',
-                            artigo: 'Artigo *',
-                            requisito: 'Requisito *',
-                            descricao: 'Descrição',
-                            pontos_aplicaveis: 'Pontos Aplicáveis *',
-                            pontos_recebidos: 'Pontos Recebidos/Alcançados',
-                            setor_executor: 'Setor Executor',
-                            coordenador: 'Coordenador',
-                            deadline: 'Deadline *'
-                          }).map(([field, label]) => (
-                            <div key={field} className="grid gap-2">
-                              <Label htmlFor={field} className="text-sm">
-                                {label}
-                              </Label>
-                              <Select
-                                value={columnMapping[field as keyof typeof columnMapping]}
-                                onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
-                              >
-                                <SelectTrigger id={field}>
-                                  <SelectValue placeholder="Selecione a coluna" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {headers.map((header, idx) => (
-                                    <SelectItem key={`${header}-${idx}`} value={header}>
-                                      {header}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                        <div className="space-y-6">
+                          {/* Campos Obrigatórios */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 text-gray-700">📋 Campos Obrigatórios</h4>
+                            <div className="grid gap-4">
+                              {Object.entries({
+                                eixo: 'Eixo *',
+                                item: 'Item *',
+                                artigo: 'Artigo *',
+                                requisito: 'Requisito *',
+                                pontos_aplicaveis: 'Pontos Aplicáveis *',
+                                deadline: 'Deadline *'
+                              }).map(([field, label]) => (
+                                <div key={field} className="grid gap-2">
+                                  <Label htmlFor={field} className="text-sm">
+                                    {label}
+                                  </Label>
+                                  <Select
+                                    value={columnMapping[field as keyof typeof columnMapping]}
+                                    onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
+                                  >
+                                    <SelectTrigger id={field}>
+                                      <SelectValue placeholder="Selecione a coluna" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {headers.map((header, idx) => (
+                                        <SelectItem key={`${header}-${idx}`} value={header}>
+                                          {header}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Campos Opcionais - Dados Base */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 text-gray-700">📝 Campos Opcionais</h4>
+                            <div className="grid gap-4">
+                              {Object.entries({
+                                descricao: 'Descrição',
+                                setor_executor: 'Setor Executor',
+                                coordenador: 'Coordenador Executivo',
+                                pontos_recebidos: 'Pontos Recebidos/Alcançados'
+                              }).map(([field, label]) => (
+                                <div key={field} className="grid gap-2">
+                                  <Label htmlFor={field} className="text-sm">
+                                    {label}
+                                  </Label>
+                                  <Select
+                                    value={columnMapping[field as keyof typeof columnMapping]}
+                                    onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
+                                  >
+                                    <SelectTrigger id={field}>
+                                      <SelectValue placeholder="Selecione a coluna (opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                                      {headers.map((header, idx) => (
+                                        <SelectItem key={`${header}-${idx}`} value={header}>
+                                          {header}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Campos de Resposta/Updates */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 text-gray-700">✅ Campos de Prestação de Contas</h4>
+                            <div className="grid gap-4">
+                              {Object.entries({
+                                status: 'Status/Estimativa de Cumprimento',
+                                performance: 'Performance (%)',
+                                acoes_legado: 'Ações - Legado',
+                                justificativa_parcial: 'Justificativa para Parcial',
+                                observacoes: 'Observações'
+                              }).map(([field, label]) => (
+                                <div key={field} className="grid gap-2">
+                                  <Label htmlFor={field} className="text-sm">
+                                    {label}
+                                  </Label>
+                                  <Select
+                                    value={columnMapping[field as keyof typeof columnMapping]}
+                                    onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
+                                  >
+                                    <SelectTrigger id={field}>
+                                      <SelectValue placeholder="Selecione a coluna (opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                                      {headers.map((header, idx) => (
+                                        <SelectItem key={`${header}-${idx}`} value={header}>
+                                          {header}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Campos de Atividades */}
+                          <div>
+                            <h4 className="text-sm font-semibold mb-3 text-gray-700">🎯 Atividades (até 5)</h4>
+                            <div className="grid gap-4">
+                              {Object.entries({
+                                atividade_1: 'Atividade 1',
+                                atividade_2: 'Atividade 2',
+                                atividade_3: 'Atividade 3',
+                                atividade_4: 'Atividade 4',
+                                atividade_5: 'Atividade 5'
+                              }).map(([field, label]) => (
+                                <div key={field} className="grid gap-2">
+                                  <Label htmlFor={field} className="text-sm">
+                                    {label}
+                                  </Label>
+                                  <Select
+                                    value={columnMapping[field as keyof typeof columnMapping]}
+                                    onValueChange={(value) => setColumnMapping(prev => ({ ...prev, [field]: value }))}
+                                  >
+                                    <SelectTrigger id={field}>
+                                      <SelectValue placeholder="Selecione a coluna (opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                                      {headers.map((header, idx) => (
+                                        <SelectItem key={`${header}-${idx}`} value={header}>
+                                          {header}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              💡 Formato esperado: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status"
+                            </p>
+                          </div>
                         </div>
 
                         <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg mt-4">
                           <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                           <div className="text-xs text-blue-900">
-                            <p className="font-medium">Campos marcados com * são obrigatórios</p>
-                            <p className="mt-1">💡 <strong>Pontos Recebidos:</strong> Se informado, o sistema calculará automaticamente o status (Totalmente/Parcialmente/Não Cumprido) e o percentual de cumprimento</p>
+                            <p className="font-medium mb-1">Campos marcados com * são obrigatórios</p>
+                            <p className="mt-1">📊 <strong>Importação Completa:</strong> O sistema reconhece e importa TODAS as colunas da tabela</p>
+                            <p className="mt-1">🎯 <strong>Atividades:</strong> Importa até 5 atividades por requisito com todas as informações</p>
+                            <p className="mt-1">💡 <strong>Pontos Recebidos:</strong> Se informado, calcula automaticamente status e percentual</p>
                           </div>
                         </div>
                       </div>

@@ -170,54 +170,8 @@ export const api = {
 
     console.log('✅ [API] Metas criadas com sucesso');
 
-    // Criar updates automaticamente para metas com pontos_recebidos
-    if (metasData && metasData.length > 0) {
-      const updatesData = [];
-      
-      for (let i = 0; i < metasData.length; i++) {
-        const meta = metasData[i];
-        const pontosRecebidos = metas[i].pontos_recebidos;
-
-        // Se há pontos recebidos informados, criar update
-        if (pontosRecebidos !== undefined && pontosRecebidos !== null && !isNaN(pontosRecebidos)) {
-          const pontosAplicaveis = meta.pontos_aplicaveis || 0;
-          const percentual = pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0;
-
-          // Determinar estimativa
-          let estimativa: string;
-
-          if (percentual >= 100) {
-            estimativa = 'Totalmente Cumprido';
-          } else if (percentual > 0) {
-            estimativa = 'Parcialmente Cumprido';
-          } else {
-            estimativa = 'Não Cumprido';
-          }
-
-          updatesData.push({
-            meta_id: meta.id,
-            setor_executor: meta.setor_executor,
-            estimativa_cumprimento: estimativa,
-            pontos_estimados: pontosRecebidos,
-            percentual_cumprimento: Math.min(percentual, 100),
-            data_prestacao: new Date().toISOString(),
-          });
-        }
-      }
-
-      // Inserir updates se houver
-      if (updatesData.length > 0) {
-        const { error: updatesError } = await supabase
-          .from('updates')
-          .insert(updatesData);
-
-        if (updatesError) {
-          console.warn('⚠️ Erro ao criar updates automáticos:', updatesError);
-        } else {
-          console.log(`✅ ${updatesData.length} updates criados automaticamente com pontos já alcançados`);
-        }
-      }
-    }
+    // Nota: Updates são criados explicitamente no ImportPage.tsx com dados do CSV
+    // Não criamos updates automáticos aqui apenas baseado em pontos_recebidos
   },
 
   async deleteAllMetas() {
