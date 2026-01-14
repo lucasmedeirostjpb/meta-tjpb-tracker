@@ -80,6 +80,7 @@ export interface Database {
           observacoes: string | null
           atividades: Atividade[] | null
           dificuldade: Dificuldade | null
+          estimativa_maxima: number | null
           created_at: string
           updated_at: string
         }
@@ -98,6 +99,7 @@ export interface Database {
           observacoes?: string | null
           atividades?: Atividade[] | null
           dificuldade?: Dificuldade | null
+          estimativa_maxima?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -116,6 +118,7 @@ export interface Database {
           observacoes?: string | null
           atividades?: Atividade[] | null
           dificuldade?: Dificuldade | null
+          estimativa_maxima?: number | null
           created_at?: string
           updated_at?: string
         }

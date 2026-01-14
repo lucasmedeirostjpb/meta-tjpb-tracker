@@ -357,7 +357,11 @@ const LandingPage = () => {
             <CardContent className="space-y-6">
               {/* Velocímetro */}
               <div className="flex justify-center">
-                <GaugeChart value={stats.percentualGeral} size={380} />
+                <GaugeChart 
+                  value={stats.percentualGeral}
+                  maxValue={stats.percentualMaximo !== undefined && stats.percentualMaximo < 100 ? stats.percentualMaximo : undefined}
+                  size={380} 
+                />
               </div>
               
               {/* Percentual e Pontos */}
@@ -368,6 +372,12 @@ const LandingPage = () => {
                 <div className="text-base text-gray-600 font-medium">
                   {stats.pontosTotais} de {stats.pontosAplicaveis} pontos alcançados
                 </div>
+                {stats.pontosPerdidos > 0 && (
+                  <div className="text-sm text-red-600 font-semibold flex items-center justify-center gap-1">
+                    <span className="inline-block w-2 h-2 bg-red-600 rounded-full"></span>
+                    Máximo possível: {stats.percentualMaximo.toFixed(1)}% ({stats.pontosMaximos} pts) - {stats.pontosPerdidos} pts comprometidos
+                  </div>
+                )}
               </div>
               
               {/* Marcações dos Selos */}
@@ -421,16 +431,26 @@ const LandingPage = () => {
                   };
                   const color = colors[eixo.cor as keyof typeof colors] || colors.blue;
                   const barWidth = (eixo.pontosRecebidos / eixo.pontos) * 100;
+                  const maxBarWidth = (eixo.pontosMaximos / eixo.pontos) * 100;
+                  const hasLimit = eixo.pontosMaximos < eixo.pontos;
 
                   return (
                     <div key={eixo.nome} className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
-                        <span className={`font-bold text-base ${color.text}`}>
-                          {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold text-base ${color.text}`}>
+                            {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts
+                          </span>
+                          {hasLimit && (
+                            <span className="text-xs text-red-600 font-semibold">
+                              (máx: {Math.round(eixo.pontosMaximos)})
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
+                        {/* Barra de progresso atual */}
                         <div
                           className={`h-full ${color.bg} transition-all duration-1000 ease-out flex items-center justify-end pr-3`}
                           style={{ width: `${Math.min(barWidth, 100)}%` }}
@@ -439,6 +459,17 @@ const LandingPage = () => {
                             {eixo.percentual.toFixed(1)}%
                           </span>
                         </div>
+                        {/* Linha vermelha indicando limite máximo */}
+                        {hasLimit && maxBarWidth < 100 && (
+                          <div
+                            className="absolute top-0 bottom-0 w-1 bg-red-600 z-10"
+                            style={{ left: `${maxBarWidth}%` }}
+                            title={`Máximo possível: ${maxBarWidth.toFixed(1)}%`}
+                          >
+                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-600 rounded-full"></div>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-600 rounded-full"></div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

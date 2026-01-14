@@ -65,6 +65,7 @@ interface Meta {
   justificativa_parcial?: string;
   atividades?: Atividade[];
   dificuldade?: Dificuldade;
+  estimativa_maxima?: number;
 }
 
 interface MetaModalProps {
@@ -81,6 +82,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   
   const [estimativa, setEstimativa] = useState<string>('Não se Aplica');
   const [pontosRecebidos, setPontosRecebidos] = useState<number>(0);
+  const [estimativaMaxima, setEstimativaMaxima] = useState<number>(0);
   const [acoes, setAcoes] = useState<string>('');
   const [justificativa, setJustificativa] = useState<string>('');
   const [linkEvidencia, setLinkEvidencia] = useState<string>('');
@@ -100,12 +102,16 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       
       console.log('📋 [MODAL] Carregando meta:', {
         id: meta.id,
-        atividades: meta.atividades,
+        estimativa_cumprimento: meta.estimativa_cumprimento,
+        pontos_estimados: meta.pontos_estimados,
+        estimativa_maxima: meta.estimativa_maxima,
+        pontos_aplicaveis: meta.pontos_aplicaveis,
         atividades_count: meta.atividades?.length || 0
       });
       
       setEstimativa(estimativaInicial);
       setPontosRecebidos(pontosInicial);
+      setEstimativaMaxima(meta.estimativa_maxima || meta.pontos_aplicaveis);
       setAcoes(meta.acoes_planejadas || '');
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
@@ -181,6 +187,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         estimativa_cumprimento: estimativa,
         percentual_cumprimento: percentualCalculado,
         pontos_estimados: pontosRecebidos,
+        estimativa_maxima: estimativa === 'Em Andamento' ? estimativaMaxima : null,
         acoes_planejadas: acoes,
         justificativa_parcial: justificativa,
         link_evidencia: linkEvidencia,
@@ -189,10 +196,12 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         dificuldade: dificuldade,
       };
 
-      console.log('💾 [MODAL] Salvando com atividades:', {
+      console.log('💾 [MODAL] Salvando update:', {
         meta_id: meta.id,
-        atividades_count: atividades.length,
-        atividades: atividades
+        estimativa: estimativa,
+        pontos_estimados: pontosRecebidos,
+        estimativa_maxima: estimativaMaxima,
+        atividades_count: atividades.length
       });
 
       await api.createUpdate(updateData);
@@ -202,6 +211,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       meta.estimativa_cumprimento = estimativa;
       meta.percentual_cumprimento = percentualCalculado;
       meta.pontos_estimados = pontosRecebidos;
+      meta.estimativa_maxima = estimativa === 'Em Andamento' ? estimativaMaxima : undefined;
       meta.atividades = atividades;
       meta.dificuldade = dificuldade;
       meta.acoes_planejadas = acoes;
@@ -346,19 +356,68 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               <>
                 {/* MODO EDIÇÃO */}
                 <div className="space-y-2">
-                  <Label htmlFor="estimativa" className="text-sm font-medium">
-                    ⭐ Estimativa de Cumprimento
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="estimativa" className="text-sm font-medium">
+                      ⭐ Estimativa de Cumprimento
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center h-4 w-4 hover:opacity-70 transition-opacity"
+                        >
+                          <Info className="h-4 w-4 text-blue-500" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[450px]" side="right">
+                        <div className="space-y-3">
+                          <p className="font-semibold text-sm mb-3">📋 Significado de Cada Status:</p>
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <div className="font-medium text-green-700 text-sm">✅ Totalmente Cumprido</div>
+                              <div className="text-xs text-muted-foreground leading-relaxed">
+                                Período de avaliação finalizado e divulgação oficial no CNJ
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-medium text-orange-700 text-sm">⚠️ Parcialmente Cumprido</div>
+                              <div className="text-xs text-muted-foreground leading-relaxed">
+                                Período de avaliação finalizado e divulgação oficial no CNJ, sem pontuação máxima atingida
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-medium text-yellow-700 text-sm">🔄 Em Andamento</div>
+                              <div className="text-xs text-muted-foreground leading-relaxed">
+                                Período finalizado, mas não houve divulgação oficial do CNJ ou o período não foi finalizado
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-700 text-sm">❌ Não Cumprido</div>
+                              <div className="text-xs text-muted-foreground leading-relaxed">
+                                Período de divulgação finalizado com o requisito não cumprido
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-600 text-sm">➖ Não se Aplica</div>
+                              <div className="text-xs text-muted-foreground leading-relaxed">
+                                Não se aplica
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Select value={estimativa} onValueChange={setEstimativa}>
                     <SelectTrigger id="estimativa">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card">
-                      <SelectItem value="Totalmente Cumprido">Totalmente Cumprido</SelectItem>
-                      <SelectItem value="Parcialmente Cumprido">Parcialmente Cumprido</SelectItem>
-                      <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                      <SelectItem value="Não Cumprido">Não Cumprido</SelectItem>
-                      <SelectItem value="Não se Aplica">Não se Aplica</SelectItem>
+                      <SelectItem value="Totalmente Cumprido">✅ Totalmente Cumprido</SelectItem>
+                      <SelectItem value="Parcialmente Cumprido">⚠️ Parcialmente Cumprido</SelectItem>
+                      <SelectItem value="Em Andamento">🔄 Em Andamento</SelectItem>
+                      <SelectItem value="Não Cumprido">❌ Não Cumprido</SelectItem>
+                      <SelectItem value="Não se Aplica">➖ Não se Aplica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -405,33 +464,101 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                 {estimativa === 'Em Andamento' && (
                   <div className="space-y-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Pontos Estimados *</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max={meta.pontos_aplicaveis}
-                          step="0.5"
-                          value={pontosRecebidos}
-                          onChange={(e) => {
-                            const valor = Number(e.target.value);
-                            if (valor > meta.pontos_aplicaveis) {
-                              toast.error(`Para "Em Andamento", o máximo é ${meta.pontos_aplicaveis} pontos`);
-                              return;
-                            }
-                            setPontosRecebidos(valor);
-                          }}
-                          className="bg-white w-20 text-center"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          (máximo {meta.pontos_aplicaveis} pontos)
-                        </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Label className="text-sm font-medium">Estimativa Mínima (Pontos Bem Encaminhados) *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center h-3.5 w-3.5 hover:opacity-70 transition-opacity"
+                              >
+                                <Info className="h-3.5 w-3.5 text-blue-600" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 text-xs" side="top">
+                              <p className="font-medium mb-1">💡 Estimativa Mínima:</p>
+                              <p>Refere-se aos pontos que estão bem encaminhados e têm alta probabilidade de serem alcançados quando a meta for concluída.</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max={estimativaMaxima}
+                            step="0.5"
+                            value={pontosRecebidos}
+                            onChange={(e) => {
+                              const valor = Number(e.target.value);
+                              if (valor > estimativaMaxima) {
+                                toast.error(`A estimativa mínima não pode ser maior que a máxima (${estimativaMaxima})`);
+                                return;
+                              }
+                              setPontosRecebidos(valor);
+                            }}
+                            className="bg-white w-20 text-center"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            de {estimativaMaxima} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Label className="text-sm font-medium">Estimativa Máxima (Descontando Pontos Perdidos) *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center h-3.5 w-3.5 hover:opacity-70 transition-opacity"
+                              >
+                                <Info className="h-3.5 w-3.5 text-blue-600" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 text-xs" side="top">
+                              <p className="font-medium mb-1">💡 Estimativa Máxima:</p>
+                              <p>Refere-se ao máximo de pontos que poderão ser alcançados, já considerando requisitos que tiveram pontos prejudicados ou descartados.</p>
+                              <p className="mt-2"><strong>Exemplo:</strong> Requisito com 90 pontos totais, mas 30 já sabemos que não conseguiremos atingir → Estimativa máxima: 60 pontos.</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={pontosRecebidos}
+                            max={meta.pontos_aplicaveis}
+                            step="0.5"
+                            value={estimativaMaxima}
+                            onChange={(e) => {
+                              const valor = Number(e.target.value);
+                              if (valor > meta.pontos_aplicaveis) {
+                                toast.error(`A estimativa máxima não pode ser maior que ${meta.pontos_aplicaveis} pontos`);
+                                return;
+                              }
+                              if (valor < pontosRecebidos) {
+                                toast.error(`A estimativa máxima não pode ser menor que a mínima (${pontosRecebidos})`);
+                                return;
+                              }
+                              setEstimativaMaxima(valor);
+                            }}
+                            className="bg-white w-20 text-center"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            de {meta.pontos_aplicaveis} pts
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      💡 Informe quantos pontos você estima que serão recebidos quando a meta for concluída.
-                    </p>
+
+                    <div className="flex items-center gap-2 p-2 bg-blue-100 rounded border border-blue-300">
+                      <AlertCircle className="h-4 w-4 text-blue-700 flex-shrink-0" />
+                      <p className="text-xs text-blue-800">
+                        <strong>Pontos comprometidos:</strong> {(meta.pontos_aplicaveis - estimativaMaxima).toFixed(1)} pts ({((meta.pontos_aplicaveis - estimativaMaxima) / meta.pontos_aplicaveis * 100).toFixed(1)}% perdidos)
+                      </p>
+                    </div>
                   </div>
                 )}
 
