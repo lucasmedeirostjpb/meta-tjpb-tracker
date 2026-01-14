@@ -35,6 +35,7 @@ interface Meta {
   update_id?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
+  estimativa_maxima?: number;
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
@@ -104,13 +105,24 @@ const MinhasMetasPage = () => {
       return sum;
     }, 0);
 
+    // Pontos máximos alcançáveis
+    const maximos = metas.reduce((sum, meta) => {
+      if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined) {
+        return sum + meta.estimativa_maxima;
+      } else {
+        return sum + meta.pontos_aplicaveis;
+      }
+    }, 0);
+
     return {
       total,
       recebidos,
       estimados,
+      maximos,
       totalComEstimados: recebidos + estimados,
       percentual: total > 0 ? (recebidos / total) * 100 : 0,
       percentualComEstimados: total > 0 ? ((recebidos + estimados) / total) * 100 : 0,
+      percentualMaximo: total > 0 ? (maximos / total) * 100 : 100,
     };
   };
 
@@ -273,6 +285,17 @@ const MinhasMetasPage = () => {
                   style={{ width: `${Math.min(progress.percentualComEstimados - progress.percentual, 100 - progress.percentual)}%` }}
                 />
               )}
+              {/* Linha vermelha indicando limite máximo */}
+              {progress.percentualMaximo < 100 && (
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-red-600 z-10"
+                  style={{ left: `${progress.percentualMaximo}%` }}
+                  title={`Máximo possível: ${progress.percentualMaximo.toFixed(1)}%`}
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                </div>
+              )}
             </div>
             
             {/* Legenda */}
@@ -354,7 +377,22 @@ const MinhasMetasPage = () => {
                 }
                 return sum;
               }, 0);
+              const estimadosSetor = metasDoSetor.reduce((sum, meta) => {
+                if (meta.estimativa_cumprimento === 'Em Andamento' && meta.pontos_estimados) {
+                  return sum + meta.pontos_estimados;
+                }
+                return sum;
+              }, 0);
+              const maximosSetor = metasDoSetor.reduce((sum, meta) => {
+                if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined) {
+                  return sum + meta.estimativa_maxima;
+                } else {
+                  return sum + meta.pontos_aplicaveis;
+                }
+              }, 0);
               const percentualSetor = pontosSetor > 0 ? (recebidosSetor / pontosSetor) * 100 : 0;
+              const percentualComEstimadosSetor = pontosSetor > 0 ? ((recebidosSetor + estimadosSetor) / pontosSetor) * 100 : 0;
+              const percentualMaximoSetor = pontosSetor > 0 ? (maximosSetor / pontosSetor) * 100 : 100;
 
               return (
                 <AccordionItem 
@@ -389,6 +427,31 @@ const MinhasMetasPage = () => {
                           <p className="text-xs text-gray-600 mt-1">
                             {Math.round(recebidosSetor)} / {pontosSetor} pts
                           </p>
+                        </div>
+                        <div className="w-32 hidden md:block">
+                          <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                            <div
+                              className="h-full bg-green-500 transition-all"
+                              style={{ width: `${Math.min(percentualSetor, 100)}%` }}
+                            />
+                            {estimadosSetor > 0 && (
+                              <div
+                                className="h-full bg-blue-400 transition-all"
+                                style={{ width: `${Math.min(percentualComEstimadosSetor - percentualSetor, 100 - percentualSetor)}%` }}
+                              />
+                            )}
+                            {/* Linha vermelha indicando limite máximo */}
+                            {percentualMaximoSetor < 100 && (
+                              <div
+                                className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-10"
+                                style={{ left: `${percentualMaximoSetor}%` }}
+                                title={`Máximo possível: ${percentualMaximoSetor.toFixed(1)}%`}
+                              >
+                                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                                <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -40,6 +40,7 @@ interface Meta {
   status?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
+  estimativa_maxima?: number;
   percentual_cumprimento?: number;
   observacoes?: string;
   acoes_planejadas?: string;
@@ -363,6 +364,60 @@ const TabelaCompletaPage = () => {
     }
   };
 
+  // Calcular progresso por eixo
+  const getProgressoPorEixo = () => {
+    const eixosMap = new Map<string, {
+      nome: string;
+      pontos: number;
+      recebidos: number;
+      maximos: number;
+      cor: string;
+    }>();
+
+    // IMPORTANTE: usar filteredMetas, não metas
+    filteredMetas.forEach(meta => {
+      const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+      if (!eixosMap.has(eixoLimpo)) {
+        let cor = 'blue';
+        if (eixoLimpo.toLowerCase().includes('governança')) cor = 'blue';
+        else if (eixoLimpo.toLowerCase().includes('produtividade')) cor = 'green';
+        else if (eixoLimpo.toLowerCase().includes('transparência')) cor = 'purple';
+        else if (eixoLimpo.toLowerCase().includes('dados') || eixoLimpo.toLowerCase().includes('tecnologia')) cor = 'orange';
+
+        eixosMap.set(eixoLimpo, {
+          nome: eixoLimpo,
+          pontos: 0,
+          recebidos: 0,
+          maximos: 0,
+          cor
+        });
+      }
+
+      const eixoData = eixosMap.get(eixoLimpo)!;
+      eixoData.pontos += meta.pontos_aplicaveis;
+
+      if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
+        eixoData.recebidos += meta.pontos_aplicaveis;
+        eixoData.maximos += meta.pontos_aplicaveis;
+      } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido' && meta.pontos_estimados) {
+        eixoData.recebidos += meta.pontos_estimados;
+        eixoData.maximos += meta.pontos_aplicaveis;
+      } else if (meta.estimativa_cumprimento === 'Em Andamento') {
+        if (meta.estimativa_maxima !== undefined) {
+          eixoData.maximos += meta.estimativa_maxima;
+        } else {
+          eixoData.maximos += meta.pontos_aplicaveis;
+        }
+      } else {
+        eixoData.maximos += meta.pontos_aplicaveis;
+      }
+    });
+
+    return Array.from(eixosMap.values());
+  };
+
+  const progressoPorEixo = getProgressoPorEixo();
+
   const formatAtividade = (atividade: { acao: string; responsavel: string; prazo: string; status: string }) => {
     const prazoFormatado = atividade.prazo 
       ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR })
@@ -496,6 +551,66 @@ const TabelaCompletaPage = () => {
       </nav>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Resumo por Eixo */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Progresso por Eixo Temático</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {progressoPorEixo.map((eixo) => {
+              const colors = {
+                blue: { bg: 'bg-blue-500', text: 'text-blue-700' },
+                green: { bg: 'bg-green-500', text: 'text-green-700' },
+                purple: { bg: 'bg-purple-500', text: 'text-purple-700' },
+                orange: { bg: 'bg-orange-500', text: 'text-orange-700' }
+              };
+              const color = colors[eixo.cor as keyof typeof colors] || colors.blue;
+              const barWidth = (eixo.recebidos / eixo.pontos) * 100;
+              const maxBarWidth = (eixo.maximos / eixo.pontos) * 100;
+              const hasLimit = eixo.maximos < eixo.pontos - 0.1; // Pequena margem para evitar problemas de arredondamento
+
+              return (
+                <div key={eixo.nome} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm text-gray-700">{eixo.nome}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold text-sm ${color.text}`}>
+                        {Math.round(eixo.recebidos)}/{eixo.pontos} pts
+                      </span>
+                      {hasLimit && (
+                        <span className="text-xs text-red-600 font-semibold">
+                          (máx: {Math.round(eixo.maximos)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="relative h-8 bg-gray-100 rounded-lg border border-gray-200" style={{ overflow: 'visible' }}>
+                    <div className="absolute inset-0 rounded-lg overflow-hidden">
+                      <div
+                        className={`h-full ${color.bg} transition-all duration-1000 ease-out flex items-center justify-end pr-2`}
+                        style={{ width: `${Math.min(barWidth, 100)}%` }}
+                      >
+                        <span className="text-xs font-bold text-white">
+                          {(eixo.recebidos / eixo.pontos * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    {/* Linha vermelha indicando limite máximo */}
+                    {hasLimit && (
+                      <div
+                        className="absolute top-0 bottom-0 w-1 bg-red-600 z-20"
+                        style={{ left: `${Math.min(maxBarWidth, 99)}%` }}
+                        title={`Máximo possível: ${maxBarWidth.toFixed(1)}%`}
+                      >
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-600 rounded-full shadow-lg"></div>
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-600 rounded-full shadow-lg"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Filtros */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">

@@ -56,6 +56,7 @@ interface Meta {
   update_id?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
+  estimativa_maxima?: number;
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
@@ -158,14 +159,24 @@ const VisaoAgregadaPage = () => {
       return sum;
     }, 0);
 
+    const pontosMaximos = metasSubset.reduce((sum, m) => {
+      if (m.estimativa_cumprimento === 'Em Andamento' && m.estimativa_maxima !== undefined) {
+        return sum + m.estimativa_maxima;
+      } else {
+        return sum + m.pontos_aplicaveis;
+      }
+    }, 0);
+
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
     
     return {
       recebidos: pontosRecebidos,
       estimados: pontosEstimados,
+      maximos: pontosMaximos,
       aplicaveis: pontosAplicaveis,
       percentual: pontosAplicaveis > 0 ? (pontosRecebidos / pontosAplicaveis) * 100 : 0,
       percentualComEstimados: pontosAplicaveis > 0 ? ((pontosRecebidos + pontosEstimados) / pontosAplicaveis) * 100 : 0,
+      percentualMaximo: pontosAplicaveis > 0 ? (pontosMaximos / pontosAplicaveis) * 100 : 100,
     };
   };
 
@@ -399,6 +410,17 @@ const VisaoAgregadaPage = () => {
                   style={{ width: `${Math.min(calculateProgress(metas).percentualComEstimados - calculateProgress(metas).percentual, 100 - calculateProgress(metas).percentual)}%` }}
                 />
               )}
+              {/* Linha vermelha indicando limite máximo */}
+              {calculateProgress(metas).percentualMaximo < 100 && (
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-red-600 z-10"
+                  style={{ left: `${calculateProgress(metas).percentualMaximo}%` }}
+                  title={`Máximo possível: ${calculateProgress(metas).percentualMaximo.toFixed(1)}%`}
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                </div>
+              )}
             </div>
             
             {/* Legenda */}
@@ -619,6 +641,17 @@ const VisaoAgregadaPage = () => {
                                   className="h-full bg-blue-400 transition-all"
                                   style={{ width: `${Math.min(progressoAgrupador.percentualComEstimados - progressoAgrupador.percentual, 100 - progressoAgrupador.percentual)}%` }}
                                 />
+                              )}
+                              {/* Linha vermelha indicando limite máximo */}
+                              {progressoAgrupador.percentualMaximo < 100 && (
+                                <div
+                                  className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-10"
+                                  style={{ left: `${progressoAgrupador.percentualMaximo}%` }}
+                                  title={`Máximo possível: ${progressoAgrupador.percentualMaximo.toFixed(1)}%`}
+                                >
+                                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                                </div>
                               )}
                             </div>
                           </div>
