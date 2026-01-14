@@ -34,7 +34,9 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { api } from "@/services/api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -392,10 +394,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       <Textarea
                         id="justificativa"
                         placeholder="Explique por que a meta foi cumprida parcialmente..."
-                        rows={3}
+                        rows={6}
                         value={justificativa}
                         onChange={(e) => setJustificativa(e.target.value)}
-                        className="bg-white"
+                        className="bg-white resize-none min-h-[150px]"
                       />
                     </div>
                   </div>
@@ -481,10 +483,12 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="space-y-1 md:col-span-2">
                               <Label className="text-xs">Ação</Label>
-                              <Input
+                              <Textarea
                                 placeholder="Descreva a ação..."
                                 value={atividade.acao}
                                 onChange={(e) => handleUpdateAtividade(atividade.id, 'acao', e.target.value)}
+                                rows={3}
+                                className="resize-none min-h-[80px]"
                               />
                             </div>
 
@@ -564,11 +568,38 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                             <div className="space-y-1">
                               <Label className="text-xs h-5 flex items-center">Prazo</Label>
-                              <Input
-                                type="date"
-                                value={atividade.prazo}
-                                onChange={(e) => handleUpdateAtividade(atividade.id, 'prazo', e.target.value)}
-                              />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !atividade.prazo && "text-muted-foreground"
+                                    )}
+                                    type="button"
+                                  >
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    {atividade.prazo ? (
+                                      format(parseISO(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
+                                    ) : (
+                                      <span>Selecione a data</span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={atividade.prazo ? parseISO(atividade.prazo) : undefined}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        handleUpdateAtividade(atividade.id, 'prazo', format(date, 'yyyy-MM-dd'));
+                                      }
+                                    }}
+                                    locale={ptBR}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
 
                             <div className="space-y-1 md:col-span-2">
@@ -666,9 +697,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     <Textarea
                       id="observacoes"
                       placeholder="Observações gerais..."
-                      rows={2}
+                      rows={5}
                       value={observacoes}
                       onChange={(e) => setObservacoes(e.target.value)}
+                      className="resize-none min-h-[120px]"
                     />
                   </div>
                 </div>
