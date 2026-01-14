@@ -635,4 +635,27 @@ export const api = {
 
     console.log('✅ [API] Todos os coordenadores autorizados foram deletados');
   },
+
+  // ==================== EDIÇÃO DE METAS BASE ====================
+  
+  async updateMeta(metaId: string, data: Partial<Database['public']['Tables']['metas_base']['Update']>) {
+    console.log('📝 [API] Atualizando meta:', metaId);
+    
+    try {
+      const { data: updatedMeta, error } = await supabase
+        .from('metas_base')
+        .update(data)
+        .eq('id', metaId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ [API] Meta atualizada com sucesso:', updatedMeta);
+      return updatedMeta;
+    } catch (error) {
+      console.error('❌ [API] Erro ao atualizar meta:', error);
+      throw error;
+    }
+  },
 };

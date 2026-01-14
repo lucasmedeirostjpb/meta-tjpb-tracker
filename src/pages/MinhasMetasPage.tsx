@@ -264,6 +264,11 @@ const MinhasMetasPage = () => {
               <div className="text-right">
                 <p className="text-2xl font-bold text-green-600">
                   {progress.percentual.toFixed(1)}%
+                  {progress.percentualMaximo < 100 && (
+                    <span className="text-sm text-red-600 font-semibold ml-2">
+                      (máx: {progress.percentualMaximo.toFixed(1)}%)
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm text-gray-600">
                   {Math.round(progress.recebidos)} pts efetivados
@@ -317,6 +322,11 @@ const MinhasMetasPage = () => {
                 {progress.estimados > 0 && (
                   <span className="text-blue-600 ml-1">
                     ({progress.percentualComEstimados.toFixed(1)}%)
+                  </span>
+                )}
+                {progress.percentualMaximo < 100 && (
+                  <span className="text-red-600 ml-1">
+                    | máx: {Math.round(progress.maximos)} pts
                   </span>
                 )}
               </span>
@@ -413,19 +423,42 @@ const MinhasMetasPage = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <Badge 
-                            variant="outline"
-                            className={`${
-                              percentualSetor >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
-                              percentualSetor >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                              percentualSetor > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                              'bg-gray-100 text-gray-800 border-gray-300'
-                            }`}
-                          >
-                            {percentualSetor.toFixed(1)}%
-                          </Badge>
+                          <div className="flex items-center gap-2 justify-end">
+                            <Badge 
+                              variant="outline"
+                              className={`${
+                                percentualSetor >= 100 ? 'bg-green-100 text-green-800 border-green-300' :
+                                percentualSetor >= 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                percentualSetor > 0 ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                                'bg-gray-100 text-gray-800 border-gray-300'
+                              }`}
+                            >
+                              {Math.round(recebidosSetor)}/{pontosSetor} pts ({percentualSetor.toFixed(1)}%)
+                            </Badge>
+                            {estimadosSetor > 0 && (
+                              <Badge 
+                                variant="outline"
+                                className="bg-blue-50 text-blue-600 border-blue-300 text-xs"
+                              >
+                                est: {Math.round(estimadosSetor)} pts ({((estimadosSetor/pontosSetor)*100).toFixed(1)}%)
+                              </Badge>
+                            )}
+                            {percentualMaximoSetor < 100 && (
+                              <Badge 
+                                variant="outline"
+                                className="bg-red-50 text-red-600 border-red-300 text-xs"
+                              >
+                                máx: {Math.round(maximosSetor)} pts ({percentualMaximoSetor.toFixed(1)}%)
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-600 mt-1">
                             {Math.round(recebidosSetor)} / {pontosSetor} pts
+                            {percentualMaximoSetor < 100 && (
+                              <span className="text-red-600 ml-1">
+                                (máx: {Math.round(maximosSetor)})
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div className="w-32 hidden md:block">

@@ -14,6 +14,7 @@ import TabelaCompletaPage from "./pages/TabelaCompletaPage";
 import MinhasMetasPage from "./pages/MinhasMetasPage";
 import HistoricoPage from "./pages/HistoricoPage";
 import GerenciamentoAtividadesPage from "./pages/GerenciamentoAtividadesPage";
+import EditarRequisitoPage from "./pages/EditarRequisitoPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -36,6 +37,9 @@ const App = () => (
             <Route path="/tabela" element={<TabelaCompletaPage />} />
             <Route path="/historico" element={<HistoricoPage />} />
             <Route path="/atividades" element={<GerenciamentoAtividadesPage />} />
+            
+            {/* Rota Secreta - Administração */}
+            <Route path="/editar-requisito" element={<EditarRequisitoPage />} />
             
             {/* Rotas Protegidas */}
             <Route 

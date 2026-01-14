@@ -91,6 +91,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [dificuldade, setDificuldade] = useState<Dificuldade>('Sem dificuldades');
   const [saving, setSaving] = useState(false);
   const [openResponsavelPopovers, setOpenResponsavelPopovers] = useState<Record<string, boolean>>({});
+  
+  // Estado para gerenciar links de evidência como array
+  const [linksEvidencia, setLinksEvidencia] = useState<string[]>([]);
 
   // Gerar ID único para novas atividades
   const generateId = () => `atividade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -115,6 +118,13 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setAcoes(meta.acoes_planejadas || '');
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
+      
+      // Parsear links separados por ponto e vírgula
+      const linksArray = meta.link_evidencia 
+        ? meta.link_evidencia.split(';').map(link => link.trim()).filter(link => link.length > 0)
+        : [];
+      setLinksEvidencia(linksArray.length > 0 ? linksArray : ['']);
+      
       setObservacoes(meta.observacoes || '');
       setAtividades(meta.atividades || []);
       setDificuldade(meta.dificuldade || 'Sem dificuldades');
@@ -142,6 +152,22 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     setAtividades(atividades.map(a => 
       a.id === id ? { ...a, [field]: value } : a
     ));
+  };
+
+  // Funções para gerenciar links de evidência
+  const handleAddLink = () => {
+    setLinksEvidencia([...linksEvidencia, '']);
+  };
+
+  const handleRemoveLink = (index: number) => {
+    const novosLinks = linksEvidencia.filter((_, i) => i !== index);
+    setLinksEvidencia(novosLinks.length > 0 ? novosLinks : ['']);
+  };
+
+  const handleUpdateLink = (index: number, value: string) => {
+    const novosLinks = [...linksEvidencia];
+    novosLinks[index] = value;
+    setLinksEvidencia(novosLinks);
   };
 
   const toggleResponsavelPopover = (atividadeId: string, isOpen: boolean) => {
@@ -181,6 +207,12 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         percentualCalculado = 100;
       }
 
+      // Juntar links com ponto e vírgula, removendo vazios
+      const linkEvidenciaFinal = linksEvidencia
+        .map(link => link.trim())
+        .filter(link => link.length > 0)
+        .join('; ');
+
       const updateData = {
         meta_id: meta.id,
         setor_executor: meta.setor_executor,
@@ -190,7 +222,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         estimativa_maxima: estimativa === 'Em Andamento' ? estimativaMaxima : null,
         acoes_planejadas: acoes,
         justificativa_parcial: justificativa,
-        link_evidencia: linkEvidencia,
+        link_evidencia: linkEvidenciaFinal,
         observacoes,
         atividades: atividades,
         dificuldade: dificuldade,
@@ -216,7 +248,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       meta.dificuldade = dificuldade;
       meta.acoes_planejadas = acoes;
       meta.justificativa_parcial = justificativa;
-      meta.link_evidencia = linkEvidencia;
+      meta.link_evidencia = linkEvidenciaFinal;
       meta.observacoes = observacoes;
       
       onUpdate?.();
@@ -808,15 +840,46 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="link" className="text-sm">Link de Evidência</Label>
-                    <Input
-                      id="link"
-                      type="url"
-                      placeholder="https://..."
-                      value={linkEvidencia}
-                      onChange={(e) => setLinkEvidencia(e.target.value)}
-                    />
+                  {/* Seção de Links de Evidência */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Links de Evidência</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddLink}
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar Link
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {linksEvidencia.map((link, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            type="url"
+                            placeholder={`https://exemplo.com/evidencia${index + 1}`}
+                            value={link}
+                            onChange={(e) => handleUpdateLink(index, e.target.value)}
+                            className="flex-1"
+                          />
+                          {linksEvidencia.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveLink(index)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -856,31 +919,103 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
             )}
 
             {/* Pontos Recebidos */}
-            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {estimativa === 'Em Andamento' ? 'Pontos Estimados' : 'Pontos Recebidos'}
-                </p>
-                <p className="text-2xl font-bold text-blue-600">{pontosRecebidos}</p>
-              </div>
-              <div className="text-right">
-                {estimativa === 'Em Andamento' ? (
-                  <>
-                    <p className="text-xs text-muted-foreground">máximo {meta.pontos_aplicaveis}</p>
-                    <p className="text-lg font-semibold">Estimativa</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground">de {meta.pontos_aplicaveis}</p>
-                    <p className="text-lg font-semibold">{percentualCalculado.toFixed(1)}%</p>
-                  </>
+            {estimativa === 'Em Andamento' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Estimativa Mínima</p>
+                    <div className="bg-blue-200 rounded-full px-2 py-0.5">
+                      <p className="text-xs font-semibold text-blue-900">Bem Encaminhados</p>
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-900">{pontosRecebidos} <span className="text-lg">pts</span></p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {((pontosRecebidos / meta.pontos_aplicaveis) * 100).toFixed(1)}% dos {meta.pontos_aplicaveis} pontos
+                  </p>
+                </div>
+                
+                {meta.estimativa_maxima !== null && meta.estimativa_maxima !== undefined && meta.estimativa_maxima > 0 && (
+                  <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium text-orange-700 uppercase tracking-wide">Estimativa Máxima</p>
+                      <div className="bg-orange-200 rounded-full px-2 py-0.5">
+                        <p className="text-xs font-semibold text-orange-900">Máximo Possível</p>
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold text-orange-900">{meta.estimativa_maxima} <span className="text-lg">pts</span></p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      {((meta.estimativa_maxima / meta.pontos_aplicaveis) * 100).toFixed(1)}% dos {meta.pontos_aplicaveis} pontos
+                    </p>
+                    {meta.estimativa_maxima < meta.pontos_aplicaveis && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-red-700 font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        {(meta.pontos_aplicaveis - meta.estimativa_maxima).toFixed(1)} pts comprometidos
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {estimativa === 'Parcialmente Cumprido' ? 'Pontos Recebidos' : 'Pontos'}
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600">{pontosRecebidos}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">de {meta.pontos_aplicaveis}</p>
+                  <p className="text-lg font-semibold">{percentualCalculado.toFixed(1)}%</p>
+                </div>
+              </div>
+            )}
 
             {/* Exibir campos preenchidos em modo leitura */}
             {!isEditable && (
               <>
+                {/* Informações Completas da Meta */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Informações da Meta</Label>
+                  <div className="bg-muted rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Eixo Temático</p>
+                        <p className="text-sm font-medium">{meta.eixo}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Item</p>
+                        <p className="text-sm font-medium">{meta.item}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Artigo</p>
+                        <p className="text-sm font-medium">{meta.artigo}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Setor Executor</p>
+                        <p className="text-sm font-medium">{meta.setor_executor}</p>
+                      </div>
+                      {meta.coordenador && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Coordenador</p>
+                          <p className="text-sm font-medium">{meta.coordenador}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prazo (Deadline)</p>
+                        <p className="text-sm font-medium">
+                          {format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    {meta.descricao && (
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1">Descrição</p>
+                        <p className="text-sm">{meta.descricao}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {justificativa && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">Justificativa do Cumprimento Parcial</Label>
@@ -967,11 +1102,29 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                 {linkEvidencia && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Link de Evidência</Label>
-                    <div className="bg-muted rounded-lg p-3">
-                      <a href={linkEvidencia} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
-                        {linkEvidencia}
-                      </a>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      {linksEvidencia.length > 1 ? 'Links de Evidência' : 'Link de Evidência'}
+                    </Label>
+                    <div className="space-y-2">
+                      {linksEvidencia.map((link, index) => (
+                        <div key={index} className="bg-muted rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            {linksEvidencia.length > 1 && (
+                              <span className="text-xs font-medium text-muted-foreground mt-1">
+                                {index + 1}.
+                              </span>
+                            )}
+                            <a 
+                              href={link} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:underline break-all flex-1"
+                            >
+                              {link}
+                            </a>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

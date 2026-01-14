@@ -76,6 +76,8 @@ const VisaoAgregadaPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filtrosDificuldade, setFiltrosDificuldade] = useState<Dificuldade[]>([]);
+  const [filtroEixo, setFiltroEixo] = useState<string>('todos');
+  const [eixos, setEixos] = useState<string[]>([]);
 
   useEffect(() => {
     loadMetas();
@@ -85,15 +87,23 @@ const VisaoAgregadaPage = () => {
     console.log('🔄 [VISAO AGREGADA] Iniciando carregamento de todas as metas');
     setLoading(true);
     try {
+      let data: Meta[] = [];
       if (isMockMode) {
         console.log('🎭 [VISAO AGREGADA] Usando modo MOCK');
-        const data = getMetasWithUpdates();
-        setMetas(data);
+        data = getMetasWithUpdates();
       } else {
         console.log('🌐 [VISAO AGREGADA] Usando Supabase REAL');
-        const data = await api.getMetas();
-        setMetas(data);
+        data = await api.getMetas();
       }
+      setMetas(data);
+      
+      // Extrair eixos únicos
+      const eixosUnicos = new Set<string>();
+      data.forEach(meta => {
+        const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+        eixosUnicos.add(eixoLimpo);
+      });
+      setEixos(Array.from(eixosUnicos).sort());
     } catch (error: any) {
       console.error('❌ [VISAO AGREGADA] Erro ao carregar metas:', error);
       toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
@@ -106,10 +116,18 @@ const VisaoAgregadaPage = () => {
   const groupByAgrupador = () => {
     const grupos: Record<string, Meta[]> = {};
 
-    // Aplicar filtro de dificuldade
-    const metasFiltradas = filtrosDificuldade.length === 0
+    // Aplicar filtros de dificuldade e eixo
+    let metasFiltradas = filtrosDificuldade.length === 0
       ? metas
       : metas.filter(meta => meta.dificuldade && filtrosDificuldade.includes(meta.dificuldade));
+
+    // Aplicar filtro de eixo
+    if (filtroEixo !== 'todos') {
+      metasFiltradas = metasFiltradas.filter(meta => {
+        const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+        return eixoLimpo === filtroEixo;
+      });
+    }
 
     metasFiltradas.forEach(meta => {
       const agrupador = tipoConsolidacao === 'coordenador' 
@@ -576,6 +594,41 @@ const VisaoAgregadaPage = () => {
                     className="h-6 text-xs"
                   >
                     Limpar filtros
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Filtro de Eixo */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-start gap-3">
+            <Filter className="h-5 w-5 text-gray-600 mt-1" />
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 block mb-3">Filtrar por Eixo Temático:</label>
+              <Select value={filtroEixo} onValueChange={setFiltroEixo}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Todos os Eixos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os Eixos</SelectItem>
+                  {eixos.map((eixo) => (
+                    <SelectItem key={eixo} value={eixo}>
+                      {eixo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {filtroEixo !== 'todos' && (
+                <div className="mt-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFiltroEixo('todos')}
+                    className="h-6 text-xs"
+                  >
+                    Limpar filtro de eixo
                   </Button>
                 </div>
               )}

@@ -57,9 +57,11 @@ const GerenciamentoAtividadesPage = () => {
   const [filtroSetor, setFiltroSetor] = useState<string>('todos');
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>('todos');
   const [filtroCoordenador, setFiltroCoordenador] = useState<string>('todos');
+  const [filtroEixo, setFiltroEixo] = useState<string>('todos');
   const [setores, setSetores] = useState<string[]>([]);
   const [responsaveis, setResponsaveis] = useState<string[]>([]);
   const [coordenadores, setCoordenadores] = useState<string[]>([]);
+  const [eixos, setEixos] = useState<string[]>([]);
   const [openSetor, setOpenSetor] = useState(false);
   const [openResponsavel, setOpenResponsavel] = useState(false);
   const [openCoordenador, setOpenCoordenador] = useState(false);
@@ -70,7 +72,7 @@ const GerenciamentoAtividadesPage = () => {
 
   useEffect(() => {
     aplicarFiltros();
-  }, [atividades, filtroStatus, filtroSetor, filtroResponsavel, filtroCoordenador]);
+  }, [atividades, filtroStatus, filtroSetor, filtroResponsavel, filtroCoordenador, filtroEixo]);
 
   const fetchAtividades = async () => {
     try {
@@ -82,8 +84,11 @@ const GerenciamentoAtividadesPage = () => {
       const setoresUnicos = new Set<string>();
       const responsaveisUnicos = new Set<string>();
       const coordenadoresUnicos = new Set<string>();
+      const eixosUnicos = new Set<string>();
 
       metas.forEach((meta: Meta) => {
+        const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+        eixosUnicos.add(eixoLimpo);
         if (meta.atividades && meta.atividades.length > 0) {
           meta.atividades.forEach((atividade) => {
             todasAtividades.push({
@@ -109,6 +114,7 @@ const GerenciamentoAtividadesPage = () => {
       setSetores(Array.from(setoresUnicos).sort());
       setResponsaveis(Array.from(responsaveisUnicos).sort());
       setCoordenadores(Array.from(coordenadoresUnicos).sort());
+      setEixos(Array.from(eixosUnicos).sort());
     } catch (error) {
       console.error('Erro ao carregar atividades:', error);
     } finally {
@@ -137,6 +143,14 @@ const GerenciamentoAtividadesPage = () => {
     // Filtro por coordenador
     if (filtroCoordenador !== 'todos') {
       resultado = resultado.filter(a => a.meta_coordenador === filtroCoordenador);
+    }
+
+    // Filtro por eixo
+    if (filtroEixo !== 'todos') {
+      resultado = resultado.filter(a => {
+        const eixoLimpo = a.meta_eixo.replace(/^\d+\.\s*/, '');
+        return eixoLimpo === filtroEixo;
+      });
     }
 
     setFilteredAtividades(resultado);
@@ -261,7 +275,7 @@ const GerenciamentoAtividadesPage = () => {
             <Filter className="h-5 w-5 text-gray-600" />
             <h2 className="font-semibold text-gray-900">Filtros</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Status</label>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -273,6 +287,23 @@ const GerenciamentoAtividadesPage = () => {
                   <SelectItem value="Não iniciada">Não iniciadas</SelectItem>
                   <SelectItem value="Em andamento">Em andamento</SelectItem>
                   <SelectItem value="Concluída">Concluídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Eixo Temático</label>
+              <Select value={filtroEixo} onValueChange={setFiltroEixo}>
+                <SelectTrigger className="font-semibold">
+                  <SelectValue placeholder="Todos os Eixos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os Eixos</SelectItem>
+                  {eixos.map((eixo) => (
+                    <SelectItem key={eixo} value={eixo}>
+                      {eixo}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

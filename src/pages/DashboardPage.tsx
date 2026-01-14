@@ -29,6 +29,7 @@ interface Meta {
   update_id?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
+  estimativa_maxima?: number;
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
@@ -102,13 +103,24 @@ const DashboardPage = () => {
       return sum;
     }, 0);
 
+    // Pontos máximos possíveis (para TODAS as metas)
+    const pontosMaximos = metas.reduce((sum, meta) => {
+      if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined && meta.estimativa_maxima !== null) {
+        return sum + meta.estimativa_maxima;
+      } else {
+        return sum + meta.pontos_aplicaveis;
+      }
+    }, 0);
+
     return {
       total: totalPontos,
       recebidos: pontosRecebidos,
       estimados: pontosEstimados,
+      maximos: pontosMaximos,
       totalComEstimados: pontosRecebidos + pontosEstimados,
       percentual: totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0,
       percentualComEstimados: totalPontos > 0 ? ((pontosRecebidos + pontosEstimados) / totalPontos) * 100 : 0,
+      percentualMaximo: totalPontos > 0 ? (pontosMaximos / totalPontos) * 100 : 0,
     };
   };
 
@@ -139,11 +151,33 @@ const DashboardPage = () => {
 
   const calculateSetorProgress = (setorMetas: Meta[]) => {
     const totalPontos = setorMetas.reduce((sum, meta) => sum + meta.pontos_aplicaveis, 0);
+    
+    // Pontos recebidos
     const pontosRecebidos = setorMetas.reduce((sum, meta) => {
-      const percentual = meta.percentual_cumprimento || 0;
-      return sum + (meta.pontos_aplicaveis * percentual / 100);
+      if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
+        return sum + meta.pontos_aplicaveis;
+      } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido' && meta.pontos_estimados) {
+        return sum + meta.pontos_estimados;
+      }
+      return sum;
     }, 0);
-    return totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0;
+    
+    // Pontos máximos possíveis
+    const pontosMaximos = setorMetas.reduce((sum, meta) => {
+      if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined && meta.estimativa_maxima !== null) {
+        return sum + meta.estimativa_maxima;
+      } else {
+        return sum + meta.pontos_aplicaveis;
+      }
+    }, 0);
+    
+    return {
+      percentual: totalPontos > 0 ? (pontosRecebidos / totalPontos) * 100 : 0,
+      percentualMaximo: totalPontos > 0 ? (pontosMaximos / totalPontos) * 100 : 0,
+      recebidos: pontosRecebidos,
+      maximos: pontosMaximos,
+      total: totalPontos,
+    };
   };
 
   const handleMetaClick = (meta: Meta) => {
@@ -228,6 +262,7 @@ const DashboardPage = () => {
           <span className="font-medium text-foreground">{nome}</span>
         </div>
 
+        {/* Performance Geral */}
         <div className="bg-card rounded-xl p-6 shadow-sm border">
           <div className="flex items-center gap-3 mb-4">
             <Award className="h-6 w-6 text-primary" />
@@ -244,6 +279,11 @@ const DashboardPage = () => {
               <div className="text-right">
                 <p className="text-2xl font-bold text-green-600">
                   {progress.percentual.toFixed(1)}%
+                  {progress.percentualMaximo < 100 && (
+                    <span className="text-sm text-red-600 font-semibold ml-2">
+                      (máx: {progress.percentualMaximo.toFixed(1)}%)
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm text-gray-600">
                   {Math.round(progress.recebidos)} pts efetivados
@@ -251,19 +291,30 @@ const DashboardPage = () => {
               </div>
             </div>
             
-            {/* Barra de progresso composta */}
-            <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden flex">
+            {/* Barra de progresso */}
+            <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
               {/* Parte verde - pontos efetivados */}
               <div
-                className="h-full bg-green-500 transition-all duration-500"
+                className="h-full bg-green-500 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(progress.percentual, 100)}%` }}
               />
-              {/* Parte azul - pontos estimados (lado a lado) */}
+              {/* Parte azul - pontos estimados (sobreposta) */}
               {progress.estimados > 0 && (
                 <div
-                  className="h-full bg-blue-400 transition-all duration-500"
-                  style={{ width: `${Math.min(progress.percentualComEstimados - progress.percentual, 100 - progress.percentual)}%` }}
+                  className="absolute top-0 left-0 h-full bg-blue-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(progress.percentualComEstimados, 100)}%` }}
                 />
+              )}
+              {/* Linha vermelha indicando limite máximo */}
+              {progress.percentualMaximo < 100 && (
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-red-600 z-10"
+                  style={{ left: `${Math.min(progress.percentualMaximo, 99)}%` }}
+                  title={`Máximo possível: ${progress.percentualMaximo.toFixed(1)}%`}
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
+                </div>
               )}
             </div>
             
@@ -282,10 +333,15 @@ const DashboardPage = () => {
                 )}
               </div>
               <span className="font-semibold">
-                Total: {Math.round(progress.totalComEstimados)} / {progress.total} pts
+                {Math.round(progress.recebidos)} / {progress.total} pts
                 {progress.estimados > 0 && (
                   <span className="text-blue-600 ml-1">
-                    ({progress.percentualComEstimados.toFixed(1)}%)
+                    (com estimados: {Math.round(progress.totalComEstimados)})
+                  </span>
+                )}
+                {progress.percentualMaximo < 100 && (
+                  <span className="text-red-600 ml-1">
+                    | máx: {Math.round(progress.maximos)}
                   </span>
                 )}
               </span>
@@ -299,23 +355,53 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(gruposSetor).map(([setor, setorMetas]) => {
                 const setorProgress = calculateSetorProgress(setorMetas);
+                const hasLimit = setorProgress.percentualMaximo < 100;
+                
                 return (
                   <div key={setor} className="bg-card rounded-xl p-5 shadow-sm border hover:shadow-md transition-shadow">
                     <div className="space-y-3">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-lg line-clamp-2">{setor}</h3>
                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2">
-                          {setorProgress.toFixed(0)}%
+                          {setorProgress.percentual.toFixed(0)}%
+                          {hasLimit && (
+                            <span className="text-red-600 ml-1">
+                              (máx: {setorProgress.percentualMaximo.toFixed(0)}%)
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <Progress value={setorProgress} className="h-2" />
+                      
+                      {/* Barra de progresso com linha vermelha */}
+                      <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(setorProgress.percentual, 100)}%` }}
+                        />
+                        {/* Linha vermelha indicando limite máximo */}
+                        {hasLimit && setorProgress.percentualMaximo < 100 && (
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-10"
+                            style={{ left: `${Math.min(setorProgress.percentualMaximo, 99)}%` }}
+                            title={`Máximo possível: ${setorProgress.percentualMaximo.toFixed(1)}%`}
+                          >
+                            <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                            <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
                           {setorMetas.length} metas
                         </span>
                         <span>
-                          {Math.round(setorMetas.reduce((sum, m) => sum + ((m.percentual_cumprimento || 0) * m.pontos_aplicaveis / 100), 0))}/
-                          {setorMetas.reduce((sum, m) => sum + m.pontos_aplicaveis, 0)} pts
+                          {Math.round(setorProgress.recebidos)}/{setorProgress.total} pts
+                          {hasLimit && (
+                            <span className="text-red-600 ml-1">
+                              (máx: {Math.round(setorProgress.maximos)})
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
