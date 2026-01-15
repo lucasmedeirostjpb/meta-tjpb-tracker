@@ -91,9 +91,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [dificuldade, setDificuldade] = useState<Dificuldade>('Sem dificuldades');
   const [saving, setSaving] = useState(false);
   const [openResponsavelPopovers, setOpenResponsavelPopovers] = useState<Record<string, boolean>>({});
-  
-  // Estado para gerenciar links de evidência como array
-  const [linksEvidencia, setLinksEvidencia] = useState<string[]>([]);
 
   // Gerar ID único para novas atividades
   const generateId = () => `atividade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -118,13 +115,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       setAcoes(meta.acoes_planejadas || '');
       setJustificativa(meta.justificativa_parcial || '');
       setLinkEvidencia(meta.link_evidencia || '');
-      
-      // Parsear links separados por ponto e vírgula
-      const linksArray = meta.link_evidencia 
-        ? meta.link_evidencia.split(';').map(link => link.trim()).filter(link => link.length > 0)
-        : [];
-      setLinksEvidencia(linksArray.length > 0 ? linksArray : ['']);
-      
       setObservacoes(meta.observacoes || '');
       setAtividades(meta.atividades || []);
       setDificuldade(meta.dificuldade || 'Sem dificuldades');
@@ -153,22 +143,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
     setAtividades(atividades.map(a => 
       a.id === id ? { ...a, [field]: value } : a
     ));
-  };
-
-  // Funções para gerenciar links de evidência
-  const handleAddLink = () => {
-    setLinksEvidencia([...linksEvidencia, '']);
-  };
-
-  const handleRemoveLink = (index: number) => {
-    const novosLinks = linksEvidencia.filter((_, i) => i !== index);
-    setLinksEvidencia(novosLinks.length > 0 ? novosLinks : ['']);
-  };
-
-  const handleUpdateLink = (index: number, value: string) => {
-    const novosLinks = [...linksEvidencia];
-    novosLinks[index] = value;
-    setLinksEvidencia(novosLinks);
   };
 
   const toggleResponsavelPopover = (atividadeId: string, isOpen: boolean) => {
@@ -208,12 +182,6 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         percentualCalculado = 100;
       }
 
-      // Juntar links com ponto e vírgula, removendo vazios
-      const linkEvidenciaFinal = linksEvidencia
-        .map(link => link.trim())
-        .filter(link => link.length > 0)
-        .join('; ');
-
       const updateData = {
         meta_id: meta.id,
         setor_executor: meta.setor_executor,
@@ -223,7 +191,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         estimativa_maxima: estimativa === 'Em Andamento' ? estimativaMaxima : null,
         acoes_planejadas: acoes,
         justificativa_parcial: justificativa,
-        link_evidencia: linkEvidenciaFinal,
+        link_evidencia: linkEvidencia,
         observacoes,
         atividades: atividades,
         dificuldade: dificuldade,
@@ -249,7 +217,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       meta.dificuldade = dificuldade;
       meta.acoes_planejadas = acoes;
       meta.justificativa_parcial = justificativa;
-      meta.link_evidencia = linkEvidenciaFinal;
+      meta.link_evidencia = linkEvidencia;
       meta.observacoes = observacoes;
       
       onUpdate?.();
@@ -652,21 +620,19 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                               />
                             </div>
 
-                            <div className="space-y-1 md:col-span-2">
-                              <Label className="text-xs font-medium">
-                                Andamento da Atividade
-                              </Label>
-                              <Textarea
-                                placeholder="Descreva as ações realizadas, progresso atual, próximos passos..."
-                                value={atividade.andamento || ''}
-                                onChange={(e) => handleUpdateAtividade(atividade.id, 'andamento', e.target.value)}
-                                rows={4}
-                                className="resize-none min-h-[100px]"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                📝 Detalhe aqui o que já foi realizado e o status atual da atividade
-                              </p>
-                            </div>
+                            {atividade.andamento && (
+                              <div className="space-y-1 md:col-span-2">
+                                <Label className="text-xs font-medium">
+                                  Andamento da Atividade (Somente Leitura)
+                                </Label>
+                                <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+                                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{atividade.andamento}</p>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  ℹ️ Para editar o andamento, acesse a aba "Atividades"
+                                </p>
+                              </div>
+                            )}
 
                             <div className="space-y-1">
                               <div className="flex items-center gap-1 h-5">
@@ -857,47 +823,20 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     </Select>
                   </div>
 
-                  {/* Seção de Links de Evidência */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Links de Evidência</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAddLink}
-                        className="gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Adicionar Link
-                      </Button>
-                    </div>
-
+                  {/* Seção de Evidências - Apenas para Totalmente/Parcialmente/Não Cumprido */}
+                  {(estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') && (
                     <div className="space-y-2">
-                      {linksEvidencia.map((link, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            type="url"
-                            placeholder={`https://exemplo.com/evidencia${index + 1}`}
-                            value={link}
-                            onChange={(e) => handleUpdateLink(index, e.target.value)}
-                            className="flex-1"
-                          />
-                          {linksEvidencia.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveLink(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                      <Label htmlFor="evidencias" className="text-sm font-medium">Evidências para Auditoria</Label>
+                      <Textarea
+                        id="evidencias"
+                        placeholder="Indique o link onde consta a evidência, o número do SEI ou a informação que indique a conclusão do requisito. Utilize google drive para links de documentos. Lembre de gerenciar as permissões do arquivo corretamente."
+                        rows={6}
+                        value={linkEvidencia}
+                        onChange={(e) => setLinkEvidencia(e.target.value)}
+                        className="resize-none min-h-[150px]"
+                      />
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="observacoes" className="text-sm">Observações</Label>
@@ -1128,28 +1067,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                 {linkEvidencia && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">
-                      {linksEvidencia.length > 1 ? 'Links de Evidência' : 'Link de Evidência'}
+                      Evidências para Auditoria
                     </Label>
-                    <div className="space-y-2">
-                      {linksEvidencia.map((link, index) => (
-                        <div key={index} className="bg-muted rounded-lg p-3">
-                          <div className="flex items-start gap-2">
-                            {linksEvidencia.length > 1 && (
-                              <span className="text-xs font-medium text-muted-foreground mt-1">
-                                {index + 1}.
-                              </span>
-                            )}
-                            <a 
-                              href={link} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-blue-600 hover:underline break-all flex-1"
-                            >
-                              {link}
-                            </a>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="bg-muted rounded-lg p-3">
+                      <p className="text-sm whitespace-pre-wrap">{linkEvidencia}</p>
                     </div>
                   </div>
                 )}

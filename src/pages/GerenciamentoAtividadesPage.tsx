@@ -25,10 +25,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X } from 'lucide-react';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 interface Meta {
   id: string;
@@ -65,6 +67,9 @@ const GerenciamentoAtividadesPage = () => {
   const [openSetor, setOpenSetor] = useState(false);
   const [openResponsavel, setOpenResponsavel] = useState(false);
   const [openCoordenador, setOpenCoordenador] = useState(false);
+  const [editandoAndamento, setEditandoAndamento] = useState<string | null>(null);
+  const [andamentoTemp, setAndamentoTemp] = useState<string>('');
+  const [salvandoAndamento, setSalvandoAndamento] = useState(false);
 
   useEffect(() => {
     fetchAtividades();
@@ -189,6 +194,59 @@ const GerenciamentoAtividadesPage = () => {
   };
 
   const stats = contarPorStatus();
+
+  const iniciarEdicaoAndamento = (atividadeId: string, andamentoAtual: string) => {
+    setEditandoAndamento(atividadeId);
+    setAndamentoTemp(andamentoAtual || '');
+  };
+
+  const cancelarEdicaoAndamento = () => {
+    setEditandoAndamento(null);
+    setAndamentoTemp('');
+  };
+
+  const salvarAndamento = async (atividadeId: string, metaId: string) => {
+    try {
+      setSalvandoAndamento(true);
+      
+      // Buscar a meta completa
+      const metas = await api.getMetas();
+      const meta = metas.find((m: Meta) => m.id === metaId);
+      
+      if (!meta) {
+        toast.error('Meta não encontrada');
+        return;
+      }
+
+      // Atualizar o andamento da atividade específica
+      const atividadesAtualizadas = meta.atividades?.map(a => 
+        a.id === atividadeId ? { ...a, andamento: andamentoTemp } : a
+      ) || [];
+
+      // Salvar update com as atividades atualizadas
+      await api.createUpdate({
+        meta_id: metaId,
+        setor_executor: meta.setor_executor,
+        atividades: atividadesAtualizadas,
+      });
+
+      // Atualizar estado local
+      setAtividades(prevAtividades =>
+        prevAtividades.map(a =>
+          a.id === atividadeId ? { ...a, andamento: andamentoTemp } : a
+        )
+      );
+
+      toast.success('Andamento atualizado com sucesso!');
+      setEditandoAndamento(null);
+      setAndamentoTemp('');
+    } catch (error) {
+      console.error('Erro ao salvar andamento:', error);
+      toast.error('Erro ao salvar andamento');
+    } finally {
+      setSalvandoAndamento(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -510,15 +568,58 @@ const GerenciamentoAtividadesPage = () => {
                         <h3 className="font-semibold text-gray-900 text-lg">{atividade.acao}</h3>
                       </div>
 
-                        {/* Andamento da Atividade */}
-                        {atividade.andamento && (
-                          <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-blue-900 mb-1 flex items-center gap-1">
-                              <span>📋</span> Andamento:
-                            </p>
-                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{atividade.andamento}</p>
-                          </div>
+                      {/* Andamento da Atividade */}
+                      <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-blue-900 flex items-center gap-1">
+                            <span>📋</span> Andamento:
+                          </p>
+                          {editandoAndamento === atividade.id ? (
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => salvarAndamento(atividade.id, atividade.meta_id)}
+                                disabled={salvandoAndamento}
+                                className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <Save className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={cancelarEdicaoAndamento}
+                                disabled={salvandoAndamento}
+                                className="h-7 px-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => iniciarEdicaoAndamento(atividade.id, atividade.andamento || '')}
+                              className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                        {editandoAndamento === atividade.id ? (
+                          <Textarea
+                            value={andamentoTemp}
+                            onChange={(e) => setAndamentoTemp(e.target.value)}
+                            placeholder="Descreva as ações realizadas, progresso atual, próximos passos..."
+                            rows={4}
+                            className="resize-none min-h-[100px] bg-white"
+                          />
+                        ) : (
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {atividade.andamento || 'Nenhum andamento registrado. Clique no ícone de edição para adicionar.'}
+                          </p>
                         )}
+                      </div>
 
                         {/* Requisito relacionado */}
                         <div className="flex items-center gap-2 text-sm text-gray-600">
