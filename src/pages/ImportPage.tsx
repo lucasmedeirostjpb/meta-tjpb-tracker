@@ -234,13 +234,14 @@ const ImportPage = () => {
     }
 
     try {
-      // Formato: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status"
+      // Formato: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status | Andamento: descrição"
       const parts = atividadeTexto.split('|').map(p => p.trim());
       
       const acao = parts[0] || '';
       const responsavel = parts[1]?.replace('Resp:', '').trim() || '';
       const prazoStr = parts[2]?.replace('Prazo:', '').trim() || '';
       const status = parts[3]?.replace('Status:', '').trim() || 'Não iniciada';
+      const andamento = parts[4]?.replace('Andamento:', '').trim() || '';
 
       // Converter prazo de dd/MM/yyyy para yyyy-MM-dd
       let prazo = '';
@@ -256,7 +257,8 @@ const ImportPage = () => {
         acao,
         responsavel,
         prazo,
-        status: status as any
+        status: status as any,
+        andamento
       };
     } catch (error) {
       console.warn(`⚠️ Erro ao parsear atividade ${index + 1}:`, error);
@@ -914,7 +916,7 @@ const ImportPage = () => {
                               ))}
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
-                              💡 Formato esperado: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status"
+                              💡 Formato esperado: "Ação | Resp: Responsável | Prazo: dd/MM/yyyy | Status: status | Andamento: descrição"
                             </p>
                           </div>
                         </div>

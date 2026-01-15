@@ -15,6 +15,7 @@ export interface Atividade {
   responsavel: string;
   prazo: string;
   status: AtividadeStatus;
+  andamento?: string;
 }
 
 export interface Database {

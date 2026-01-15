@@ -504,16 +504,21 @@ const GerenciamentoAtividadesPage = () => {
                 
                 return (
                   <Card key={`${atividade.meta_id}-${atividade.id}`} className="p-4 bg-white hover:shadow-md transition-shadow">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-                        {index + 1}
+                    <div className="space-y-3">
+                      {/* Ação */}
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-lg">{atividade.acao}</h3>
                       </div>
-                      
-                      <div className="flex-1 space-y-3">
-                        {/* Ação */}
-                        <div>
-                          <h3 className="font-semibold text-gray-900 text-lg">{atividade.acao}</h3>
-                        </div>
+
+                        {/* Andamento da Atividade */}
+                        {atividade.andamento && (
+                          <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-blue-900 mb-1 flex items-center gap-1">
+                              <span>📋</span> Andamento:
+                            </p>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{atividade.andamento}</p>
+                          </div>
+                        )}
 
                         {/* Requisito relacionado */}
                         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -572,7 +577,6 @@ const GerenciamentoAtividadesPage = () => {
                             )}
                           </p>
                         </div>
-                      </div>
                     </div>
                   </Card>
                 );

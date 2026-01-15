@@ -51,6 +51,7 @@ interface Meta {
     responsavel: string;
     prazo: string;
     status: string;
+    andamento?: string;
   }>;
 }
 
@@ -203,19 +204,19 @@ const TabelaCompletaPage = () => {
       
       // Formatar atividades
       const atividade1 = meta.atividades?.[0] 
-        ? `${meta.atividades[0].acao} | Resp: ${meta.atividades[0].responsavel} | Prazo: ${meta.atividades[0].prazo ? format(parseISO(meta.atividades[0].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[0].status}`
+        ? `${meta.atividades[0].acao} | Resp: ${meta.atividades[0].responsavel} | Prazo: ${meta.atividades[0].prazo ? format(parseISO(meta.atividades[0].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[0].status}${meta.atividades[0].andamento ? ` | Andamento: ${meta.atividades[0].andamento}` : ''}`
         : '';
       const atividade2 = meta.atividades?.[1]
-        ? `${meta.atividades[1].acao} | Resp: ${meta.atividades[1].responsavel} | Prazo: ${meta.atividades[1].prazo ? format(parseISO(meta.atividades[1].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[1].status}`
+        ? `${meta.atividades[1].acao} | Resp: ${meta.atividades[1].responsavel} | Prazo: ${meta.atividades[1].prazo ? format(parseISO(meta.atividades[1].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[1].status}${meta.atividades[1].andamento ? ` | Andamento: ${meta.atividades[1].andamento}` : ''}`
         : '';
       const atividade3 = meta.atividades?.[2]
-        ? `${meta.atividades[2].acao} | Resp: ${meta.atividades[2].responsavel} | Prazo: ${meta.atividades[2].prazo ? format(parseISO(meta.atividades[2].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[2].status}`
+        ? `${meta.atividades[2].acao} | Resp: ${meta.atividades[2].responsavel} | Prazo: ${meta.atividades[2].prazo ? format(parseISO(meta.atividades[2].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[2].status}${meta.atividades[2].andamento ? ` | Andamento: ${meta.atividades[2].andamento}` : ''}`
         : '';
       const atividade4 = meta.atividades?.[3]
-        ? `${meta.atividades[3].acao} | Resp: ${meta.atividades[3].responsavel} | Prazo: ${meta.atividades[3].prazo ? format(parseISO(meta.atividades[3].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[3].status}`
+        ? `${meta.atividades[3].acao} | Resp: ${meta.atividades[3].responsavel} | Prazo: ${meta.atividades[3].prazo ? format(parseISO(meta.atividades[3].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[3].status}${meta.atividades[3].andamento ? ` | Andamento: ${meta.atividades[3].andamento}` : ''}`
         : '';
       const atividade5 = meta.atividades?.[4]
-        ? `${meta.atividades[4].acao} | Resp: ${meta.atividades[4].responsavel} | Prazo: ${meta.atividades[4].prazo ? format(parseISO(meta.atividades[4].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[4].status}`
+        ? `${meta.atividades[4].acao} | Resp: ${meta.atividades[4].responsavel} | Prazo: ${meta.atividades[4].prazo ? format(parseISO(meta.atividades[4].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[4].status}${meta.atividades[4].andamento ? ` | Andamento: ${meta.atividades[4].andamento}` : ''}`
         : '';
 
       return [
@@ -441,13 +442,21 @@ const TabelaCompletaPage = () => {
   });
   console.log('===============================================');
 
-  const formatAtividade = (atividade: { acao: string; responsavel: string; prazo: string; status: string }) => {
+  const formatAtividade = (atividade: { acao: string; responsavel: string; prazo: string; status: string; andamento?: string }) => {
     const prazoFormatado = atividade.prazo 
       ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR })
       : 'Sem prazo';
     return (
       <div className="text-xs space-y-1">
         <p className="font-medium text-gray-900">{atividade.acao}</p>
+        
+        {atividade.andamento && (
+          <div className="mt-1 p-1.5 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-xs font-semibold text-blue-900 mb-0.5">📋 Andamento:</p>
+            <p className="text-xs text-gray-700">{atividade.andamento}</p>
+          </div>
+        )}
+        
         <p className="text-gray-600">👤 {atividade.responsavel}</p>
         <p className="text-gray-600">📅 {prazoFormatado}</p>
         <Badge variant="outline" className="text-xs">

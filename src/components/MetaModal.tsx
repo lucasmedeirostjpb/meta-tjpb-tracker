@@ -139,7 +139,8 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         acao: '',
         responsavel: '',
         prazo: '',
-        status: 'Não iniciada'
+        status: 'Não iniciada',
+        andamento: ''
       }
     ]);
   };
@@ -641,14 +642,30 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="space-y-1 md:col-span-2">
-                              <Label className="text-xs">Ação</Label>
+                              <Label className="text-xs font-medium">Ação (Descrição da Tarefa)</Label>
                               <Textarea
-                                placeholder="Descreva a ação..."
+                                placeholder="Ex: Implementar módulo de relatórios..."
                                 value={atividade.acao}
                                 onChange={(e) => handleUpdateAtividade(atividade.id, 'acao', e.target.value)}
-                                rows={3}
-                                className="resize-none min-h-[80px]"
+                                rows={2}
+                                className="resize-none min-h-[60px]"
                               />
+                            </div>
+
+                            <div className="space-y-1 md:col-span-2">
+                              <Label className="text-xs font-medium">
+                                Andamento da Atividade
+                              </Label>
+                              <Textarea
+                                placeholder="Descreva as ações realizadas, progresso atual, próximos passos..."
+                                value={atividade.andamento || ''}
+                                onChange={(e) => handleUpdateAtividade(atividade.id, 'andamento', e.target.value)}
+                                rows={4}
+                                className="resize-none min-h-[100px]"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                📝 Detalhe aqui o que já foi realizado e o status atual da atividade
+                              </p>
                             </div>
 
                             <div className="space-y-1">
@@ -1035,6 +1052,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
                               <p className="font-medium text-sm">{index + 1}. {atividade.acao}</p>
+                              
+                              {atividade.andamento && (
+                                <div className="mt-2 p-2 bg-white/50 rounded border border-blue-200/50">
+                                  <p className="text-xs font-medium text-gray-700 mb-1">📋 Andamento:</p>
+                                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{atividade.andamento}</p>
+                                </div>
+                              )}
+                              
                               <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                                 <div>
                                   <span className="font-medium">Responsável:</span> {atividade.responsavel}
