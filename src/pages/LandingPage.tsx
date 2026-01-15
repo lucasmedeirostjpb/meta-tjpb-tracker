@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit, Gauge, BarChart3 } from 'lucide-react';
+import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit, Gauge, BarChart3, ExternalLink } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { RadialBarChart, RadialBar, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { api } from '@/services/api';
@@ -263,16 +263,38 @@ const LandingPage = () => {
                   <Search className="h-6 w-6" />
                   Consultar Requisitos
                 </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => window.open('https://drive.google.com/file/d/1MHvVUgVKIVv6D_8x_hnfDpjfCMZjfQsr/view?usp=sharing', '_blank')}
+                  className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <FileText className="h-6 w-6" />
+                  PDF Original CNJ
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
               </>
             ) : (
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/consultar')}
-                className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <Search className="h-6 w-6" />
-                Consultar Requisitos
-              </Button>
+              <>
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate('/consultar')}
+                  className="gap-3 text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <Search className="h-6 w-6" />
+                  Consultar Requisitos
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => window.open('https://drive.google.com/file/d/1MHvVUgVKIVv6D_8x_hnfDpjfCMZjfQsr/view?usp=sharing', '_blank')}
+                  className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <FileText className="h-6 w-6" />
+                  PDF Original CNJ
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
