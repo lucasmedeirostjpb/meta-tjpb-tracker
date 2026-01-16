@@ -13,6 +13,7 @@ import VisaoAgregadaPage from "./pages/VisaoAgregadaPage";
 import TabelaCompletaPage from "./pages/TabelaCompletaPage";
 import MinhasMetasPage from "./pages/MinhasMetasPage";
 import HistoricoPage from "./pages/HistoricoPage";
+import HistoricoAtividadesPage from "./pages/HistoricoAtividadesPage";
 import GerenciamentoAtividadesPage from "./pages/GerenciamentoAtividadesPage";
 import EditarRequisitoPage from "./pages/EditarRequisitoPage";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/consolidado" element={<VisaoAgregadaPage />} />
             <Route path="/tabela" element={<TabelaCompletaPage />} />
             <Route path="/historico" element={<HistoricoPage />} />
+            <Route path="/historico-atividades" element={<HistoricoAtividadesPage />} />
             <Route path="/atividades" element={<GerenciamentoAtividadesPage />} />
             
             {/* Rota Secreta - Administração */}

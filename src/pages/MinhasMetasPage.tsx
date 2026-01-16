@@ -256,23 +256,45 @@ const MinhasMetasPage = () => {
 
           {/* Progresso Geral */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-blue-600" />
-                <span className="font-semibold text-gray-900">Progresso Geral</span>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">
-                  {progress.percentual.toFixed(1)}%
-                  {progress.percentualMaximo < 100 && (
-                    <span className="text-sm text-red-600 font-semibold ml-2">
-                      (máx: {progress.percentualMaximo.toFixed(1)}%)
-                    </span>
-                  )}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {Math.round(progress.recebidos)} pts efetivados
-                </p>
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="h-5 w-5 text-blue-600" />
+              <span className="font-semibold text-gray-900">Progresso Geral</span>
+            </div>
+            
+            {/* Detalhamento dos pontos */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="flex flex-col space-y-2 p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded flex-shrink-0"></div>
+                    <p className="text-sm font-semibold text-gray-700">Pontos Efetivados</p>
+                  </div>
+                  <p className="text-3xl font-bold text-green-600">{Math.round(progress.recebidos)}</p>
+                </div>
+                
+                <div className="flex flex-col space-y-2 p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-400 rounded flex-shrink-0"></div>
+                    <p className="text-sm font-semibold text-gray-700">Pontos Estimados</p>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-600">{Math.round(progress.estimados)}</p>
+                </div>
+                
+                <div className="flex flex-col space-y-2 p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded flex-shrink-0"></div>
+                    <p className="text-sm font-semibold text-gray-700">Pontos Comprometidos</p>
+                  </div>
+                  <p className="text-3xl font-bold text-red-600">{Math.round(progress.total - progress.maximos)}</p>
+                </div>
+                
+                <div className="flex flex-col space-y-2 p-4">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-gray-700 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-gray-700">Total Disponível</p>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-700">{Math.round(progress.total)}</p>
+                </div>
               </div>
             </div>
             
@@ -304,29 +326,28 @@ const MinhasMetasPage = () => {
             </div>
             
             {/* Legenda */}
-            <div className="flex items-center justify-between text-xs text-gray-600">
+            <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  <span>Efetivados: {Math.round(progress.recebidos)} pts</span>
+                  <span className="font-medium text-gray-700">Efetivados</span>
                 </div>
-                {progress.estimados > 0 && (
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                  <span className="font-medium text-gray-700">Estimados</span>
+                </div>
+                {progress.percentualMaximo < 100 && (
                   <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
-                    <span>Estimados: {Math.round(progress.estimados)} pts</span>
+                    <div className="w-1 h-3 bg-red-600 rounded"></div>
+                    <span className="font-medium text-red-700">Limite máximo</span>
                   </div>
                 )}
               </div>
-              <span className="font-semibold">
-                Total: {Math.round(progress.totalComEstimados)} / {progress.total} pts
+              <span className="font-semibold text-gray-700">
+                {Math.round(progress.totalComEstimados)} / {Math.round(progress.total)} pts
                 {progress.estimados > 0 && (
                   <span className="text-blue-600 ml-1">
                     ({progress.percentualComEstimados.toFixed(1)}%)
-                  </span>
-                )}
-                {progress.percentualMaximo < 100 && (
-                  <span className="text-red-600 ml-1">
-                    | máx: {Math.round(progress.maximos)} pts
                   </span>
                 )}
               </span>

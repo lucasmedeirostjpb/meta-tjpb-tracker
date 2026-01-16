@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Search, Download, Filter, Scale, X, Copy, ChevronLeft, ChevronRight, LogOut, LogIn, Edit, History } from 'lucide-react';
+import { ArrowLeft, Search, Download, Filter, Scale, X, Copy, ChevronLeft, ChevronRight, LogOut, LogIn, Edit, History, FileText } from 'lucide-react';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -506,9 +506,19 @@ const TabelaCompletaPage = () => {
                   size="icon"
                   onClick={() => navigate('/historico')}
                   className="ml-2 h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                  title="Ver histórico de alterações"
+                  title="Ver histórico de alterações de requisitos"
                 >
                   <History className="h-4 w-4" />
+                </Button>
+                {/* Botão para histórico de atividades */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/historico-atividades')}
+                  className="h-8 w-8 text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                  title="Ver histórico de alterações de atividades"
+                >
+                  <FileText className="h-4 w-4" />
                 </Button>
               </div>
             </div>

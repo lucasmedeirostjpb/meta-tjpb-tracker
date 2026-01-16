@@ -70,6 +70,8 @@ const GerenciamentoAtividadesPage = () => {
   const [editandoAndamento, setEditandoAndamento] = useState<string | null>(null);
   const [andamentoTemp, setAndamentoTemp] = useState<string>('');
   const [salvandoAndamento, setSalvandoAndamento] = useState(false);
+  const [usuarioEdicao, setUsuarioEdicao] = useState<string>('');
+  const [andamentoAnterior, setAndamentoAnterior] = useState<string>('');
 
   useEffect(() => {
     fetchAtividades();
@@ -196,8 +198,13 @@ const GerenciamentoAtividadesPage = () => {
   const stats = contarPorStatus();
 
   const iniciarEdicaoAndamento = (atividadeId: string, andamentoAtual: string) => {
+    if (!usuarioEdicao.trim()) {
+      toast.error('Por favor, informe seu nome antes de editar');
+      return;
+    }
     setEditandoAndamento(atividadeId);
     setAndamentoTemp(andamentoAtual || '');
+    setAndamentoAnterior(andamentoAtual || '');
   };
 
   const cancelarEdicaoAndamento = () => {
@@ -229,6 +236,21 @@ const GerenciamentoAtividadesPage = () => {
         setor_executor: meta.setor_executor,
         atividades: atividadesAtualizadas,
       });
+
+      // Registrar no histórico de atividades
+      const { supabase } = await import('@/integrations/supabase/client');
+      const atividade = atividadesAtualizadas.find(a => a.id === atividadeId);
+      
+      if (atividade && andamentoAnterior !== andamentoTemp) {
+        await supabase.from('historico_atividades').insert({
+          meta_id: metaId,
+          atividade_id: atividadeId,
+          acao_descricao: atividade.acao,
+          usuario_nome: usuarioEdicao,
+          andamento_anterior: andamentoAnterior || null,
+          andamento_novo: andamentoTemp || null
+        });
+      }
 
       // Atualizar estado local
       setAtividades(prevAtividades =>
@@ -275,6 +297,28 @@ const GerenciamentoAtividadesPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Input de Usuário */}
+        <Card className="p-4 bg-blue-50 border-2 border-blue-200">
+          <div className="flex items-center gap-4">
+            <UserIcon className="h-5 w-5 text-blue-600" />
+            <div className="flex-1">
+              <label className="text-sm font-medium text-blue-900 mb-1 block">
+                👤 Quem está editando as atividades?
+              </label>
+              <input
+                type="text"
+                placeholder="Digite seu nome completo"
+                value={usuarioEdicao}
+                onChange={(e) => setUsuarioEdicao(e.target.value)}
+                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-blue-700 mt-1">
+                ℹ️ Esta informação será registrada no histórico de alterações
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -92,6 +92,17 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [saving, setSaving] = useState(false);
   const [openResponsavelPopovers, setOpenResponsavelPopovers] = useState<Record<string, boolean>>({});
 
+  const getEstimativaIcon = (est: string) => {
+    switch (est) {
+      case 'Totalmente Cumprido': return '✅ Totalmente Cumprido';
+      case 'Parcialmente Cumprido': return '⚠️ Parcialmente Cumprido';
+      case 'Em Andamento': return '🔄 Em Andamento';
+      case 'Não Cumprido': return '❌ Não Cumprido';
+      case 'Não se Aplica': return '➖ Não se Aplica';
+      default: return est;
+    }
+  };
+
   // Gerar ID único para novas atividades
   const generateId = () => `atividade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -165,6 +176,14 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       toast.warning('Modo de demonstração: alterações não são salvas');
       onClose();
       return;
+    }
+
+    // Validação de evidência obrigatória (mínimo 5 caracteres)
+    if (estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') {
+      if (!linkEvidencia || linkEvidencia.trim().length < 5) {
+        toast.error('O campo de evidências é obrigatório e deve ter no mínimo 5 caracteres');
+        return;
+      }
     }
 
     if (estimativa === 'Parcialmente Cumprido' && !justificativa.trim()) {
@@ -357,68 +376,56 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
               <>
                 {/* MODO EDIÇÃO */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="estimativa" className="text-sm font-medium">
-                      ⭐ Estimativa de Cumprimento
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center h-4 w-4 hover:opacity-70 transition-opacity"
-                        >
-                          <Info className="h-4 w-4 text-blue-500" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[450px]" side="right">
-                        <div className="space-y-3">
-                          <p className="font-semibold text-sm mb-3">📋 Significado de Cada Status:</p>
-                          <div className="space-y-3">
-                            <div className="space-y-1">
-                              <div className="font-medium text-green-700 text-sm">✅ Totalmente Cumprido</div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                Período de avaliação finalizado e divulgação oficial no CNJ
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="font-medium text-orange-700 text-sm">⚠️ Parcialmente Cumprido</div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                Período de avaliação finalizado e divulgação oficial no CNJ, sem pontuação máxima atingida
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="font-medium text-yellow-700 text-sm">🔄 Em Andamento</div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                Período finalizado, mas não houve divulgação oficial do CNJ ou o período não foi finalizado
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="font-medium text-gray-700 text-sm">❌ Não Cumprido</div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                Período de divulgação finalizado com o requisito não cumprido
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="font-medium text-gray-600 text-sm">➖ Não se Aplica</div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                Não se aplica
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <Label htmlFor="estimativa" className="text-sm font-medium">
+                    ⭐ Estimativa de Cumprimento
+                  </Label>
                   <Select value={estimativa} onValueChange={setEstimativa}>
                     <SelectTrigger id="estimativa">
-                      <SelectValue />
+                      <SelectValue>
+                        {getEstimativaIcon(estimativa)}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-card">
-                      <SelectItem value="Totalmente Cumprido">✅ Totalmente Cumprido</SelectItem>
-                      <SelectItem value="Parcialmente Cumprido">⚠️ Parcialmente Cumprido</SelectItem>
-                      <SelectItem value="Em Andamento">🔄 Em Andamento</SelectItem>
-                      <SelectItem value="Não Cumprido">❌ Não Cumprido</SelectItem>
-                      <SelectItem value="Não se Aplica">➖ Não se Aplica</SelectItem>
+                    <SelectContent>
+                      <SelectItem value="Totalmente Cumprido">
+                        <div className="flex flex-col gap-1 py-1">
+                          <span className="font-medium">✅ Totalmente Cumprido</span>
+                          <span className="text-xs text-muted-foreground">
+                            Ações necessárias já realizadas e alcance da pontuação máxima aplicada
+                          </span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Parcialmente Cumprido">
+                        <div className="flex flex-col gap-1 py-1">
+                          <span className="font-medium">⚠️ Parcialmente Cumprido</span>
+                          <span className="text-xs text-muted-foreground">
+                            Ações necessárias já realizadas e alcance parcial da pontuação aplicada
+                          </span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Em Andamento">
+                        <div className="flex flex-col gap-1 py-1">
+                          <span className="font-medium">🔄 Em Andamento</span>
+                          <span className="text-xs text-muted-foreground">
+                            Ainda restam ações necessárias para o cumprimento do quesito
+                          </span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Não Cumprido">
+                        <div className="flex flex-col gap-1 py-1">
+                          <span className="font-medium">❌ Não Cumprido</span>
+                          <span className="text-xs text-muted-foreground">
+                            Ações realizadas, mas não o suficiente para obtenção dos pontos
+                          </span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Não se Aplica">
+                        <div className="flex flex-col gap-1 py-1">
+                          <span className="font-medium">➖ Não se Aplica</span>
+                          <span className="text-xs text-muted-foreground">
+                            O requisito não é aplicável ao TJPB
+                          </span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -426,7 +433,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                 {estimativa === 'Parcialmente Cumprido' && (
                   <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Pontos Recebidos *</Label>
+                      <Label className="text-sm font-medium">Pontos Recebidos</Label>
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
@@ -450,7 +457,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="justificativa" className="text-sm">Justificativa *</Label>
+                      <Label htmlFor="justificativa" className="text-sm">Justificativa</Label>
                       <Textarea
                         id="justificativa"
                         placeholder="Explique por que a meta foi cumprida parcialmente..."
@@ -468,7 +475,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <Label className="text-sm font-medium">Estimativa Mínima (Pontos Bem Encaminhados) *</Label>
+                          <Label className="text-sm font-medium">Estimativa Mínima (Pontos Bem Encaminhados)</Label>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button
@@ -509,7 +516,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <Label className="text-sm font-medium">Estimativa Máxima (Descontando Pontos Perdidos) *</Label>
+                          <Label className="text-sm font-medium">Estimativa Máxima (Descontando Pontos Perdidos)</Label>
                           <Popover>
                             <PopoverTrigger asChild>
                               <button
@@ -829,7 +836,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       <Label htmlFor="evidencias" className="text-sm font-medium">Evidências para Auditoria</Label>
                       <Textarea
                         id="evidencias"
-                        placeholder="Indique o link onde consta a evidência, o número do SEI ou a informação que indique a conclusão do requisito. Utilize google drive para links de documentos. Lembre de gerenciar as permissões do arquivo corretamente."
+                        placeholder="Indique o link onde consta a evidência, o número do SEI ou a informação que indique a conclusão do requisito. Utilize Google Drive para links de documentos. Lembre de gerenciar as permissões do arquivo corretamente."
                         rows={6}
                         value={linkEvidencia}
                         onChange={(e) => setLinkEvidencia(e.target.value)}
