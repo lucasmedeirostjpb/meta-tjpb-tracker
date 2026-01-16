@@ -390,7 +390,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                         <div className="flex flex-col gap-1 py-1">
                           <span className="font-medium">✅ Totalmente Cumprido</span>
                           <span className="text-xs text-muted-foreground">
-                            Ações necessárias já realizadas e alcance da pontuação máxima aplicada
+                            Ações necessárias já realizadas e pontuação máxima alcançada
                           </span>
                         </div>
                       </SelectItem>
@@ -398,7 +398,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                         <div className="flex flex-col gap-1 py-1">
                           <span className="font-medium">⚠️ Parcialmente Cumprido</span>
                           <span className="text-xs text-muted-foreground">
-                            Ações necessárias já realizadas e alcance parcial da pontuação aplicada
+                            Ações necessárias já realizadas e pontuação parcial aplicada
                           </span>
                         </div>
                       </SelectItem>
@@ -422,7 +422,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                         <div className="flex flex-col gap-1 py-1">
                           <span className="font-medium">➖ Não se Aplica</span>
                           <span className="text-xs text-muted-foreground">
-                            O requisito não é aplicável ao TJPB
+                            O requisito não é aplicável. Casos em que o requisito deixou de existir, por exemplo
                           </span>
                         </div>
                       </SelectItem>
