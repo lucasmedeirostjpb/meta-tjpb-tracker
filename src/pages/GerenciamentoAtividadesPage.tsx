@@ -26,7 +26,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
@@ -36,9 +37,15 @@ interface Meta {
   id: string;
   eixo: string;
   item: string;
+  artigo: string;
   requisito: string;
+  descricao: string;
   setor_executor: string;
   coordenador?: string;
+  deadline: string;
+  pontos_aplicaveis: number;
+  estimativa_cumprimento?: string;
+  observacoes?: string;
   atividades?: Atividade[];
 }
 
@@ -72,6 +79,18 @@ const GerenciamentoAtividadesPage = () => {
   const [salvandoAndamento, setSalvandoAndamento] = useState(false);
   const [usuarioEdicao, setUsuarioEdicao] = useState<string>('');
   const [andamentoAnterior, setAndamentoAnterior] = useState<string>('');
+  
+  // NOVO: Estados para ordenação
+  const [ordenacao, setOrdenacao] = useState<'prazo' | 'criacao'>('prazo');
+  
+  // NOVO: Estado para acordeão expandido
+  const [atividadeExpandida, setAtividadeExpandida] = useState<string | null>(null);
+  
+  // NOVO: Estados para edição de campos
+  const [editandoCampo, setEditandoCampo] = useState<{ atividadeId: string; campo: 'responsavel' | 'prazo' | 'status' } | null>(null);
+  const [valorTempResponsavel, setValorTempResponsavel] = useState<string>('');
+  const [valorTempPrazo, setValorTempPrazo] = useState<string>('');
+  const [valorTempStatus, setValorTempStatus] = useState<AtividadeStatus>('Não iniciada');
 
   useEffect(() => {
     fetchAtividades();
@@ -79,7 +98,7 @@ const GerenciamentoAtividadesPage = () => {
 
   useEffect(() => {
     aplicarFiltros();
-  }, [atividades, filtroStatus, filtroSetor, filtroResponsavel, filtroCoordenador, filtroEixo]);
+  }, [atividades, filtroStatus, filtroSetor, filtroResponsavel, filtroCoordenador, filtroEixo, ordenacao]);
 
   const fetchAtividades = async () => {
     try {
@@ -159,6 +178,20 @@ const GerenciamentoAtividadesPage = () => {
         return eixoLimpo === filtroEixo;
       });
     }
+
+    // NOVO: Aplicar ordenação
+    resultado.sort((a, b) => {
+      if (ordenacao === 'prazo') {
+        // Ordenar por prazo (mais próximo primeiro)
+        if (!a.prazo && !b.prazo) return 0;
+        if (!a.prazo) return 1;
+        if (!b.prazo) return -1;
+        return new Date(a.prazo).getTime() - new Date(b.prazo).getTime();
+      } else {
+        // Ordenar por ID (proxy para data de criação - mais recente primeiro)
+        return b.id.localeCompare(a.id);
+      }
+    });
 
     setFilteredAtividades(resultado);
   };
@@ -265,6 +298,103 @@ const GerenciamentoAtividadesPage = () => {
     } catch (error) {
       console.error('Erro ao salvar andamento:', error);
       toast.error('Erro ao salvar andamento');
+    } finally {
+      setSalvandoAndamento(false);
+    }
+  };
+
+  // NOVO: Funções para edição de campos
+  const iniciarEdicaoCampo = (atividadeId: string, campo: 'responsavel' | 'prazo' | 'status', valorAtual: string | AtividadeStatus) => {
+    if (!usuarioEdicao.trim()) {
+      toast.error('Por favor, informe seu nome antes de editar');
+      return;
+    }
+    setEditandoCampo({ atividadeId, campo });
+    if (campo === 'responsavel') setValorTempResponsavel(valorAtual as string);
+    if (campo === 'prazo') setValorTempPrazo(valorAtual as string);
+    if (campo === 'status') setValorTempStatus(valorAtual as AtividadeStatus);
+  };
+
+  const cancelarEdicaoCampo = () => {
+    setEditandoCampo(null);
+    setValorTempResponsavel('');
+    setValorTempPrazo('');
+    setValorTempStatus('Não iniciada');
+  };
+
+  const salvarCampo = async (atividadeId: string, metaId: string, campo: 'responsavel' | 'prazo' | 'status') => {
+    try {
+      setSalvandoAndamento(true);
+      
+      const metas = await api.getMetas();
+      const meta = metas.find((m: Meta) => m.id === metaId);
+      
+      if (!meta) {
+        toast.error('Meta não encontrada');
+        return;
+      }
+
+      const atividade = meta.atividades?.find(a => a.id === atividadeId);
+      if (!atividade) {
+        toast.error('Atividade não encontrada');
+        return;
+      }
+
+      const valorAnterior = campo === 'responsavel' ? atividade.responsavel : 
+                           campo === 'prazo' ? atividade.prazo : 
+                           atividade.status;
+      const valorNovo = campo === 'responsavel' ? valorTempResponsavel :
+                       campo === 'prazo' ? valorTempPrazo :
+                       valorTempStatus;
+
+      if (valorAnterior === valorNovo) {
+        toast.info('Nenhuma alteração foi feita');
+        cancelarEdicaoCampo();
+        return;
+      }
+
+      const atividadesAtualizadas = meta.atividades?.map(a => 
+        a.id === atividadeId ? { ...a, [campo]: valorNovo } : a
+      ) || [];
+
+      await api.createUpdate({
+        meta_id: metaId,
+        setor_executor: meta.setor_executor,
+        atividades: atividadesAtualizadas,
+      });
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      const atividadeAtualizada = atividadesAtualizadas.find(a => a.id === atividadeId);
+      
+      if (atividadeAtualizada) {
+        const campoNome = campo === 'responsavel' ? 'responsável' :
+                         campo === 'prazo' ? 'prazo' : 'status';
+        const valorAnteriorFormatado = campo === 'prazo' && valorAnterior ? 
+          format(parseISO(valorAnterior), 'dd/MM/yyyy', { locale: ptBR }) : valorAnterior;
+        const valorNovoFormatado = campo === 'prazo' && valorNovo ?
+          format(parseISO(valorNovo), 'dd/MM/yyyy', { locale: ptBR }) : valorNovo;
+
+        await supabase.from('historico_atividades').insert({
+          meta_id: metaId,
+          atividade_id: atividadeId,
+          acao_descricao: `Alteração de ${campoNome}: ${atividadeAtualizada.acao}`,
+          usuario_nome: usuarioEdicao,
+          andamento_anterior: `${campoNome}: ${valorAnteriorFormatado}`,
+          andamento_novo: `${campoNome}: ${valorNovoFormatado}`,
+        });
+      }
+
+      setAtividades(prevAtividades =>
+        prevAtividades.map(a =>
+          a.id === atividadeId ? { ...a, [campo]: valorNovo } : a
+        )
+      );
+
+      toast.success(`${campo === 'responsavel' ? 'Responsável' : campo === 'prazo' ? 'Prazo' : 'Status'} atualizado com sucesso!`);
+      cancelarEdicaoCampo();
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      toast.error('Erro ao salvar alteração');
     } finally {
       setSalvandoAndamento(false);
     }
@@ -377,7 +507,7 @@ const GerenciamentoAtividadesPage = () => {
             <Filter className="h-5 w-5 text-gray-600" />
             <h2 className="font-semibold text-gray-900">Filtros</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Status</label>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -583,6 +713,20 @@ const GerenciamentoAtividadesPage = () => {
                 </PopoverContent>
               </Popover>
             </div>
+
+            {/* NOVO: Ordenação */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Ordenar por</label>
+              <Select value={ordenacao} onValueChange={(value: 'prazo' | 'criacao') => setOrdenacao(value)}>
+                <SelectTrigger className="font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prazo"> Prazo (mais próximo)</SelectItem>
+                  <SelectItem value="criacao">Data de criação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </Card>
 
@@ -603,13 +747,23 @@ const GerenciamentoAtividadesPage = () => {
             <div className="space-y-3">
               {filteredAtividades.map((atividade, index) => {
                 const prazoVencido = isPrazoVencido(atividade.prazo);
+                const isExpanded = atividadeExpandida === atividade.id;
                 
                 return (
                   <Card key={`${atividade.meta_id}-${atividade.id}`} className="p-4 bg-white hover:shadow-md transition-shadow">
                     <div className="space-y-3">
-                      {/* Ação */}
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">{atividade.acao}</h3>
+                      {/* Ação e Botão Ver Requisito */}
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="font-semibold text-gray-900 text-lg flex-1">{atividade.acao}</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAtividadeExpandida(isExpanded ? null : atividade.id)}
+                          className="gap-2 flex-shrink-0"
+                        >
+                          {isExpanded ? 'Ocultar' : 'Ver'} Requisito
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
                       </div>
 
                       {/* Andamento da Atividade */}
@@ -676,39 +830,159 @@ const GerenciamentoAtividadesPage = () => {
 
                         <Separator />
 
-                        {/* Detalhes */}
+                        {/* NOVO: Detalhes editáveis */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Responsável */}
                           <div className="flex items-center gap-2">
-                            <UserIcon className="h-4 w-4 text-gray-500" />
-                            <div>
+                            <UserIcon className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Responsável</p>
-                              <p className="text-sm font-medium text-gray-900">{atividade.responsavel || '-'}</p>
+                              {editandoCampo?.atividadeId === atividade.id && editandoCampo.campo === 'responsavel' ? (
+                                <div className="flex gap-1 items-center">
+                                  <Input
+                                    value={valorTempResponsavel}
+                                    onChange={(e) => setValorTempResponsavel(e.target.value)}
+                                    className="h-7 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => salvarCampo(atividade.id, atividade.meta_id, 'responsavel')}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 text-green-600 flex-shrink-0"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={cancelarEdicaoCampo}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 flex-shrink-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{atividade.responsavel || '-'}</p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => iniciarEdicaoCampo(atividade.id, 'responsavel', atividade.responsavel)}
+                                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
 
+                          {/* Prazo */}
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            <div>
+                            <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Prazo</p>
-                              <p className={`text-sm font-medium ${prazoVencido && atividade.status !== 'Concluída' ? 'text-red-600' : 'text-gray-900'}`}>
-                                {atividade.prazo 
-                                  ? format(parseISO(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
-                                  : '-'
-                                }
-                                {prazoVencido && atividade.status !== 'Concluída' && (
-                                  <span className="ml-1 text-xs">(Vencido)</span>
-                                )}
-                              </p>
+                              {editandoCampo?.atividadeId === atividade.id && editandoCampo.campo === 'prazo' ? (
+                                <div className="flex gap-1 items-center">
+                                  <Input
+                                    type="date"
+                                    value={valorTempPrazo}
+                                    onChange={(e) => setValorTempPrazo(e.target.value)}
+                                    className="h-7 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => salvarCampo(atividade.id, atividade.meta_id, 'prazo')}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 text-green-600 flex-shrink-0"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={cancelarEdicaoCampo}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 flex-shrink-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium truncate ${prazoVencido && atividade.status !== 'Concluída' ? 'text-red-600' : 'text-gray-900'}`}>
+                                    {atividade.prazo ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                    {prazoVencido && atividade.status !== 'Concluída' && (
+                                      <span className="ml-1 text-xs">(Vencido)</span>
+                                    )}
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => iniciarEdicaoCampo(atividade.id, 'prazo', atividade.prazo)}
+                                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
 
+                          {/* Status */}
                           <div className="flex items-center gap-2">
                             {getStatusIcon(atividade.status)}
-                            <div>
+                            <div className="flex-1 min-w-0">
                               <p className="text-xs text-gray-500">Status</p>
-                              <Badge className={`${getStatusColor(atividade.status)} border text-xs`}>
-                                {atividade.status}
-                              </Badge>
+                              {editandoCampo?.atividadeId === atividade.id && editandoCampo.campo === 'status' ? (
+                                <div className="flex gap-1 items-center">
+                                  <Select value={valorTempStatus} onValueChange={(value: AtividadeStatus) => setValorTempStatus(value)}>
+                                    <SelectTrigger className="h-7 text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Concluída">✅ Concluída</SelectItem>
+                                      <SelectItem value="Em andamento">🔄 Em andamento</SelectItem>
+                                      <SelectItem value="Não iniciada">⏸️ Não iniciada</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => salvarCampo(atividade.id, atividade.meta_id, 'status')}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 text-green-600 flex-shrink-0"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={cancelarEdicaoCampo}
+                                    disabled={salvandoAndamento}
+                                    className="h-7 w-7 p-0 flex-shrink-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`${getStatusColor(atividade.status)} border text-xs`}>
+                                    {atividade.status}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => iniciarEdicaoCampo(atividade.id, 'status', atividade.status)}
+                                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -722,6 +996,11 @@ const GerenciamentoAtividadesPage = () => {
                             )}
                           </p>
                         </div>
+
+                        {/* NOVO: Acordeão com informações completas do requisito */}
+                        {isExpanded && (
+                          <RequisitoAcordeao metaId={atividade.meta_id} />
+                        )}
                     </div>
                   </Card>
                 );
@@ -730,6 +1009,141 @@ const GerenciamentoAtividadesPage = () => {
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// NOVO: Componente para exibir informações do requisito
+const RequisitoAcordeao = ({ metaId }: { metaId: string }) => {
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const carregarMeta = async () => {
+      try {
+        const metas = await api.getMetas();
+        const metaEncontrada = metas.find((m: Meta) => m.id === metaId);
+        setMeta(metaEncontrada || null);
+      } catch (error) {
+        console.error('Erro ao carregar meta:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    carregarMeta();
+  }, [metaId]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-3">
+        <p className="text-sm text-gray-500">Carregando informações do requisito...</p>
+      </div>
+    );
+  }
+
+  if (!meta) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-3">
+        <p className="text-sm text-red-500">Erro ao carregar informações do requisito.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 space-y-3 mt-3">
+      <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+        <FileText className="h-4 w-4" />
+        Informações Completas do Requisito
+      </h4>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Eixo</p>
+          <p className="text-gray-900">{meta.eixo}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Item</p>
+          <p className="text-gray-900">{meta.item}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Artigo</p>
+          <p className="text-gray-900">{meta.artigo}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Requisito</p>
+          <p className="text-gray-900">{meta.requisito}</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs text-blue-700 font-medium mb-1">Descrição</p>
+        <p className="text-sm text-gray-900 bg-white/50 p-2 rounded border border-blue-100">{meta.descricao}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Setor Executor</p>
+          <p className="text-gray-900">{meta.setor_executor}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Coordenador</p>
+          <p className="text-gray-900">{meta.coordenador || '-'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Deadline</p>
+          <p className="text-gray-900">
+            {format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Pontos Aplicáveis</p>
+          <p className="text-gray-900 font-semibold">{meta.pontos_aplicaveis}</p>
+        </div>
+        <div>
+          <p className="text-xs text-blue-700 font-medium">Estimativa de Cumprimento</p>
+          <Badge variant="outline" className="text-xs">
+            {meta.estimativa_cumprimento || 'Não se Aplica'}
+          </Badge>
+        </div>
+      </div>
+
+      {meta.atividades && meta.atividades.length > 0 && (
+        <div>
+          <p className="text-xs text-blue-700 font-medium mb-2">Todas as Atividades deste Requisito</p>
+          <div className="space-y-2">
+            {meta.atividades.map((atv, idx) => (
+              <div key={atv.id} className="bg-white/70 border border-blue-200 rounded p-2 text-sm">
+                <p className="font-medium text-gray-900 mb-1">{idx + 1}. {atv.acao}</p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div>👤 {atv.responsavel}</div>
+                  <div>📅 {atv.prazo ? format(parseISO(atv.prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'}</div>
+                </div>
+                <div className="mt-1">
+                  <Badge variant="outline" className="text-xs">
+                    {atv.status}
+                  </Badge>
+                </div>
+                {atv.andamento && (
+                  <div className="mt-2 pt-2 border-t border-blue-100">
+                    <p className="text-xs font-medium text-blue-700">Andamento:</p>
+                    <p className="text-xs text-gray-700 mt-1 whitespace-pre-wrap">{atv.andamento}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {meta.observacoes && (
+        <div>
+          <p className="text-xs text-blue-700 font-medium mb-1">Observações</p>
+          <p className="text-sm text-gray-900 bg-white/50 p-2 rounded border border-blue-100">{meta.observacoes}</p>
+        </div>
+      )}
     </div>
   );
 };
