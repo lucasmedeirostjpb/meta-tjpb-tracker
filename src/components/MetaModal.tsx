@@ -178,10 +178,10 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       return;
     }
 
-    // Validação de evidência obrigatória (mínimo 5 caracteres)
+    // Validação de evidência obrigatória (mínimo 5 caracteres) APENAS para certos status
     if (estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') {
       if (!linkEvidencia || linkEvidencia.trim().length < 5) {
-        toast.error('O campo de evidências é obrigatório e deve ter no mínimo 5 caracteres');
+        toast.error('O campo de evidências é obrigatório e deve ter no mínimo 5 caracteres para este status');
         return;
       }
     }
@@ -830,20 +830,32 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                     </Select>
                   </div>
 
-                  {/* Seção de Evidências - Apenas para Totalmente/Parcialmente/Não Cumprido */}
-                  {(estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') && (
-                    <div className="space-y-2">
-                      <Label htmlFor="evidencias" className="text-sm font-medium">Evidências para Auditoria</Label>
-                      <Textarea
-                        id="evidencias"
-                        placeholder="Indique o link onde consta a evidência, o número do SEI ou a informação que indique a conclusão do requisito. Utilize Google Drive para links de documentos. Lembre de gerenciar as permissões do arquivo corretamente."
-                        rows={6}
-                        value={linkEvidencia}
-                        onChange={(e) => setLinkEvidencia(e.target.value)}
-                        className="resize-none min-h-[150px]"
-                      />
-                    </div>
-                  )}
+                  {/* Seção de Evidências - SEMPRE VISÍVEL, mas obrigatório apenas para alguns status */}
+                  <div className="space-y-2">
+                    <Label htmlFor="evidencias" className="text-sm font-medium">
+                      Evidências para Auditoria
+                      {(estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') && (
+                        <span className="text-red-600 ml-1">*</span>
+                      )}
+                    </Label>
+                    {(estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') && (
+                      <p className="text-xs text-red-600 mb-2">
+                        ⚠️ Campo obrigatório para este status (mínimo 5 caracteres)
+                      </p>
+                    )}
+                    <Textarea
+                      id="evidencias"
+                      placeholder="Indique o link onde consta a evidência, o número do SEI ou a informação que indique a conclusão do requisito. Utilize Google Drive para links de documentos. Lembre de gerenciar as permissões do arquivo corretamente."
+                      rows={6}
+                      value={linkEvidencia}
+                      onChange={(e) => setLinkEvidencia(e.target.value)}
+                      className={`resize-none min-h-[150px] ${
+                        (estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido')
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }`}
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="observacoes" className="text-sm">Observações</Label>

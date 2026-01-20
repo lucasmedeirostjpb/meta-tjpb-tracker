@@ -439,17 +439,35 @@ const HistoricoPage = () => {
                   )}
 
                   {/* Evidências */}
-                  {item.link_evidencia_novo && (
+                  {(item.link_evidencia_anterior || item.link_evidencia_novo) && (
                     <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
                       <strong className="text-sm text-indigo-900">🔍 Evidência:</strong>
-                      <a
-                        href={item.link_evidencia_novo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline block mt-1 break-all"
-                      >
-                        {item.link_evidencia_novo}
-                      </a>
+                      {item.link_evidencia_anterior && (
+                        <div className="mt-2">
+                          <span className="text-xs text-indigo-700">Anterior:</span>
+                          <a
+                            href={item.link_evidencia_anterior}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline block mt-1 break-all"
+                          >
+                            {item.link_evidencia_anterior}
+                          </a>
+                        </div>
+                      )}
+                      {item.link_evidencia_novo && (
+                        <div className="mt-2">
+                          <span className="text-xs text-indigo-700 font-semibold">Novo:</span>
+                          <a
+                            href={item.link_evidencia_novo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline block mt-1 break-all font-medium"
+                          >
+                            {item.link_evidencia_novo}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -487,10 +505,10 @@ const HistoricoPage = () => {
                             {item.dificuldade_anterior}
                           </Badge>
                         )}
-                        {item.dificuldade_anterior && item.dificuldade_novo && (
+                        {item.dificuldade_anterior && item.dificuldade_novo && item.dificuldade_anterior !== item.dificuldade_novo && (
                           <span className="text-orange-600">→</span>
                         )}
-                        {item.dificuldade_novo && (
+                        {item.dificuldade_novo && item.dificuldade_anterior !== item.dificuldade_novo && (
                           <Badge className="bg-orange-600">{item.dificuldade_novo}</Badge>
                         )}
                       </div>
