@@ -10,7 +10,86 @@ interface GaugeChartProps {
 const GaugeChart: React.FC<GaugeChartProps> = ({ value, maxValue, size = 320 }) => {
   // Construir subArcs baseado se há limite máximo
   const buildSubArcs = () => {
-    const baseArcs = [
+    // Se há limite máximo e é menor que 85%, ajustar os arcos
+    if (maxValue !== undefined && maxValue < 100 && maxValue > 0) {
+      const arcs = [];
+      
+      // Arco cinza até 75% ou maxValue (o que for menor)
+      if (maxValue > 75) {
+        arcs.push({
+          limit: 75,
+          color: '#e5e7eb',
+          showTick: true,
+          tooltip: { text: 'Progresso padrão' }
+        });
+      } else {
+        arcs.push({
+          limit: maxValue,
+          color: '#e5e7eb',
+          showTick: true,
+          tooltip: { text: `Máximo possível: ${maxValue.toFixed(1)}%` }
+        });
+      }
+      
+      // Arco prata até 80% ou maxValue (o que for menor)
+      if (maxValue > 80 && arcs[arcs.length - 1].limit < 80) {
+        arcs.push({
+          limit: 80,
+          color: '#9ca3af',
+          showTick: true,
+          tooltip: { text: 'SELO PRATA - 75%' }
+        });
+      } else if (maxValue > 75 && maxValue <= 80) {
+        arcs.push({
+          limit: maxValue,
+          color: '#9ca3af',
+          showTick: true,
+          tooltip: { text: `SELO PRATA - 75% / Máximo: ${maxValue.toFixed(1)}%` }
+        });
+      }
+      
+      // Arco ouro até 85% ou maxValue (o que for menor)
+      if (maxValue > 85 && arcs[arcs.length - 1].limit < 85) {
+        arcs.push({
+          limit: 85,
+          color: '#fbbf24',
+          showTick: true,
+          tooltip: { text: 'SELO OURO - 80%' }
+        });
+      } else if (maxValue > 80 && maxValue <= 85) {
+        arcs.push({
+          limit: maxValue,
+          color: '#fbbf24',
+          showTick: true,
+          tooltip: { text: `SELO OURO - 80% / Máximo: ${maxValue.toFixed(1)}%` }
+        });
+      }
+      
+      // Arco azul até maxValue (se maxValue > 85)
+      if (maxValue > 85 && arcs[arcs.length - 1].limit < maxValue) {
+        arcs.push({
+          limit: maxValue,
+          color: '#3b82f6',
+          showTick: true,
+          tooltip: { text: `SELO DIAMANTE - 85% / Máximo: ${maxValue.toFixed(1)}%` }
+        });
+      }
+      
+      // Arco vermelho de maxValue até 100% (pontos comprometidos)
+      if (arcs[arcs.length - 1].limit < 100) {
+        arcs.push({
+          limit: 100,
+          color: '#dc2626',
+          showTick: false,
+          tooltip: { text: 'Pontos comprometidos' }
+        });
+      }
+      
+      return arcs;
+    }
+
+    // Caso padrão sem limite máximo
+    return [
       {
         limit: 75,
         color: '#e5e7eb',
@@ -19,7 +98,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ value, maxValue, size = 320 }) 
       },
       {
         limit: 80,
-        color: '#333b4dff',
+        color: '#9ca3af',
         showTick: true,
         tooltip: { text: 'SELO PRATA - 75%' }
       },
@@ -28,31 +107,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({ value, maxValue, size = 320 }) 
         color: '#fbbf24',
         showTick: true,
         tooltip: { text: 'SELO OURO - 80%' }
-      }
-    ];
-
-    // Se há limite máximo, adicionar arco azul até o limite e vermelho depois
-    if (maxValue !== undefined && maxValue < 100) {
-      return [
-        ...baseArcs,
-        {
-          limit: maxValue,
-          color: '#3b82f6',
-          showTick: true,
-          tooltip: { text: `SELO DIAMANTE - 85% / Máximo: ${maxValue.toFixed(1)}%` }
-        },
-        {
-          limit: 100,
-          color: '#dc2626',
-          showTick: false,
-          tooltip: { text: 'Pontos comprometidos' }
-        }
-      ];
-    }
-
-    // Caso contrário, arco azul até 100%
-    return [
-      ...baseArcs,
+      },
       {
         limit: 100,
         color: '#3b82f6',

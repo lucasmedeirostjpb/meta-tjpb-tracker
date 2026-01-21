@@ -438,12 +438,14 @@ export const api = {
       const eixosMap = new Map<string, { 
         pontos: number; 
         pontosRecebidos: number;
+        pontosEstimados: number;
         pontosMaximos: number;
         total: number;
       }>();
       const setoresSet = new Set<string>();
       let totalRequisitos = 0;
       let totalPontos = 0;
+      let totalPontosEstimados = 0;
       let totalPontosMaximos = 0;
 
       (metasData || []).forEach(meta => {
@@ -457,6 +459,7 @@ export const api = {
         const eixoData = eixosMap.get(meta.eixo) || { 
           pontos: 0, 
           pontosRecebidos: 0,
+          pontosEstimados: 0,
           pontosMaximos: 0,
           total: 0
         };
@@ -465,11 +468,23 @@ export const api = {
         eixoData.pontos += pontosMeta;
         eixoData.total++;
 
-        // Calcular pontos recebidos usando pontos_estimados do update
+        // Calcular pontos recebidos e estimados separadamente
         if (update) {
-          const pontosRecebidos = update.pontos_estimados || 0;
+          const pontosRecebidos = update.estimativa_cumprimento === 'Totalmente Cumprido' 
+            ? pontosMeta 
+            : (update.estimativa_cumprimento === 'Parcialmente Cumprido' 
+              ? (update.pontos_estimados || 0) 
+              : 0);
+          
+          const pontosEstimados = update.estimativa_cumprimento === 'Em Andamento' 
+            ? (update.pontos_estimados || 0) 
+            : 0;
+          
           eixoData.pontosRecebidos += pontosRecebidos;
           totalPontos += pontosRecebidos;
+          
+          eixoData.pontosEstimados += pontosEstimados;
+          totalPontosEstimados += pontosEstimados;
           
           // Se for "Em Andamento" e tiver estimativa_maxima, usar ela; senão usar pontos_aplicaveis
           const pontosMaximos = update.estimativa_cumprimento === 'Em Andamento' && update.estimativa_maxima 
@@ -477,8 +492,6 @@ export const api = {
             : pontosMeta;
           eixoData.pontosMaximos += pontosMaximos;
           totalPontosMaximos += pontosMaximos;
-          
-          console.log(`📈 [API] Meta ${meta.artigo} ${meta.requisito}: ${pontosRecebidos}/${pontosMaximos}/${pontosMeta} pontos (${update.status})`);
         } else {
           // Se não tiver update, pontos máximos = pontos aplicáveis
           eixoData.pontosMaximos += pontosMeta;
@@ -488,19 +501,35 @@ export const api = {
         eixosMap.set(meta.eixo, eixoData);
       });
 
-      // Converter map para array com formato esperado pela página
-      const eixosData = Array.from(eixosMap.entries()).map(([nome, dados]) => ({
-        nome,
-        pontos: dados.pontos,
-        pontosRecebidos: dados.pontosRecebidos,
-        pontosMaximos: dados.pontosMaximos,
-        percentual: dados.pontos > 0 ? (dados.pontosRecebidos / dados.pontos) * 100 : 0,
-        percentualMaximo: dados.pontos > 0 ? (dados.pontosMaximos / dados.pontos) * 100 : 0,
-        cor: getEixoCor(nome),
-      }));
+      // Função para determinar ordem dos eixos
+      const getEixoOrdem = (nome: string): number => {
+        const nomeLower = nome.toLowerCase();
+        if (nomeLower.includes('governança') || nomeLower.includes('governanca')) return 1;
+        if (nomeLower.includes('produtividade')) return 2;
+        if (nomeLower.includes('transparência') || nomeLower.includes('transparencia')) return 3;
+        if (nomeLower.includes('dados') || nomeLower.includes('tecnologia')) return 4;
+        return 5;
+      };
+
+      // Converter map para array com formato esperado pela página e ordenar
+      const eixosData = Array.from(eixosMap.entries())
+        .map(([nome, dados]) => ({
+          nome,
+          pontos: dados.pontos,
+          pontosRecebidos: dados.pontosRecebidos,
+          pontosEstimados: dados.pontosEstimados,
+          pontosMaximos: dados.pontosMaximos,
+          percentual: dados.pontos > 0 ? (dados.pontosRecebidos / dados.pontos) * 100 : 0,
+          percentualComEstimados: dados.pontos > 0 ? ((dados.pontosRecebidos + dados.pontosEstimados) / dados.pontos) * 100 : 0,
+          percentualMaximo: dados.pontos > 0 ? (dados.pontosMaximos / dados.pontos) * 100 : 0,
+          cor: getEixoCor(nome),
+          ordem: getEixoOrdem(nome),
+        }))
+        .sort((a, b) => a.ordem - b.ordem);
 
       const totalPontosAplicaveis = metasData?.reduce((sum, m) => sum + (m.pontos_aplicaveis || 0), 0) || 0;
       const percentualGeral = totalPontosAplicaveis > 0 ? (totalPontos / totalPontosAplicaveis) * 100 : 0;
+      const percentualComEstimados = totalPontosAplicaveis > 0 ? ((totalPontos + totalPontosEstimados) / totalPontosAplicaveis) * 100 : 0;
       const percentualMaximo = totalPontosAplicaveis > 0 ? (totalPontosMaximos / totalPontosAplicaveis) * 100 : 0;
       const pontosPerdidos = totalPontosAplicaveis - totalPontosMaximos;
 
@@ -508,10 +537,12 @@ export const api = {
         eixos: eixosMap.size,
         requisitos: totalRequisitos,
         pontosTotais: Math.round(totalPontos),
+        pontosEstimados: Math.round(totalPontosEstimados),
         pontosAplicaveis: totalPontosAplicaveis,
         pontosMaximos: Math.round(totalPontosMaximos),
         pontosPerdidos: Math.round(pontosPerdidos),
         percentualGeral: percentualGeral,
+        percentualComEstimados: percentualComEstimados,
         percentualMaximo: percentualMaximo,
         setores: setoresSet.size,
         eixosData,
