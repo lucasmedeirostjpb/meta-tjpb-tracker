@@ -109,6 +109,15 @@ const MinhasMetasPage = () => {
     const maximos = metas.reduce((sum, meta) => {
       if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined) {
         return sum + meta.estimativa_maxima;
+      } else if (meta.estimativa_cumprimento === 'Não Cumprido') {
+        // Verificar se tem evidências válidas (mínimo 5 caracteres)
+        const temEvidencia = meta.link_evidencia && meta.link_evidencia.trim().length >= 5;
+        if (temEvidencia) {
+          // Não Cumprido REAL (com evidências): usar estimativa_maxima ou 0 (todos perdidos)
+          return sum + (meta.estimativa_maxima !== undefined ? meta.estimativa_maxima : 0);
+        }
+        // Se não tem evidências, é "Pendente", não compromete pontos
+        return sum + meta.pontos_aplicaveis;
       } else {
         return sum + meta.pontos_aplicaveis;
       }
@@ -417,6 +426,15 @@ const MinhasMetasPage = () => {
               const maximosSetor = metasDoSetor.reduce((sum, meta) => {
                 if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined) {
                   return sum + meta.estimativa_maxima;
+                } else if (meta.estimativa_cumprimento === 'Não Cumprido') {
+                  // Verificar se tem evidências válidas (mínimo 5 caracteres)
+                  const temEvidencia = meta.link_evidencia && meta.link_evidencia.trim().length >= 5;
+                  if (temEvidencia) {
+                    // Não Cumprido REAL (com evidências): usar estimativa_maxima ou 0 (todos perdidos)
+                    return sum + (meta.estimativa_maxima !== undefined ? meta.estimativa_maxima : 0);
+                  }
+                  // Se não tem evidências, é "Pendente", não compromete pontos
+                  return sum + meta.pontos_aplicaveis;
                 } else {
                   return sum + meta.pontos_aplicaveis;
                 }

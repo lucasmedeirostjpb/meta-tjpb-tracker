@@ -486,10 +486,21 @@ export const api = {
           eixoData.pontosEstimados += pontosEstimados;
           totalPontosEstimados += pontosEstimados;
           
-          // Se for "Em Andamento" e tiver estimativa_maxima, usar ela; senão usar pontos_aplicaveis
-          const pontosMaximos = update.estimativa_cumprimento === 'Em Andamento' && update.estimativa_maxima 
-            ? update.estimativa_maxima 
-            : pontosMeta;
+          // Calcular pontos máximos
+          let pontosMaximos = pontosMeta; // Padrão: pontos aplicáveis
+          
+          if (update.estimativa_cumprimento === 'Em Andamento' && update.estimativa_maxima) {
+            pontosMaximos = update.estimativa_maxima;
+          } else if (update.estimativa_cumprimento === 'Não Cumprido') {
+            // Verificar se tem evidências válidas (mínimo 5 caracteres)
+            const temEvidencia = update.link_evidencia && update.link_evidencia.trim().length >= 5;
+            if (temEvidencia) {
+              // Não Cumprido REAL (com evidências): usar estimativa_maxima ou 0 (todos perdidos)
+              pontosMaximos = update.estimativa_maxima !== undefined ? update.estimativa_maxima : 0;
+            }
+            // Se não tem evidências, é "Pendente", então pontosMaximos = pontosMeta (não compromete)
+          }
+          
           eixoData.pontosMaximos += pontosMaximos;
           totalPontosMaximos += pontosMaximos;
         } else {

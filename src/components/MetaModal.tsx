@@ -108,12 +108,21 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
 
   useEffect(() => {
     if (meta && open) {
-      const estimativaInicial = meta.estimativa_cumprimento || 'Não se Aplica';
+      // Se está marcado como "Não Cumprido" mas não tem evidências, abrir como "Em Andamento"
+      const temEvidencia = meta.link_evidencia && meta.link_evidencia.trim().length >= 5;
+      let estimativaInicial = meta.estimativa_cumprimento || 'Não se Aplica';
+      
+      if (estimativaInicial === 'Não Cumprido' && !temEvidencia) {
+        estimativaInicial = 'Em Andamento';
+      }
+      
       const pontosInicial = meta.pontos_estimados || 0;
       
       console.log('📋 [MODAL] Carregando meta:', {
         id: meta.id,
         estimativa_cumprimento: meta.estimativa_cumprimento,
+        estimativa_ajustada: estimativaInicial,
+        tem_evidencia: temEvidencia,
         pontos_estimados: meta.pontos_estimados,
         estimativa_maxima: meta.estimativa_maxima,
         pontos_aplicaveis: meta.pontos_aplicaveis,
@@ -178,8 +187,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       return;
     }
 
-    // Validação de evidência obrigatória (mínimo 5 caracteres) APENAS para certos status
-    if (estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido' || estimativa === 'Não Cumprido') {
+    // Validação de evidência obrigatória (mínimo 5 caracteres) APENAS para Totalmente e Parcialmente Cumprido
+    // Não Cumprido pode ser sem evidências (= Pendente)
+    if (estimativa === 'Totalmente Cumprido' || estimativa === 'Parcialmente Cumprido') {
       if (!linkEvidencia || linkEvidencia.trim().length < 5) {
         toast.error('O campo de evidências é obrigatório e deve ter no mínimo 5 caracteres para este status');
         return;
@@ -316,8 +326,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
       case 'Totalmente Cumprido': return 'bg-green-500 text-white hover:bg-green-500';
       case 'Parcialmente Cumprido': return 'bg-orange-500 text-white hover:bg-orange-500';
       case 'Em Andamento': return 'bg-yellow-500 text-white hover:bg-yellow-500';
-      case 'Não Cumprido': return 'bg-gray-500 text-white hover:bg-gray-500';
+      case 'Não Cumprido': return 'bg-red-500 text-white hover:bg-red-500';
       case 'Não se Aplica': return 'bg-gray-400 text-white hover:bg-gray-400';
+      case 'Pendente': return 'bg-gray-500 text-white hover:bg-gray-500';
       default: return 'bg-gray-500 text-white hover:bg-gray-500';
     }
   };

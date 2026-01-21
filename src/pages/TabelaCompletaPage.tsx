@@ -409,6 +409,16 @@ const TabelaCompletaPage = () => {
       // Calcular máximos (para TODAS as metas)
       if (meta.estimativa_cumprimento === 'Em Andamento' && meta.estimativa_maxima !== undefined && meta.estimativa_maxima !== null) {
         eixoData.maximos += meta.estimativa_maxima;
+      } else if (meta.estimativa_cumprimento === 'Não Cumprido') {
+        // Verificar se tem evidências válidas (mínimo 5 caracteres)
+        const temEvidencia = meta.link_evidencia && meta.link_evidencia.trim().length >= 5;
+        if (temEvidencia) {
+          // Não Cumprido REAL (com evidências): usar estimativa_maxima ou 0 (todos perdidos)
+          eixoData.maximos += (meta.estimativa_maxima !== undefined && meta.estimativa_maxima !== null ? meta.estimativa_maxima : 0);
+        } else {
+          // Se não tem evidências, é "Pendente", não compromete pontos
+          eixoData.maximos += meta.pontos_aplicaveis;
+        }
       } else {
         eixoData.maximos += meta.pontos_aplicaveis;
       }

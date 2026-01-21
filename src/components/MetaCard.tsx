@@ -59,6 +59,10 @@ const getStatusColor = (status: string) => {
       return 'bg-yellow-500 text-white hover:bg-yellow-500 border-yellow-600';
     case 'Parcialmente Cumprido':
       return 'bg-orange-500 text-white hover:bg-orange-500 border-orange-600';
+    case 'Não Cumprido':
+      return 'bg-red-500 text-white hover:bg-red-500 border-red-600';
+    case 'Pendente':
+      return 'bg-gray-500 text-white hover:bg-gray-500 border-gray-600';
     default:
       return 'bg-gray-500 text-white hover:bg-gray-500 border-gray-600';
   }
@@ -67,10 +71,19 @@ const getStatusColor = (status: string) => {
 const getStatusLabel = (meta: Meta) => {
   // Se tem estimativa_cumprimento, usar ela para determinar o label
   if (meta.estimativa_cumprimento) {
+    // Detectar requisitos nunca analisados ou "Não Cumprido" sem evidência = Pendente
+    const temEvidencia = meta.link_evidencia && meta.link_evidencia.trim().length >= 5;
+    
+    if (meta.estimativa_cumprimento === 'Não se Aplica' && !temEvidencia) {
+      return 'Pendente';
+    }
+    if (meta.estimativa_cumprimento === 'Não Cumprido' && !temEvidencia) {
+      return 'Pendente';
+    }
     if (meta.estimativa_cumprimento === 'Totalmente Cumprido') return 'Concluído';
     if (meta.estimativa_cumprimento === 'Parcialmente Cumprido') return 'Parcialmente Cumprido';
     if (meta.estimativa_cumprimento === 'Em Andamento') return 'Em Andamento';
-    if (meta.estimativa_cumprimento === 'Não Cumprido') return 'Pendente';
+    if (meta.estimativa_cumprimento === 'Não Cumprido') return 'Não Cumprido';
     if (meta.estimativa_cumprimento === 'Não se Aplica') return 'N/A';
   }
   // Fallback para o status direto
