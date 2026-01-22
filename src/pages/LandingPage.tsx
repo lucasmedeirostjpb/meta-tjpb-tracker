@@ -294,7 +294,7 @@ const LandingPage = () => {
                   className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <FileText className="h-6 w-6" />
-                  PDF Original CNJ
+                  Portaria do Prêmio CNJ 
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </>
@@ -315,7 +315,7 @@ const LandingPage = () => {
                   className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <FileText className="h-6 w-6" />
-                  PDF Original CNJ
+                  Portaria do Prêmio CNJ 
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </>
