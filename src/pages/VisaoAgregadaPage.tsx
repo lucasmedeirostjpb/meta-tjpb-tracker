@@ -215,9 +215,16 @@ const VisaoAgregadaPage = () => {
       return sum;
     }, 0);
 
+    const pontosComprometidos = metasSubset.reduce((sum, m) => {
+      if (m.estimativa_maxima !== null && m.estimativa_maxima !== undefined) {
+        return sum + (m.pontos_aplicaveis - m.estimativa_maxima);
+      }
+      return sum;
+    }, 0);
+
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
     
-    return { recebidos: pontosRecebidos, estimados: pontosEstimados, aplicaveis: pontosAplicaveis };
+    return { recebidos: pontosRecebidos, estimados: pontosEstimados, comprometidos: pontosComprometidos, aplicaveis: pontosAplicaveis };
   };
 
   const getEixoColor = (eixo: string) => {
@@ -674,6 +681,14 @@ const VisaoAgregadaPage = () => {
                                 className="bg-blue-50 text-blue-600 border-blue-300 text-xs mr-2"
                               >
                                 total estimado: {Math.round(pontosAgrupador.recebidos + pontosAgrupador.estimados)} pts / {((pontosAgrupador.recebidos + pontosAgrupador.estimados) / pontosAgrupador.aplicaveis * 100).toFixed(1)}%
+                              </Badge>
+                            )}
+                            {pontosAgrupador.comprometidos > 0 && (
+                              <Badge 
+                                variant="outline"
+                                className="bg-red-50 text-red-600 border-red-300 text-xs mr-2"
+                              >
+                                pontos comprometidos: {Math.round(pontosAgrupador.comprometidos)} pts / {((pontosAgrupador.comprometidos / pontosAgrupador.aplicaveis) * 100).toFixed(1)}%
                               </Badge>
                             )}
                             <Badge 
