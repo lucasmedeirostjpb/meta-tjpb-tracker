@@ -668,6 +668,14 @@ const VisaoAgregadaPage = () => {
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
+                            {pontosAgrupador.estimados > 0 && (
+                              <Badge 
+                                variant="outline"
+                                className="bg-blue-50 text-blue-600 border-blue-300 text-xs mr-2"
+                              >
+                                total estimado: {Math.round(pontosAgrupador.recebidos + pontosAgrupador.estimados)} pts / {((pontosAgrupador.recebidos + pontosAgrupador.estimados) / pontosAgrupador.aplicaveis * 100).toFixed(1)}%
+                              </Badge>
+                            )}
                             <Badge 
                               variant="outline"
                               className={`${
