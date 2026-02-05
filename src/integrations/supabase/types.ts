@@ -33,6 +33,7 @@ export interface Database {
           setor_executor: string
           coordenador: string | null
           prazo: string | null
+          pontos_aplicaveis: number
           created_at: string
           updated_at: string
         }
@@ -47,6 +48,7 @@ export interface Database {
           setor_executor: string
           coordenador?: string | null
           prazo?: string | null
+          pontos_aplicaveis: number
           created_at?: string
           updated_at?: string
         }
@@ -61,6 +63,7 @@ export interface Database {
           setor_executor?: string
           coordenador?: string | null
           prazo?: string | null
+          pontos_aplicaveis?: number
           created_at?: string
           updated_at?: string
         }

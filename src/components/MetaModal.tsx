@@ -80,7 +80,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const { responsaveis: responsaveisExistentes } = useResponsaveis();
   
-  const [estimativa, setEstimativa] = useState<string>('Não se Aplica');
+  const [estimativa, setEstimativaState] = useState<string>('Não se Aplica');
   const [pontosRecebidos, setPontosRecebidos] = useState<number>(0);
   const [estimativaMaxima, setEstimativaMaxima] = useState<number>(0);
   const [acoes, setAcoes] = useState<string>('');
@@ -91,6 +91,20 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
   const [dificuldade, setDificuldade] = useState<Dificuldade>('Sem dificuldades');
   const [saving, setSaving] = useState(false);
   const [openResponsavelPopovers, setOpenResponsavelPopovers] = useState<Record<string, boolean>>({});
+
+  // Handler para mudança de estimativa - ajusta pontos automaticamente
+  const setEstimativa = (novaEstimativa: string) => {
+    setEstimativaState(novaEstimativa);
+    
+    // Ao mudar para "Totalmente Cumprido", definir pontos como máximo
+    if (novaEstimativa === 'Totalmente Cumprido' && meta) {
+      setPontosRecebidos(meta.pontos_aplicaveis);
+    }
+    // Ao mudar para "Não Cumprido" ou "Não se Aplica", zerar pontos
+    else if (novaEstimativa === 'Não Cumprido' || novaEstimativa === 'Não se Aplica') {
+      setPontosRecebidos(0);
+    }
+  };
 
   const getEstimativaIcon = (est: string) => {
     switch (est) {
@@ -116,7 +130,12 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         estimativaInicial = 'Em Andamento';
       }
       
-      const pontosInicial = meta.pontos_estimados || 0;
+      // Para "Totalmente Cumprido", os pontos devem ser os pontos_aplicaveis
+      // independente do valor salvo em pontos_estimados
+      let pontosInicial = meta.pontos_estimados || 0;
+      if (estimativaInicial === 'Totalmente Cumprido') {
+        pontosInicial = meta.pontos_aplicaveis;
+      }
       
       console.log('📋 [MODAL] Carregando meta:', {
         id: meta.id,
@@ -124,12 +143,15 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
         estimativa_ajustada: estimativaInicial,
         tem_evidencia: temEvidencia,
         pontos_estimados: meta.pontos_estimados,
+        pontos_inicial_ajustado: pontosInicial,
         estimativa_maxima: meta.estimativa_maxima,
         pontos_aplicaveis: meta.pontos_aplicaveis,
         atividades_count: meta.atividades?.length || 0
       });
       
-      setEstimativa(estimativaInicial);
+      // Usar setEstimativaState diretamente para evitar a lógica de ajuste automático
+      // (os pontos já foram calculados corretamente acima)
+      setEstimativaState(estimativaInicial);
       setPontosRecebidos(pontosInicial);
       setEstimativaMaxima(meta.estimativa_maxima || meta.pontos_aplicaveis);
       setAcoes(meta.acoes_planejadas || '');
@@ -368,7 +390,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
             <div>
               <p className="text-xs text-muted-foreground">Prazo</p>
               <p className="font-medium text-sm">
-                {format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })}
+                {meta.deadline 
+                  ? format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })
+                  : 'Sem prazo definido'}
               </p>
             </div>
             <div>
@@ -989,7 +1013,9 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       <div>
                         <p className="text-xs text-muted-foreground">Prazo (Deadline)</p>
                         <p className="text-sm font-medium">
-                          {format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })}
+                          {meta.deadline 
+                            ? format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })
+                            : 'Sem prazo definido'}
                         </p>
                       </div>
                     </div>

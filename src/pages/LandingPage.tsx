@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit, Gauge, BarChart3, ExternalLink } from 'lucide-react';
+import { Scale, Target, Award, Users, FileText, Search, LayoutList, TrendingUp, CheckCircle2, ArrowRight, LogOut, LogIn, AlertCircle, Edit, Gauge, BarChart3, ExternalLink, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { RadialBarChart, RadialBar, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { api } from '@/services/api';
@@ -39,6 +40,25 @@ const LandingPage = () => {
       cor: string 
     }>
   });
+
+  // Estado para armazenar detalhes do ajuste do Eixo Transparência
+  const [transparenciaAjuste, setTransparenciaAjuste] = useState<{
+    rankingPercentual: number; // Percentual efetivado
+    rankingPercentualComEstimados: number; // Percentual com em andamento
+    rankingPontosRecebidos: number; // Pontos efetivados do ranking
+    rankingPontosEmAndamento: number; // Pontos em andamento do ranking
+    rankingPontosTotais: number; // Total de pontos do ranking
+    rankingPontosPremio: number; // 0, 80 ou 100 (efetivado)
+    rankingPontosPremioEstimado: number; // 0, 80 ou 100 (com estimados)
+    ouvidoriaPontos: number; // 0, 20 ou 40 (efetivado)
+    ouvidoriaPontosEmAndamento: number; // pontos em andamento
+    ouvidoriaStatus: string;
+    totalPremio: number; // rankingPontosPremio + ouvidoriaPontos (efetivado)
+    totalPremioEstimado: number; // pontos estimados adicionais
+  } | null>(null);
+
+  // Stats ajustados com a correção do Eixo Transparência
+  const [statsAjustados, setStatsAjustados] = useState(stats);
 
   useEffect(() => {
     loadStats();
@@ -98,14 +118,14 @@ const LandingPage = () => {
         console.log('✅ [LANDING] Estatísticas calculadas (MOCK):', {
           eixos: 4,
           requisitos: totalRequisitos,
-          pontos: totalPontos
+          pontos: totalPontosAplicaveis
         });
 
         setStats({
           eixos: 4,
           requisitos: totalRequisitos,
           pontosTotais: pontosRecebidos,
-          pontosEstimados: pontosEstimados,
+          pontosEstimados: 0,
           pontosAplicaveis: totalPontosAplicaveis,
           percentualGeral: 0,
           percentualComEstimados: 0,
@@ -121,9 +141,189 @@ const LandingPage = () => {
         const statsData = await api.getStats();
         console.log('✅ [LANDING] Estatísticas recebidas:', statsData);
         setStats(statsData);
+
+        // Buscar metas do Eixo Transparência para ajuste especial
+        await calcularAjusteTransparencia(statsData);
       }
     } catch (error: any) {
       console.error('❌ [LANDING] Erro ao carregar estatísticas:', error);
+    }
+  };
+
+  // Função para calcular o ajuste do Eixo Transparência
+  // Art. 11 I (Ranking): 202 pontos do ranking → 80 ou 100 pontos no prêmio
+  // Art. 11 II (Ouvidoria - artigo "11.2"): 40 pontos diretos
+  const calcularAjusteTransparencia = async (statsData: typeof stats) => {
+    try {
+      const metas = await api.getMetas();
+      
+      // Filtrar metas do Eixo Transparência
+      const metasTransparencia = metas.filter(m => 
+        m.eixo.toLowerCase().includes('transparência') || 
+        m.eixo.toLowerCase().includes('transparencia')
+      );
+
+      // Separar Ouvidoria (artigo 11.2) dos itens do Ranking (todos os outros)
+      const metaOuvidoria = metasTransparencia.find(m => m.artigo === '11.2');
+      const metasRanking = metasTransparencia.filter(m => m.artigo !== '11.2');
+
+      // Calcular pontos do Ranking - separar efetivados e em andamento
+      const rankingPontosTotais = metasRanking.reduce((sum, m) => sum + ((m as any).pontos_aplicaveis || 0), 0);
+      let rankingPontosEfetivados = 0;
+      let rankingPontosEmAndamento = 0;
+      
+      metasRanking.forEach(meta => {
+        const pontosMeta = (meta as any).pontos_aplicaveis || 0;
+        if (meta.estimativa_cumprimento === 'Totalmente Cumprido') {
+          rankingPontosEfetivados += pontosMeta;
+        } else if (meta.estimativa_cumprimento === 'Parcialmente Cumprido') {
+          rankingPontosEfetivados += meta.pontos_estimados || 0;
+        } else if (meta.estimativa_cumprimento === 'Em Andamento') {
+          rankingPontosEmAndamento += meta.pontos_estimados || 0;
+        }
+      });
+
+      // Percentual efetivado (sem estimados)
+      const rankingPercentualEfetivado = rankingPontosTotais > 0 
+        ? (rankingPontosEfetivados / rankingPontosTotais) * 100 
+        : 0;
+      
+      // Percentual com estimados (efetivados + em andamento)
+      const rankingPercentualComEstimados = rankingPontosTotais > 0 
+        ? ((rankingPontosEfetivados + rankingPontosEmAndamento) / rankingPontosTotais) * 100 
+        : 0;
+
+      // Converter para pontos do prêmio CNJ - EFETIVADOS
+      // 100% = 100 pontos | 95% a 99.99% = 80 pontos | Menos de 95% = 0 pontos
+      let rankingPontosPremioEfetivado = 0;
+      if (rankingPercentualEfetivado >= 100) {
+        rankingPontosPremioEfetivado = 100;
+      } else if (rankingPercentualEfetivado >= 95) {
+        rankingPontosPremioEfetivado = 80;
+      }
+
+      // Converter para pontos do prêmio CNJ - COM ESTIMADOS (projeção)
+      let rankingPontosPremioEstimado = 0;
+      if (rankingPercentualComEstimados >= 100) {
+        rankingPontosPremioEstimado = 100;
+      } else if (rankingPercentualComEstimados >= 95) {
+        rankingPontosPremioEstimado = 80;
+      }
+
+      // Calcular pontos da Ouvidoria - separar efetivados e em andamento
+      let ouvidoriaPontosEfetivados = 0;
+      let ouvidoriaPontosEmAndamento = 0;
+      let ouvidoriaStatus = 'Não avaliado';
+      
+      if (metaOuvidoria) {
+        if (metaOuvidoria.estimativa_cumprimento === 'Totalmente Cumprido') {
+          ouvidoriaPontosEfetivados = 40;
+          ouvidoriaStatus = 'Totalmente Cumprido';
+        } else if (metaOuvidoria.estimativa_cumprimento === 'Parcialmente Cumprido') {
+          ouvidoriaPontosEfetivados = metaOuvidoria.pontos_estimados || 20;
+          ouvidoriaStatus = 'Parcialmente Cumprido';
+        } else if (metaOuvidoria.estimativa_cumprimento === 'Em Andamento') {
+          ouvidoriaPontosEmAndamento = metaOuvidoria.pontos_estimados || 40;
+          ouvidoriaStatus = 'Em Andamento';
+        } else {
+          ouvidoriaStatus = metaOuvidoria.estimativa_cumprimento || 'Não avaliado';
+        }
+      }
+
+      // Totais
+      const totalPremioEfetivado = rankingPontosPremioEfetivado + ouvidoriaPontosEfetivados;
+      const totalPremioEstimado = (rankingPontosPremioEstimado - rankingPontosPremioEfetivado) + ouvidoriaPontosEmAndamento;
+
+      console.log('🎯 [LANDING] Ajuste Transparência:', {
+        rankingPercentualEfetivado: rankingPercentualEfetivado.toFixed(2) + '%',
+        rankingPercentualComEstimados: rankingPercentualComEstimados.toFixed(2) + '%',
+        rankingPontosPremioEfetivado,
+        rankingPontosPremioEstimado,
+        ouvidoriaPontosEfetivados,
+        ouvidoriaPontosEmAndamento,
+        totalPremioEfetivado,
+        totalPremioEstimado,
+        totalOriginal: statsData.eixosData.find(e => 
+          e.nome.toLowerCase().includes('transparência') || e.nome.toLowerCase().includes('transparencia')
+        )?.pontos || 0
+      });
+
+      setTransparenciaAjuste({
+        rankingPercentual: rankingPercentualEfetivado,
+        rankingPercentualComEstimados,
+        rankingPontosRecebidos: rankingPontosEfetivados,
+        rankingPontosEmAndamento,
+        rankingPontosTotais,
+        rankingPontosPremio: rankingPontosPremioEfetivado,
+        rankingPontosPremioEstimado,
+        ouvidoriaPontos: ouvidoriaPontosEfetivados,
+        ouvidoriaPontosEmAndamento,
+        ouvidoriaStatus,
+        totalPremio: totalPremioEfetivado,
+        totalPremioEstimado
+      });
+
+      // Agora ajustar os stats para refletir a correção
+      const eixoTransparenciaOriginal = statsData.eixosData.find(e => 
+        e.nome.toLowerCase().includes('transparência') || e.nome.toLowerCase().includes('transparencia')
+      );
+
+      if (eixoTransparenciaOriginal) {
+        // Calcular a diferença para ajustar os totais
+        const pontosOriginais = eixoTransparenciaOriginal.pontos; // ~242
+        const pontosRecebidosOriginais = eixoTransparenciaOriginal.pontosRecebidos;
+        const pontosEstimadosOriginais = eixoTransparenciaOriginal.pontosEstimados;
+        
+        const pontosAjustados = 140; // 100 (ranking máx) + 40 (ouvidoria)
+        const pontosRecebidosAjustados = totalPremioEfetivado;
+        const pontosEstimadosAjustados = totalPremioEstimado;
+
+        const diferencaPontos = pontosOriginais - pontosAjustados;
+        const diferencaRecebidos = pontosRecebidosOriginais - pontosRecebidosAjustados;
+        const diferencaEstimados = pontosEstimadosOriginais - pontosEstimadosAjustados;
+
+        // Criar eixosData ajustados
+        const eixosDataAjustados = statsData.eixosData.map(eixo => {
+          if (eixo.nome.toLowerCase().includes('transparência') || eixo.nome.toLowerCase().includes('transparencia')) {
+            const percentualEfetivo = pontosAjustados > 0 ? (pontosRecebidosAjustados / pontosAjustados) * 100 : 0;
+            const percentualComEst = pontosAjustados > 0 ? ((pontosRecebidosAjustados + pontosEstimadosAjustados) / pontosAjustados) * 100 : 0;
+            return {
+              ...eixo,
+              pontos: pontosAjustados,
+              pontosRecebidos: pontosRecebidosAjustados,
+              pontosEstimados: pontosEstimadosAjustados,
+              pontosMaximos: pontosAjustados,
+              percentual: percentualEfetivo,
+              percentualComEstimados: percentualComEst,
+              percentualMaximo: 100
+            };
+          }
+          return eixo;
+        });
+
+        // Recalcular totais
+        const pontosAplicaveisAjustados = statsData.pontosAplicaveis - diferencaPontos;
+        const pontosTotaisAjustados = statsData.pontosTotais - diferencaRecebidos;
+        const pontosEstimadosAjustados2 = (statsData.pontosEstimados || 0) - diferencaEstimados;
+        const percentualGeralAjustado = pontosAplicaveisAjustados > 0 
+          ? (pontosTotaisAjustados / pontosAplicaveisAjustados) * 100 
+          : 0;
+
+        setStatsAjustados({
+          ...statsData,
+          pontosAplicaveis: pontosAplicaveisAjustados,
+          pontosTotais: pontosTotaisAjustados,
+          pontosEstimados: pontosEstimadosAjustados2,
+          percentualGeral: percentualGeralAjustado,
+          percentualComEstimados: pontosAplicaveisAjustados > 0 
+            ? ((pontosTotaisAjustados + pontosEstimadosAjustados2) / pontosAplicaveisAjustados) * 100 
+            : 0,
+          eixosData: eixosDataAjustados
+        });
+      }
+    } catch (error) {
+      console.error('❌ [LANDING] Erro ao calcular ajuste Transparência:', error);
+      setStatsAjustados(statsData);
     }
   };
 
@@ -348,10 +548,10 @@ const LandingPage = () => {
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
           {[
-            { label: 'Eixos Temáticos', value: stats.eixos, color: 'from-blue-500 to-blue-600', icon: Target },
-            { label: 'Requisitos', value: stats.requisitos, color: 'from-green-500 to-green-600', icon: CheckCircle2 },
-            { label: 'Pontos Aplicáveis', value: stats.pontosAplicaveis, color: 'from-purple-500 to-purple-600', icon: Award },
-            { label: 'Setores', value: stats.setores, color: 'from-orange-500 to-orange-600', icon: Users },
+            { label: 'Eixos Temáticos', value: statsAjustados.eixos, color: 'from-blue-500 to-blue-600', icon: Target },
+            { label: 'Requisitos', value: statsAjustados.requisitos, color: 'from-green-500 to-green-600', icon: CheckCircle2 },
+            { label: 'Pontos Aplicáveis', value: statsAjustados.pontosAplicaveis, color: 'from-purple-500 to-purple-600', icon: Award },
+            { label: 'Setores', value: statsAjustados.setores, color: 'from-orange-500 to-orange-600', icon: Users },
           ].map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -424,8 +624,8 @@ const LandingPage = () => {
               {/* Velocímetro */}
               <div className="flex justify-center">
                 <GaugeChart 
-                  value={stats.percentualComEstimados}
-                  maxValue={stats.percentualMaximo !== undefined && stats.percentualMaximo < 100 ? stats.percentualMaximo : undefined}
+                  value={statsAjustados.percentualComEstimados}
+                  maxValue={statsAjustados.percentualMaximo !== undefined && statsAjustados.percentualMaximo < 100 ? statsAjustados.percentualMaximo : undefined}
                   size={380} 
                 />
               </div>
@@ -435,7 +635,7 @@ const LandingPage = () => {
                 {/* Percentual Principal */}
                 <div>
                   <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                    {stats.percentualComEstimados.toFixed(1)}%
+                    {statsAjustados.percentualComEstimados.toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-500 mt-1">Progresso Total (Efetivado + Estimado)</div>
                 </div>
@@ -449,21 +649,21 @@ const LandingPage = () => {
                       <span className="text-sm font-semibold text-gray-700">Pontos Efetivados</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-base font-bold text-green-700">{stats.pontosTotais} pts</div>
-                      <div className="text-xs text-gray-600">{stats.percentualGeral.toFixed(1)}%</div>
+                      <div className="text-base font-bold text-green-700">{statsAjustados.pontosTotais} pts</div>
+                      <div className="text-xs text-gray-600">{statsAjustados.percentualGeral.toFixed(1)}%</div>
                     </div>
                   </div>
                   
                   {/* Pontos Estimados */}
-                  {stats.pontosEstimados > 0 && (
+                  {statsAjustados.pontosEstimados > 0 && (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-blue-400 rounded"></div>
                         <span className="text-sm font-semibold text-gray-700">Pontos Estimados</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-base font-bold text-blue-600">+{stats.pontosEstimados} pts</div>
-                        <div className="text-xs text-gray-600">+{(stats.percentualComEstimados - stats.percentualGeral).toFixed(1)}%</div>
+                        <div className="text-base font-bold text-blue-600">+{statsAjustados.pontosEstimados} pts</div>
+                        <div className="text-xs text-gray-600">+{(statsAjustados.percentualComEstimados - statsAjustados.percentualGeral).toFixed(1)}%</div>
                       </div>
                     </div>
                   )}
@@ -475,23 +675,23 @@ const LandingPage = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-gray-900">Total</span>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-blue-700">{stats.pontosTotais + stats.pontosEstimados} pts</div>
-                      <div className="text-xs text-gray-600">de {stats.pontosAplicaveis} aplicáveis</div>
+                      <div className="text-lg font-bold text-blue-700">{statsAjustados.pontosTotais + statsAjustados.pontosEstimados} pts</div>
+                      <div className="text-xs text-gray-600">de {statsAjustados.pontosAplicaveis} aplicáveis</div>
                     </div>
                   </div>
                 </div>
                 
                 {/* Alerta de pontos comprometidos */}
-                {stats.pontosPerdidos > 0 && (
+                {statsAjustados.pontosPerdidos > 0 && (
                   <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
                     <div className="flex items-center justify-center gap-2 text-red-700">
                       <span className="inline-block w-2 h-2 bg-red-600 rounded-full"></span>
                       <span className="text-sm font-semibold">
-                        Máximo possível: {stats.percentualMaximo.toFixed(1)}% ({stats.pontosMaximos} pts)
+                        Máximo possível: {statsAjustados.percentualMaximo.toFixed(1)}% ({statsAjustados.pontosMaximos} pts)
                       </span>
                     </div>
                     <div className="text-xs text-red-600 text-center mt-1">
-                      {stats.pontosPerdidos} pontos comprometidos
+                      {statsAjustados.pontosPerdidos} pontos comprometidos
                     </div>
                   </div>
                 )}
@@ -539,7 +739,7 @@ const LandingPage = () => {
             </CardHeader>
             <CardContent className="h-[calc(100%-100px)]">
               <div className="space-y-8 h-full flex flex-col justify-between py-4">
-                {stats.eixosData.map((eixo) => {
+                {statsAjustados.eixosData.map((eixo) => {
                   const colors = {
                     blue: { bg: 'bg-blue-500', bgLight: 'bg-blue-400', text: 'text-blue-700', border: 'border-blue-500' },
                     green: { bg: 'bg-green-500', bgLight: 'bg-green-400', text: 'text-green-700', border: 'border-green-500' },
@@ -547,18 +747,125 @@ const LandingPage = () => {
                     orange: { bg: 'bg-orange-500', bgLight: 'bg-orange-400', text: 'text-orange-700', border: 'border-orange-500' }
                   };
                   const color = colors[eixo.cor as keyof typeof colors] || colors.blue;
-                  const barWidth = (eixo.pontosRecebidos / eixo.pontos) * 100;
-                  const barWidthComEstimados = ((eixo.pontosRecebidos + eixo.pontosEstimados) / eixo.pontos) * 100;
-                  const maxBarWidth = (eixo.pontosMaximos / eixo.pontos) * 100;
+                  const barWidth = eixo.pontos > 0 ? (eixo.pontosRecebidos / eixo.pontos) * 100 : 0;
+                  const barWidthComEstimados = eixo.pontos > 0 ? ((eixo.pontosRecebidos + eixo.pontosEstimados) / eixo.pontos) * 100 : 0;
+                  const maxBarWidth = eixo.pontos > 0 ? (eixo.pontosMaximos / eixo.pontos) * 100 : 0;
                   const hasLimit = eixo.pontosMaximos < eixo.pontos;
                   const hasEstimados = eixo.pontosEstimados > 0;
+                  
+                  // Verificar se é o Eixo Transparência para mostrar detalhamento
+                  const isTransparencia = eixo.nome.toLowerCase().includes('transparência') || eixo.nome.toLowerCase().includes('transparencia');
 
                   return (
                     <div key={eixo.nome} className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
+                          {/* Ícone de info para Eixo Transparência */}
+                          {isTransparencia && transparenciaAjuste && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="p-1 hover:bg-purple-100 rounded-full transition-colors cursor-pointer" title="Ver detalhamento do cálculo">
+                                  <Info className="h-4 w-4 text-purple-600" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="right" className="w-96 p-4 bg-white border-2 border-purple-200 shadow-xl">
+                                <div className="space-y-3 text-sm">
+                                  <p className="font-bold text-purple-700 border-b pb-2 text-base">📋 Cálculo Especial - Prêmio CNJ</p>
+                                  
+                                  {/* Ranking da Transparência */}
+                                  <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
+                                    <p className="font-semibold text-gray-700">📊 Ranking da Transparência (Art. 11, I)</p>
+                                    <div className="text-xs pl-4 space-y-1">
+                                      <p className="text-gray-600">
+                                        Itens efetivados: <span className="font-bold text-green-700">{transparenciaAjuste.rankingPontosRecebidos}</span>/{transparenciaAjuste.rankingPontosTotais} pts = <span className="font-bold text-green-700">{transparenciaAjuste.rankingPercentual.toFixed(1)}%</span>
+                                      </p>
+                                      {transparenciaAjuste.rankingPontosEmAndamento > 0 && (
+                                        <p className="text-gray-600">
+                                          + Em andamento: <span className="font-bold text-blue-600">+{transparenciaAjuste.rankingPontosEmAndamento}</span> pts = <span className="font-bold text-blue-600">{transparenciaAjuste.rankingPercentualComEstimados.toFixed(1)}%</span>
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-xs pl-4 pt-1 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-gray-500">Efetivado:</span>
+                                        {transparenciaAjuste.rankingPercentual >= 100 ? (
+                                          <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-xs">100 pts</span>
+                                        ) : transparenciaAjuste.rankingPercentual >= 95 ? (
+                                          <span className="bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded text-xs">80 pts</span>
+                                        ) : (
+                                          <span className="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded text-xs">0 pts</span>
+                                        )}
+                                      </div>
+                                      {transparenciaAjuste.rankingPontosEmAndamento > 0 && transparenciaAjuste.rankingPontosPremioEstimado > transparenciaAjuste.rankingPontosPremio && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-gray-500">Com estimados:</span>
+                                          {transparenciaAjuste.rankingPercentualComEstimados >= 100 ? (
+                                            <span className="bg-green-50 text-green-600 font-bold px-2 py-0.5 rounded text-xs border border-green-300">→ 100 pts</span>
+                                          ) : transparenciaAjuste.rankingPercentualComEstimados >= 95 ? (
+                                            <span className="bg-yellow-50 text-yellow-600 font-bold px-2 py-0.5 rounded text-xs border border-yellow-300">→ 80 pts</span>
+                                          ) : (
+                                            <span className="bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded text-xs">→ 0 pts</span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Ouvidoria */}
+                                  <div className="space-y-2 bg-gray-50 p-3 rounded-lg">
+                                    <p className="font-semibold text-gray-700">📞 Ouvidoria (Art. 11, II)</p>
+                                    <div className="text-xs pl-4 space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-gray-500">Status:</span>
+                                        <span className={`font-semibold ${
+                                          transparenciaAjuste.ouvidoriaStatus === 'Totalmente Cumprido' ? 'text-green-700' :
+                                          transparenciaAjuste.ouvidoriaStatus === 'Parcialmente Cumprido' ? 'text-yellow-700' :
+                                          transparenciaAjuste.ouvidoriaStatus === 'Em Andamento' ? 'text-blue-600' :
+                                          'text-gray-500'
+                                        }`}>{transparenciaAjuste.ouvidoriaStatus}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-gray-500">Efetivado:</span>
+                                        <span className="bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded">{transparenciaAjuste.ouvidoriaPontos} pts</span>
+                                      </div>
+                                      {transparenciaAjuste.ouvidoriaPontosEmAndamento > 0 && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-gray-500">Em andamento:</span>
+                                          <span className="bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded border border-blue-200">+{transparenciaAjuste.ouvidoriaPontosEmAndamento} pts</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Totais */}
+                                  <div className="border-t-2 border-purple-200 pt-3 mt-2 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-bold text-gray-700">Efetivado:</span>
+                                      <span className="font-bold text-lg text-green-700">{transparenciaAjuste.totalPremio}/140 pts</span>
+                                    </div>
+                                    {transparenciaAjuste.totalPremioEstimado > 0 && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-semibold text-gray-600">+ Em andamento:</span>
+                                        <span className="font-bold text-blue-600">+{transparenciaAjuste.totalPremioEstimado} pts</span>
+                                      </div>
+                                    )}
+                                    {transparenciaAjuste.totalPremioEstimado > 0 && (
+                                      <div className="flex justify-between items-center pt-1 border-t">
+                                        <span className="font-bold text-purple-700">Total projetado:</span>
+                                        <span className="font-bold text-xl text-purple-700">{transparenciaAjuste.totalPremio + transparenciaAjuste.totalPremioEstimado}/140 pts</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
                         <div className="flex flex-col items-end gap-1">
+                          {/* Pontos efetivados */}
                           <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Efetivados:</span>
                             <span className={`font-bold text-base ${color.text}`}>
                               {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts ({eixo.percentual.toFixed(1)}%)
                             </span>
@@ -568,10 +875,31 @@ const LandingPage = () => {
                               </span>
                             )}
                           </div>
+                          {/* Total com estimados */}
                           {hasEstimados && (
-                            <span className="text-xs text-blue-600 font-semibold">
-                              +{Math.round(eixo.pontosEstimados)} pts estimados
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">Com estimados:</span>
+                              <span className="text-sm text-blue-600 font-bold">
+                                {Math.round(eixo.pontosRecebidos + eixo.pontosEstimados)}/{eixo.pontos} pts ({eixo.percentualComEstimados.toFixed(1)}%)
+                              </span>
+                            </div>
+                          )}
+                          {/* Detalhamento inline para Transparência */}
+                          {isTransparencia && transparenciaAjuste && (
+                            <div className="flex flex-col items-end text-xs mt-1 pt-1 border-t border-purple-200">
+                              <span className="text-purple-600 font-medium">
+                                Ranking: {transparenciaAjuste.rankingPontosPremio}pts 
+                                {transparenciaAjuste.rankingPontosPremioEstimado > transparenciaAjuste.rankingPontosPremio && (
+                                  <span className="text-blue-500"> (+{transparenciaAjuste.rankingPontosPremioEstimado - transparenciaAjuste.rankingPontosPremio} est.)</span>
+                                )}
+                              </span>
+                              <span className="text-purple-600 font-medium">
+                                Ouvidoria: {transparenciaAjuste.ouvidoriaPontos}pts
+                                {transparenciaAjuste.ouvidoriaPontosEmAndamento > 0 && (
+                                  <span className="text-blue-500"> (+{transparenciaAjuste.ouvidoriaPontosEmAndamento} est.)</span>
+                                )}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -629,10 +957,10 @@ const LandingPage = () => {
                 </div>
               </div>
 
-              {/* Legenda */}
+              {/* Total Geral */}
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-500 text-center font-medium">
-                  Total: {stats.pontosTotais} de {stats.pontosAplicaveis} pontos ({stats.percentualGeral.toFixed(1)}%)
+                  Total: {statsAjustados.pontosTotais} de {statsAjustados.pontosAplicaveis} pontos ({statsAjustados.percentualGeral.toFixed(1)}%)
                 </div>
               </div>
             </CardContent>

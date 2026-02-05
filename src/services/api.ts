@@ -14,6 +14,9 @@ type UpdateData = {
 };
 
 type Meta = Database['public']['Tables']['metas_base']['Row'] & {
+  // Mapeamentos para compatibilidade com componentes
+  descricao?: string;
+  deadline?: string;
   link_evidencia?: string;
   observacoes?: string;
   update_id?: string;
@@ -130,6 +133,9 @@ export const api = {
         
         return {
           ...meta,
+          // Mapeamentos de campos para compatibilidade com componentes
+          descricao: meta.especificacao_requisito,
+          deadline: meta.prazo || '',
           link_evidencia: update?.link_evidencia || '',
           observacoes: update?.observacoes || '',
           update_id: update?.id,

@@ -91,9 +91,12 @@ const getStatusLabel = (meta: Meta) => {
 };
 
 const MetaCard = ({ meta, onClick }: MetaCardProps) => {
-  const deadline = parseISO(meta.deadline);
-  const daysUntilDeadline = differenceInDays(deadline, new Date());
-  const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline >= 0;
+  // Usar prazo do banco ou deadline, com fallback para data padrão
+  const deadlineStr = meta.prazo || meta.deadline || '';
+  const deadline = deadlineStr ? parseISO(deadlineStr) : null;
+  const hasValidDeadline = deadline && !isNaN(deadline.getTime());
+  const daysUntilDeadline = hasValidDeadline ? differenceInDays(deadline, new Date()) : 999;
+  const isUrgent = hasValidDeadline && daysUntilDeadline <= 30 && daysUntilDeadline >= 0;
   const statusLabel = getStatusLabel(meta);
 
   return (
@@ -124,7 +127,9 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
         <div className={`flex items-center gap-2 text-sm ${isUrgent ? 'text-prazo-urgente font-medium' : 'text-muted-foreground'}`}>
           <Calendar className="h-4 w-4" />
           <span>
-            {format(deadline, "dd/MM/yyyy", { locale: ptBR })}
+            {hasValidDeadline 
+              ? format(deadline, "dd/MM/yyyy", { locale: ptBR })
+              : 'Sem prazo definido'}
             {isUrgent && ` (${daysUntilDeadline} dias)`}
           </span>
         </div>
