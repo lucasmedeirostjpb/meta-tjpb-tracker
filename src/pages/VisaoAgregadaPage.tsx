@@ -23,7 +23,8 @@ import {
   LogIn,
   Edit,
   Award,
-  Filter
+  Filter,
+  ArrowUpDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import MetaCard from "@/components/MetaCard";
@@ -78,6 +79,8 @@ const VisaoAgregadaPage = () => {
   const [filtrosDificuldade, setFiltrosDificuldade] = useState<Dificuldade[]>([]);
   const [filtroEixo, setFiltroEixo] = useState<string>('todos');
   const [eixos, setEixos] = useState<string[]>([]);
+  const [tipoOrdenacao, setTipoOrdenacao] = useState<'nome' | 'efetivados' | 'total-estimado' | 'comprometidos'>('nome');
+  const [direcaoOrdenacao, setDirecaoOrdenacao] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadMetas();
@@ -225,6 +228,41 @@ const VisaoAgregadaPage = () => {
     const pontosAplicaveis = metasSubset.reduce((sum, m) => sum + m.pontos_aplicaveis, 0);
     
     return { recebidos: pontosRecebidos, estimados: pontosEstimados, comprometidos: pontosComprometidos, aplicaveis: pontosAplicaveis };
+  };
+
+  // Função para ordenar os grupos
+  const getGruposOrdenados = () => {
+    const gruposObj = groupByAgrupador();
+    const gruposArray = Object.entries(gruposObj);
+    const multiplicador = direcaoOrdenacao === 'asc' ? 1 : -1;
+
+    switch (tipoOrdenacao) {
+      case 'efetivados':
+        return gruposArray.sort(([, metasA], [, metasB]) => {
+          const pontosA = getTotalPontos(metasA).recebidos;
+          const pontosB = getTotalPontos(metasB).recebidos;
+          return (pontosA - pontosB) * multiplicador;
+        });
+      case 'total-estimado':
+        return gruposArray.sort(([, metasA], [, metasB]) => {
+          const totaisA = getTotalPontos(metasA);
+          const totaisB = getTotalPontos(metasB);
+          const pontosA = totaisA.recebidos + totaisA.estimados;
+          const pontosB = totaisB.recebidos + totaisB.estimados;
+          return (pontosA - pontosB) * multiplicador;
+        });
+      case 'comprometidos':
+        return gruposArray.sort(([, metasA], [, metasB]) => {
+          const pontosA = getTotalPontos(metasA).comprometidos;
+          const pontosB = getTotalPontos(metasB).comprometidos;
+          return (pontosA - pontosB) * multiplicador;
+        });
+      case 'nome':
+      default:
+        return gruposArray.sort(([a], [b]) => 
+          direcaoOrdenacao === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+        );
+    }
   };
 
   const getEixoColor = (eixo: string) => {
@@ -643,11 +681,58 @@ const VisaoAgregadaPage = () => {
           </div>
         </div>
 
+        {/* Ordenação */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-start gap-3">
+            <ArrowUpDown className="h-5 w-5 text-gray-600 mt-1" />
+            <div className="flex-1">
+              <label className="text-sm font-semibold text-gray-700 block mb-3">Ordenar por:</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Select value={tipoOrdenacao} onValueChange={(value: typeof tipoOrdenacao) => setTipoOrdenacao(value)}>
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="Ordenar por..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nome">📝 Nome</SelectItem>
+                    <SelectItem value="efetivados">✅ Pontos Efetivados</SelectItem>
+                    <SelectItem value="total-estimado">🔄 Total Estimado</SelectItem>
+                    <SelectItem value="comprometidos">⚠️ Comprometidos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDirecaoOrdenacao(d => d === 'asc' ? 'desc' : 'asc')}
+                  className="gap-2"
+                >
+                  {direcaoOrdenacao === 'asc' ? (
+                    <>⬆️ Menor → Maior</>
+                  ) : (
+                    <>⬇️ Maior → Menor</>
+                  )}
+                </Button>
+                {(tipoOrdenacao !== 'nome' || direcaoOrdenacao !== 'asc') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setTipoOrdenacao('nome');
+                      setDirecaoOrdenacao('asc');
+                    }}
+                    className="text-xs"
+                  >
+                    Resetar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Lista de Coordenadores/Setores */}
         <div className="space-y-4">
           <Accordion type="multiple" className="space-y-4">
-            {Object.entries(grupos)
-              .sort(([a], [b]) => a.localeCompare(b))
+            {getGruposOrdenados()
               .map(([agrupador, metasAgrupador]) => {
                 const progressoAgrupador = calculateProgress(metasAgrupador);
                 const pontosAgrupador = getTotalPontos(metasAgrupador);
