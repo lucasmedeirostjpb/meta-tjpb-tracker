@@ -656,7 +656,7 @@ const LandingPage = () => {
 
       {/* Velocímetro e Gráfico de Barras */}
       <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto items-start">
           {/* Velocímetro - DESTAQUE */}
           <Card className="border-4 border-blue-500 shadow-2xl bg-gradient-to-br from-white via-blue-50 to-white">
             <CardHeader className="text-center pb-4">
@@ -809,25 +809,25 @@ const LandingPage = () => {
 
           {/* Gráfico de Barras Simples */}
           <Card className="border-2 shadow-lg">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
-                  <BarChart3 className="h-6 w-6 text-white" />
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <BarChart3 className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">Comparativo dos Eixos</CardTitle>
-                  <CardDescription className="text-base">Pontos alcançados por eixo temático</CardDescription>
+                  <CardTitle className="text-xl">Comparativo dos Eixos</CardTitle>
+                  <CardDescription className="text-sm">Pontos alcançados por eixo temático</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[calc(100%-100px)]">
-              <div className="space-y-8 h-full flex flex-col justify-between py-4">
+            <CardContent className="pt-0">
+              <div className="space-y-4">
                 {statsAjustados.eixosData.map((eixo) => {
                   const colors = {
-                    blue: { bg: 'bg-blue-500', bgLight: 'bg-blue-400', text: 'text-blue-700', border: 'border-blue-500' },
-                    green: { bg: 'bg-green-500', bgLight: 'bg-green-400', text: 'text-green-700', border: 'border-green-500' },
-                    purple: { bg: 'bg-purple-500', bgLight: 'bg-purple-400', text: 'text-purple-700', border: 'border-purple-500' },
-                    orange: { bg: 'bg-orange-500', bgLight: 'bg-orange-400', text: 'text-orange-700', border: 'border-orange-500' }
+                    blue: { bg: 'bg-blue-500', bgLight: 'bg-blue-400', text: 'text-blue-700', textLight: 'text-blue-500', border: 'border-blue-500' },
+                    green: { bg: 'bg-green-500', bgLight: 'bg-green-400', text: 'text-green-700', textLight: 'text-green-500', border: 'border-green-500' },
+                    purple: { bg: 'bg-purple-500', bgLight: 'bg-purple-400', text: 'text-purple-700', textLight: 'text-purple-500', border: 'border-purple-500' },
+                    orange: { bg: 'bg-orange-500', bgLight: 'bg-orange-400', text: 'text-orange-700', textLight: 'text-orange-500', border: 'border-orange-500' }
                   };
                   const color = colors[eixo.cor as keyof typeof colors] || colors.blue;
                   const barWidth = eixo.pontos > 0 ? (eixo.pontosRecebidos / eixo.pontos) * 100 : 0;
@@ -840,10 +840,12 @@ const LandingPage = () => {
                   const isTransparencia = eixo.nome.toLowerCase().includes('transparência') || eixo.nome.toLowerCase().includes('transparencia');
 
                   return (
-                    <div key={eixo.nome} className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-base text-gray-700">{eixo.nome}</span>
+                    <div key={eixo.nome} className="space-y-1.5">
+                      {/* Cabeçalho da barra */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color.bg}`}></div>
+                          <span className="font-semibold text-sm text-gray-800 truncate">{eixo.nome.replace(/^\d+\.\s*/, '')}</span>
                           {/* Ícone de info para Eixo Transparência */}
                           {isTransparencia && transparenciaAjuste && (
                             <Popover>
@@ -945,76 +947,59 @@ const LandingPage = () => {
                             </Popover>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {/* Pontos efetivados */}
-                          <div className="flex items-center gap-2">
+                        {/* Pontos - layout descritivo */}
+                        <div className="flex flex-col items-end text-right flex-shrink-0">
+                          <div className="flex items-center gap-1.5">
                             <span className="text-xs text-gray-500">Efetivados:</span>
-                            <span className={`font-bold text-base ${color.text}`}>
-                              {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts ({eixo.percentual.toFixed(1)}%)
+                            <span className={`font-bold text-sm ${color.text}`}>
+                              {Math.round(eixo.pontosRecebidos)}/{eixo.pontos} pts
                             </span>
-                            {hasLimit && (
-                              <span className="text-xs text-red-600 font-semibold">
-                                (máx: {Math.round(eixo.pontosMaximos)})
-                              </span>
-                            )}
+                            <span className={`text-xs ${color.text}`}>({eixo.percentual.toFixed(1)}%)</span>
                           </div>
-                          {/* Total com estimados */}
                           {hasEstimados && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               <span className="text-xs text-gray-500">Com estimados:</span>
-                              <span className="text-sm text-blue-600 font-bold">
+                              <span className={`text-xs ${color.textLight} font-bold`}>
                                 {Math.round(eixo.pontosRecebidos + eixo.pontosEstimados)}/{eixo.pontos} pts ({eixo.percentualComEstimados.toFixed(1)}%)
                               </span>
                             </div>
                           )}
-                          {/* Detalhamento inline para Transparência */}
+                          {hasLimit && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-red-500 font-medium">
+                                ⚠ Máximo possível: {Math.round(eixo.pontosMaximos)} pts - {Math.round(eixo.pontos - eixo.pontosMaximos)} pontos comprometidos ({(100 - eixo.percentualMaximo).toFixed(1)}%)
+                              </span>
+                            </div>
+                          )}
+                          {/* Detalhamento para Transparência */}
                           {isTransparencia && transparenciaAjuste && (
-                            <div className="flex flex-col items-end text-xs mt-1 pt-1 border-t border-purple-200">
-                              <span className="text-purple-600 font-medium">
-                                Ranking: {transparenciaAjuste.rankingPontosPremio}pts 
-                                {transparenciaAjuste.rankingPontosPremioEstimado > transparenciaAjuste.rankingPontosPremio && (
-                                  <span className="text-blue-500"> (+{transparenciaAjuste.rankingPontosPremioEstimado - transparenciaAjuste.rankingPontosPremio} est.)</span>
-                                )}
-                              </span>
-                              <span className="text-purple-600 font-medium">
-                                Ouvidoria: {transparenciaAjuste.ouvidoriaPontos}pts
-                                {transparenciaAjuste.ouvidoriaPontosEmAndamento > 0 && (
-                                  <span className="text-blue-500"> (+{transparenciaAjuste.ouvidoriaPontosEmAndamento} est.)</span>
-                                )}
-                              </span>
+                            <div className="text-xs text-purple-600 mt-0.5">
+                              Ranking: {transparenciaAjuste.rankingPontosPremio}pts | Ouvidoria: {transparenciaAjuste.ouvidoriaPontos}pts
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-                        {/* Barra de pontos estimados (mais clara, por baixo) */}
+                      {/* Barra de progresso */}
+                      <div className="relative h-5 bg-gray-100 rounded-md overflow-hidden border border-gray-200">
+                        {/* Barra de pontos estimados */}
                         {hasEstimados && (
                           <div
-                            className={`h-full ${color.bgLight} opacity-60 transition-all duration-1000 ease-out absolute rounded-lg`}
-                            style={{ 
-                              width: `${Math.min(barWidthComEstimados, 100)}%`,
-                              zIndex: 0
-                            }}
+                            className={`h-full ${color.bgLight} opacity-50 transition-all duration-700 ease-out absolute rounded-md`}
+                            style={{ width: `${Math.min(barWidthComEstimados, 100)}%` }}
                           />
                         )}
-                        {/* Barra de progresso efetivado (por cima) */}
+                        {/* Barra de progresso efetivado */}
                         <div
-                          className={`h-full ${color.bg} transition-all duration-1000 ease-out absolute rounded-lg`}
-                          style={{ 
-                            width: `${Math.min(barWidth, 100)}%`,
-                            zIndex: 1
-                          }}
+                          className={`h-full ${color.bg} transition-all duration-700 ease-out absolute rounded-md`}
+                          style={{ width: `${Math.min(barWidth, 100)}%` }}
                         />
                         {/* Linha vermelha indicando limite máximo */}
                         {hasLimit && maxBarWidth < 100 && (
                           <div
-                            className="absolute top-0 bottom-0 w-1 bg-red-600 z-20"
+                            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
                             style={{ left: `${maxBarWidth}%` }}
-                            title={`Máximo possível: ${eixo.percentualMaximo.toFixed(1)}%`}
-                          >
-                            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rounded-full"></div>
-                          </div>
+                            title={`Máximo: ${eixo.percentualMaximo.toFixed(1)}%`}
+                          />
                         )}
                       </div>
                     </div>
@@ -1023,27 +1008,32 @@ const LandingPage = () => {
               </div>
               
               {/* Legenda */}
-              <div className="pt-4 border-t mt-4">
-                <div className="flex items-center justify-center gap-6 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-500 rounded"></div>
-                    <span className="font-medium">Pontos Efetivados</span>
+              <div className="pt-3 mt-3 border-t border-gray-100">
+                <div className="flex items-center justify-center gap-5 text-xs text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <span>Pontos Efetivados</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-400 opacity-60 rounded"></div>
-                    <span className="font-medium">+ Pontos Estimados</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-blue-400 opacity-50 rounded"></div>
+                    <span>Pontos Estimados</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-red-600 rounded"></div>
-                    <span className="font-medium">Limite Máximo</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-0.5 h-3 bg-red-500 rounded"></div>
+                    <span>Limite Máximo</span>
                   </div>
                 </div>
               </div>
 
               {/* Total Geral */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-500 text-center font-medium">
-                  Total: {statsAjustados.pontosTotais} de {statsAjustados.pontosAplicaveis} pontos ({statsAjustados.percentualGeral.toFixed(1)}%)
+              <div className="mt-3 pt-3 border-t border-gray-200 bg-gray-50 -mx-6 -mb-6 px-6 py-3 rounded-b-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">Total Geral (com estimados)</span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-gray-800">{statsAjustados.pontosTotais + statsAjustados.pontosEstimados}</span>
+                    <span className="text-sm text-gray-500"> de {statsAjustados.pontosAplicaveis} pontos</span>
+                    <span className="ml-2 text-sm font-bold text-blue-600">({statsAjustados.percentualComEstimados.toFixed(1)}%)</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
