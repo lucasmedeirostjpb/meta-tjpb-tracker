@@ -338,6 +338,54 @@ const LandingPage = () => {
     return 'gray';
   };
 
+  // Função para calcular a próxima meta e pontos faltantes
+  const calcularProximaMeta = (pontosAtuais: number, pontosAplicaveis: number, usarEstimados: boolean = false) => {
+    const metas = [
+      { nome: 'Prata', percentual: 75, cor: 'gray', bgColor: 'bg-gray-100', borderColor: 'border-gray-400', textColor: 'text-gray-700' },
+      { nome: 'Ouro', percentual: 80, cor: 'yellow', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-400', textColor: 'text-yellow-700' },
+      { nome: 'Diamante', percentual: 85, cor: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-400', textColor: 'text-blue-700' },
+    ];
+
+    const percentualAtual = pontosAplicaveis > 0 ? (pontosAtuais / pontosAplicaveis) * 100 : 0;
+
+    for (const meta of metas) {
+      const pontosNecessarios = Math.ceil((meta.percentual / 100) * pontosAplicaveis);
+      const pontosFaltantes = pontosNecessarios - pontosAtuais;
+      
+      if (pontosFaltantes > 0) {
+        return {
+          meta,
+          pontosFaltantes,
+          pontosNecessarios,
+          percentualAtual,
+          atingida: false
+        };
+      }
+    }
+
+    // Já atingiu Diamante
+    return {
+      meta: metas[metas.length - 1],
+      pontosFaltantes: 0,
+      pontosNecessarios: Math.ceil((85 / 100) * pontosAplicaveis),
+      percentualAtual,
+      atingida: true
+    };
+  };
+
+  // Calcular próxima meta com pontos efetivados
+  const proximaMetaEfetivado = calcularProximaMeta(
+    statsAjustados.pontosTotais,
+    statsAjustados.pontosAplicaveis
+  );
+
+  // Calcular próxima meta com pontos efetivados + estimados
+  const proximaMetaComEstimados = calcularProximaMeta(
+    statsAjustados.pontosTotais + statsAjustados.pontosEstimados,
+    statsAjustados.pontosAplicaveis,
+    true
+  );
+
   const eixos = [
     {
       nome: 'Governança',
@@ -683,6 +731,39 @@ const LandingPage = () => {
                   </div>
                 </div>
                 
+                {/* Aviso de Próxima Meta */}
+                {!proximaMetaComEstimados.atingida && (
+                  <div className={`${proximaMetaComEstimados.meta.bgColor} border-2 ${proximaMetaComEstimados.meta.borderColor} rounded-lg p-4 mt-4`}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Target className={`h-5 w-5 ${proximaMetaComEstimados.meta.textColor}`} />
+                      <span className={`text-sm font-bold ${proximaMetaComEstimados.meta.textColor}`}>
+                        {statsAjustados.pontosEstimados > 0 ? (
+                          <>Estamos a <span className="text-lg">{proximaMetaComEstimados.pontosFaltantes}</span> pontos de estimar o <span className="uppercase">Selo {proximaMetaComEstimados.meta.nome}</span></>
+                        ) : (
+                          <>Faltam <span className="text-lg">{proximaMetaEfetivado.pontosFaltantes}</span> pontos para o <span className="uppercase">Selo {proximaMetaEfetivado.meta.nome}</span></>
+                        )}
+                      </span>
+                    </div>
+                    {statsAjustados.pontosEstimados > 0 && proximaMetaEfetivado.pontosFaltantes !== proximaMetaComEstimados.pontosFaltantes && (
+                      <div className="text-xs text-center mt-2 text-gray-600">
+                        (Com pontos efetivados: faltam {proximaMetaEfetivado.pontosFaltantes} pts para {proximaMetaEfetivado.meta.nome})
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Aviso quando já atingiu Diamante */}
+                {proximaMetaComEstimados.atingida && (
+                  <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-400 rounded-lg p-4 mt-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <Award className="h-5 w-5 text-blue-700" />
+                      <span className="text-sm font-bold text-blue-700">
+                        🎉 Parabéns! Já estimamos o <span className="uppercase">Selo Diamante</span>!
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Alerta de pontos comprometidos */}
                 {statsAjustados.pontosPerdidos > 0 && (
                   <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
