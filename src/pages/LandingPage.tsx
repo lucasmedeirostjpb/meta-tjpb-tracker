@@ -11,10 +11,12 @@ import { api } from '@/services/api';
 import { mockMetas } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import GaugeChart from '@/components/GaugeChart';
+import { useClearCache } from '@/hooks/useClearCache';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { clearAndReload } = useClearCache();
   const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
   const [stats, setStats] = useState({
     eixos: 4,
@@ -1094,6 +1096,13 @@ const LandingPage = () => {
               <p className="text-blue-300 text-sm mt-2">
                 © 2025 - Todos os direitos reservados
               </p>
+              <button
+                onClick={clearAndReload}
+                className="text-xs text-blue-400 hover:text-blue-300 mt-3 opacity-60 hover:opacity-100 transition-opacity"
+                title="Use se os dados parecerem desatualizados"
+              >
+                🔄 Limpar Cache
+              </button>
             </div>
           </div>
         </div>

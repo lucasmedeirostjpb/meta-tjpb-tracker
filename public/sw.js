@@ -1,30 +1,28 @@
-// Service Worker customizado para evitar cachear requisições POST
-const CACHE_NAME = 'tjpb-meta-tracker-v1';
+// Service Worker com estratégia Network-First para evitar dados antigos
+const CACHE_NAME = 'tjpb-meta-tracker-v2';
+const STATIC_ASSETS = ['/', '/index.html'];
 
 // Instalar o service worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Instalando...');
+  console.log('Service Worker: Instalando v2...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Service Worker: Cache aberto');
-      return cache.addAll([
-        '/',
-        '/index.html',
-      ]);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// Ativar o service worker
+// Ativar o service worker e limpar caches antigos
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Ativando...');
+  console.log('Service Worker: Ativando v2...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Limpando cache antigo');
+            console.log('Service Worker: Limpando cache antigo:', cache);
             return caches.delete(cache);
           }
         })
@@ -34,9 +32,9 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Interceptar requisições - APENAS GET
+// Interceptar requisições - Estratégia NETWORK-FIRST
 self.addEventListener('fetch', (event) => {
-  // Ignorar requisições que não sejam GET (POST, PUT, DELETE, etc)
+  // Ignorar requisições que não sejam GET
   if (event.request.method !== 'GET') {
     return;
   }
@@ -46,24 +44,48 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Ignorar requisições de API/dados
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('rest/v1') ||
+      event.request.headers.get('accept')?.includes('application/json')) {
+    return;
+  }
+
+  // Para recursos estáticos: NETWORK-FIRST (tentar rede primeiro, cache como fallback)
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Retornar do cache se existir, senão buscar da rede
-      return response || fetch(event.request).then((fetchResponse) => {
-        // Cachear apenas recursos estáticos (não APIs)
-        if (fetchResponse && fetchResponse.status === 200) {
-          const responseToCache = fetchResponse.clone();
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Se a rede respondeu, atualizar o cache
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
         }
-        return fetchResponse;
-      });
-    }).catch(() => {
-      // Fallback offline (opcional)
-      if (event.request.destination === 'document') {
-        return caches.match('/index.html');
-      }
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        // Se a rede falhou, tentar o cache
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Fallback para index.html em rotas de navegação
+          if (event.request.destination === 'document') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
+});
+
+// Escutar mensagens para limpar cache manualmente
+self.addEventListener('message', (event) => {
+  if (event.data === 'CLEAR_CACHE') {
+    caches.keys().then((cacheNames) => {
+      cacheNames.forEach((cacheName) => {
+        caches.delete(cacheName);
+      });
+    });
+  }
 });
