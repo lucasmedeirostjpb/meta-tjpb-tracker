@@ -55,6 +55,22 @@ interface Meta {
   }>;
 }
 
+// Função helper para formatar datas de forma segura
+const formatDateSafe = (dateString: string | null | undefined, formatStr: string = 'dd/MM/yyyy'): string => {
+  if (!dateString || dateString.trim() === '') {
+    return '-';
+  }
+  try {
+    const parsed = parseISO(dateString);
+    if (isNaN(parsed.getTime())) {
+      return '-';
+    }
+    return format(parsed, formatStr, { locale: ptBR });
+  } catch {
+    return '-';
+  }
+};
+
 const TabelaCompletaPage = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -199,26 +215,16 @@ const TabelaCompletaPage = () => {
       'Observação'
     ];
 
+    // Função para formatar atividade para CSV
+    const formatAtividadeCSV = (atividade: Meta['atividades'][number] | undefined): string => {
+      if (!atividade) return '';
+      const prazoFormatado = formatDateSafe(atividade.prazo);
+      return `${atividade.acao || ''} | Resp: ${atividade.responsavel || ''} | Prazo: ${prazoFormatado} | Status: ${atividade.status || ''}${atividade.andamento ? ` | Andamento: ${atividade.andamento}` : ''}`;
+    };
+
     const rows = filteredMetas.map(meta => {
       const pontosRecebidos = calcularPontosRecebidos(meta);
       
-      // Formatar atividades
-      const atividade1 = meta.atividades?.[0] 
-        ? `${meta.atividades[0].acao} | Resp: ${meta.atividades[0].responsavel} | Prazo: ${meta.atividades[0].prazo ? format(parseISO(meta.atividades[0].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[0].status}${meta.atividades[0].andamento ? ` | Andamento: ${meta.atividades[0].andamento}` : ''}`
-        : '';
-      const atividade2 = meta.atividades?.[1]
-        ? `${meta.atividades[1].acao} | Resp: ${meta.atividades[1].responsavel} | Prazo: ${meta.atividades[1].prazo ? format(parseISO(meta.atividades[1].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[1].status}${meta.atividades[1].andamento ? ` | Andamento: ${meta.atividades[1].andamento}` : ''}`
-        : '';
-      const atividade3 = meta.atividades?.[2]
-        ? `${meta.atividades[2].acao} | Resp: ${meta.atividades[2].responsavel} | Prazo: ${meta.atividades[2].prazo ? format(parseISO(meta.atividades[2].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[2].status}${meta.atividades[2].andamento ? ` | Andamento: ${meta.atividades[2].andamento}` : ''}`
-        : '';
-      const atividade4 = meta.atividades?.[3]
-        ? `${meta.atividades[3].acao} | Resp: ${meta.atividades[3].responsavel} | Prazo: ${meta.atividades[3].prazo ? format(parseISO(meta.atividades[3].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[3].status}${meta.atividades[3].andamento ? ` | Andamento: ${meta.atividades[3].andamento}` : ''}`
-        : '';
-      const atividade5 = meta.atividades?.[4]
-        ? `${meta.atividades[4].acao} | Resp: ${meta.atividades[4].responsavel} | Prazo: ${meta.atividades[4].prazo ? format(parseISO(meta.atividades[4].prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'} | Status: ${meta.atividades[4].status}${meta.atividades[4].andamento ? ` | Andamento: ${meta.atividades[4].andamento}` : ''}`
-        : '';
-
       return [
         meta.eixo,
         meta.coordenador || '',
@@ -231,30 +237,44 @@ const TabelaCompletaPage = () => {
         pontosRecebidos.toFixed(2),
         `${meta.percentual_cumprimento?.toFixed(1) || '0.0'}%`,
         meta.estimativa_cumprimento || 'Não se Aplica',
-        format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR }),
+        formatDateSafe(meta.deadline),
         meta.acoes_planejadas || '',
-        atividade1,
-        atividade2,
-        atividade3,
-        atividade4,
-        atividade5,
+        formatAtividadeCSV(meta.atividades?.[0]),
+        formatAtividadeCSV(meta.atividades?.[1]),
+        formatAtividadeCSV(meta.atividades?.[2]),
+        formatAtividadeCSV(meta.atividades?.[3]),
+        formatAtividadeCSV(meta.atividades?.[4]),
         meta.justificativa_parcial || '',
         meta.observacoes || ''
       ];
     });
 
+    // Escapar valores para CSV
+    const escapeCSV = (value: any): string => {
+      const str = String(value ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
     ].join('\n');
 
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `requisitos-cnj-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `metas_cnj_tjpb_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    toast.success('Tabela exportada com sucesso!');
+    toast.success('Arquivo CSV exportado com sucesso!');
   };
 
   const copyColumnToClipboard = (columnName: string) => {
@@ -296,7 +316,7 @@ const TabelaCompletaPage = () => {
         break;
       case 'deadline':
         header = 'Deadline';
-        data = filteredMetas.map(meta => format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR }));
+        data = filteredMetas.map(meta => formatDateSafe(meta.deadline));
         break;
       case 'acoes':
         header = 'Ações - Legado';
@@ -453,9 +473,7 @@ const TabelaCompletaPage = () => {
   console.log('===============================================');
 
   const formatAtividade = (atividade: { acao: string; responsavel: string; prazo: string; status: string; andamento?: string }) => {
-    const prazoFormatado = atividade.prazo 
-      ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR })
-      : 'Sem prazo';
+    const prazoFormatado = formatDateSafe(atividade.prazo);
     return (
       <div className="text-xs space-y-1">
         <p className="font-medium text-gray-900">{atividade.acao}</p>
@@ -784,7 +802,7 @@ const TabelaCompletaPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+                        {formatDateSafe(meta.deadline)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground bg-amber-50/30">
                         {meta.acoes_planejadas || '-'}
