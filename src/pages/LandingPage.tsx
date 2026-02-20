@@ -550,7 +550,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2025/12/glossario-ranking-transparencia-2026.pdf', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2026/02/glossario-ranking-transparencia-11-02-2026.pdf', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50 hover:border-orange-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <BarChart3 className="h-6 w-6" />
@@ -581,7 +581,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2025/12/glossario-ranking-transparencia-2026.pdf', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2026/02/glossario-ranking-transparencia-11-02-2026.pdf', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50 hover:border-orange-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <BarChart3 className="h-6 w-6" />
