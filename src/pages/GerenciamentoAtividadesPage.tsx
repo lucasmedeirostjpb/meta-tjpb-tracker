@@ -25,12 +25,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText } from 'lucide-react';
-import { format, parseISO, isPast } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText, Plus } from 'lucide-react';
+import { format, parseISO, isPast, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Atividade, AtividadeStatus } from '@/integrations/supabase/types';
+import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 interface Meta {
@@ -44,9 +54,16 @@ interface Meta {
   coordenador?: string;
   deadline: string;
   pontos_aplicaveis: number;
+  link_evidencia?: string;
   estimativa_cumprimento?: string;
+  pontos_estimados?: number;
+  percentual_cumprimento?: number;
+  acoes_planejadas?: string;
+  justificativa_parcial?: string;
   observacoes?: string;
   atividades?: Atividade[];
+  dificuldade?: Dificuldade;
+  estimativa_maxima?: number;
 }
 
 interface AtividadeComMeta extends Atividade {
@@ -57,9 +74,45 @@ interface AtividadeComMeta extends Atividade {
   meta_coordenador?: string;
 }
 
+const normalizeEixo = (eixo: string) => eixo.replace(/^\d+\.\s*/, '');
+
+const generateAtividadeId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `atividade-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+};
+
+const getMetaSelectionLabel = (meta: Meta) => `${meta.eixo} • ${meta.artigo} • ${meta.requisito}`;
+
+const getMetaSelectionSearchValue = (meta: Meta) => [
+  meta.eixo,
+  meta.artigo,
+  meta.requisito,
+  meta.descricao,
+  meta.setor_executor,
+  meta.coordenador || '',
+].join(' ');
+
+const parseValidDate = (value?: string | null) => {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const parsedDate = parseISO(value);
+  return isValid(parsedDate) ? parsedDate : null;
+};
+
+const formatDateSafe = (value?: string | null, fallback = '-') => {
+  const parsedDate = parseValidDate(value);
+  return parsedDate ? format(parsedDate, 'dd/MM/yyyy', { locale: ptBR }) : fallback;
+};
+
 const GerenciamentoAtividadesPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [metas, setMetas] = useState<Meta[]>([]);
   const [atividades, setAtividades] = useState<AtividadeComMeta[]>([]);
   const [filteredAtividades, setFilteredAtividades] = useState<AtividadeComMeta[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<string>('todas');
@@ -91,6 +144,14 @@ const GerenciamentoAtividadesPage = () => {
   const [valorTempResponsavel, setValorTempResponsavel] = useState<string>('');
   const [valorTempPrazo, setValorTempPrazo] = useState<string>('');
   const [valorTempStatus, setValorTempStatus] = useState<AtividadeStatus>('Não iniciada');
+  const [modalCriarAtividadeOpen, setModalCriarAtividadeOpen] = useState(false);
+  const [openNovoRequisito, setOpenNovoRequisito] = useState(false);
+  const [novaMetaId, setNovaMetaId] = useState<string>('');
+  const [novaAcao, setNovaAcao] = useState<string>('');
+  const [novoResponsavel, setNovoResponsavel] = useState<string>('');
+  const [novoPrazo, setNovoPrazo] = useState<string>('');
+  const [novoStatus, setNovoStatus] = useState<AtividadeStatus>('Não iniciada');
+  const [salvandoNovaAtividade, setSalvandoNovaAtividade] = useState(false);
 
   useEffect(() => {
     fetchAtividades();
@@ -104,6 +165,7 @@ const GerenciamentoAtividadesPage = () => {
     try {
       setLoading(true);
       const metas = await api.getMetas();
+      setMetas(metas);
       
       // Extrair todas as atividades de todas as metas
       const todasAtividades: AtividadeComMeta[] = [];
@@ -113,7 +175,7 @@ const GerenciamentoAtividadesPage = () => {
       const eixosUnicos = new Set<string>();
 
       metas.forEach((meta: Meta) => {
-        const eixoLimpo = meta.eixo.replace(/^\d+\.\s*/, '');
+        const eixoLimpo = normalizeEixo(meta.eixo);
         eixosUnicos.add(eixoLimpo);
         if (meta.atividades && meta.atividades.length > 0) {
           meta.atividades.forEach((atividade) => {
@@ -173,8 +235,8 @@ const GerenciamentoAtividadesPage = () => {
 
     // Filtro por eixo
     if (filtroEixo !== 'todos') {
-      resultado = resultado.filter(a => {
-        const eixoLimpo = a.meta_eixo.replace(/^\d+\.\s*/, '');
+        resultado = resultado.filter(a => {
+        const eixoLimpo = normalizeEixo(a.meta_eixo);
         return eixoLimpo === filtroEixo;
       });
     }
@@ -215,8 +277,9 @@ const GerenciamentoAtividadesPage = () => {
   };
 
   const isPrazoVencido = (prazo: string) => {
-    if (!prazo) return false;
-    return isPast(parseISO(prazo));
+    const parsedDate = parseValidDate(prazo);
+    if (!parsedDate) return false;
+    return isPast(parsedDate);
   };
 
   const contarPorStatus = () => {
@@ -369,10 +432,12 @@ const GerenciamentoAtividadesPage = () => {
       if (atividadeAtualizada) {
         const campoNome = campo === 'responsavel' ? 'responsável' :
                          campo === 'prazo' ? 'prazo' : 'status';
-        const valorAnteriorFormatado = campo === 'prazo' && valorAnterior ? 
-          format(parseISO(valorAnterior), 'dd/MM/yyyy', { locale: ptBR }) : valorAnterior;
-        const valorNovoFormatado = campo === 'prazo' && valorNovo ?
-          format(parseISO(valorNovo), 'dd/MM/yyyy', { locale: ptBR }) : valorNovo;
+        const valorAnteriorFormatado = campo === 'prazo'
+          ? formatDateSafe(valorAnterior, valorAnterior || '-')
+          : valorAnterior;
+        const valorNovoFormatado = campo === 'prazo'
+          ? formatDateSafe(valorNovo, valorNovo || '-')
+          : valorNovo;
 
         await supabase.from('historico_atividades').insert({
           meta_id: metaId,
@@ -399,6 +464,118 @@ const GerenciamentoAtividadesPage = () => {
       setSalvandoAndamento(false);
     }
   };
+
+  const resetNovaAtividadeForm = () => {
+    setNovaMetaId('');
+    setNovaAcao('');
+    setNovoResponsavel('');
+    setNovoPrazo('');
+    setNovoStatus('Não iniciada');
+    setOpenNovoRequisito(false);
+  };
+
+  const handleModalCriarAtividadeChange = (open: boolean) => {
+    setModalCriarAtividadeOpen(open);
+    if (!open && !salvandoNovaAtividade) {
+      resetNovaAtividadeForm();
+    }
+  };
+
+  const handleCriarAtividade = async () => {
+    if (!usuarioEdicao.trim()) {
+      toast.error('Por favor, informe seu nome antes de criar uma atividade');
+      return;
+    }
+
+    if (!novaMetaId || !novaAcao.trim() || !novoResponsavel.trim() || !novoPrazo || !novoStatus) {
+      toast.error('Preencha requisito, ação, responsável, prazo e status');
+      return;
+    }
+
+    const metaSelecionada = metas.find((meta) => meta.id === novaMetaId);
+
+    if (!metaSelecionada) {
+      toast.error('Requisito selecionado não foi encontrado');
+      return;
+    }
+
+    const novaAtividade: Atividade = {
+      id: generateAtividadeId(),
+      acao: novaAcao.trim(),
+      responsavel: novoResponsavel.trim(),
+      prazo: novoPrazo,
+      status: novoStatus,
+      andamento: '',
+    };
+
+    const atividadesAtualizadas = [...(metaSelecionada.atividades || []), novaAtividade];
+
+    try {
+      setSalvandoNovaAtividade(true);
+
+      await api.createUpdate({
+        meta_id: metaSelecionada.id,
+        setor_executor: metaSelecionada.setor_executor,
+        estimativa_cumprimento: metaSelecionada.estimativa_cumprimento,
+        pontos_estimados: metaSelecionada.pontos_estimados,
+        estimativa_maxima: metaSelecionada.estimativa_maxima,
+        percentual_cumprimento: metaSelecionada.percentual_cumprimento,
+        acoes_planejadas: metaSelecionada.acoes_planejadas,
+        justificativa_parcial: metaSelecionada.justificativa_parcial,
+        link_evidencia: metaSelecionada.link_evidencia,
+        observacoes: metaSelecionada.observacoes,
+        atividades: atividadesAtualizadas,
+        dificuldade: metaSelecionada.dificuldade,
+      });
+
+      const atividadeComMeta: AtividadeComMeta = {
+        ...novaAtividade,
+        meta_id: metaSelecionada.id,
+        meta_requisito: metaSelecionada.requisito,
+        meta_eixo: metaSelecionada.eixo,
+        meta_setor: metaSelecionada.setor_executor,
+        meta_coordenador: metaSelecionada.coordenador,
+      };
+
+      setAtividades((prevAtividades) => [atividadeComMeta, ...prevAtividades]);
+      setMetas((prevMetas) => prevMetas.map((meta) => (
+        meta.id === metaSelecionada.id
+          ? { ...meta, atividades: atividadesAtualizadas }
+          : meta
+      )));
+
+      if (novoResponsavel.trim()) {
+        setResponsaveis((prevResponsaveis) => {
+          const proximoValor = novoResponsavel.trim();
+          if (prevResponsaveis.includes(proximoValor)) {
+            return prevResponsaveis;
+          }
+
+          return [...prevResponsaveis, proximoValor].sort((a, b) => a.localeCompare(b));
+        });
+      }
+
+      toast.success('Atividade criada com sucesso!');
+      resetNovaAtividadeForm();
+      setModalCriarAtividadeOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar atividade:', error);
+      toast.error('Erro ao criar atividade');
+    } finally {
+      setSalvandoNovaAtividade(false);
+    }
+  };
+
+  const metaSelecionada = metas.find((meta) => meta.id === novaMetaId) || null;
+  const responsaveisSugeridos = responsaveis
+    .filter((responsavel) => {
+      if (!novoResponsavel.trim()) {
+        return true;
+      }
+
+      return responsavel.toLowerCase().includes(novoResponsavel.trim().toLowerCase());
+    })
+    .slice(0, 5);
 
   if (loading) {
     return (
@@ -736,6 +913,10 @@ const GerenciamentoAtividadesPage = () => {
             <h2 className="text-xl font-semibold text-gray-900">
               Atividades ({filteredAtividades.length})
             </h2>
+            <Button onClick={() => setModalCriarAtividadeOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nova atividade
+            </Button>
           </div>
 
           {filteredAtividades.length === 0 ? (
@@ -914,7 +1095,7 @@ const GerenciamentoAtividadesPage = () => {
                               ) : (
                                 <div className="flex items-center gap-2">
                                   <p className={`text-sm font-medium truncate ${prazoVencido && atividade.status !== 'Concluída' ? 'text-red-600' : 'text-gray-900'}`}>
-                                    {atividade.prazo ? format(parseISO(atividade.prazo), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                    {formatDateSafe(atividade.prazo)}
                                     {prazoVencido && atividade.status !== 'Concluída' && (
                                       <span className="ml-1 text-xs">(Vencido)</span>
                                     )}
@@ -1008,6 +1189,173 @@ const GerenciamentoAtividadesPage = () => {
             </div>
           )}
         </div>
+
+        <Dialog open={modalCriarAtividadeOpen} onOpenChange={handleModalCriarAtividadeChange}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Criar nova atividade</DialogTitle>
+              <DialogDescription>
+                Selecione o requisito e preencha os dados obrigatórios para cadastrar a atividade diretamente nesta aba.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-5 py-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-gray-700">Requisito</label>
+                <Popover open={openNovoRequisito} onOpenChange={setOpenNovoRequisito}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openNovoRequisito}
+                      className="w-full justify-between text-left h-auto min-h-10"
+                    >
+                      <span className="truncate">
+                        {metaSelecionada ? getMetaSelectionLabel(metaSelecionada) : 'Selecione um requisito'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar requisito, eixo, artigo, setor..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum requisito encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {metas.map((meta) => (
+                            <CommandItem
+                              key={meta.id}
+                              value={getMetaSelectionSearchValue(meta)}
+                              onSelect={() => {
+                                setNovaMetaId(meta.id);
+                                setOpenNovoRequisito(false);
+                              }}
+                              className="items-start gap-2 py-3"
+                            >
+                              <Check
+                                className={`mt-0.5 h-4 w-4 ${novaMetaId === meta.id ? 'opacity-100' : 'opacity-0'}`}
+                              />
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 truncate">{getMetaSelectionLabel(meta)}</p>
+                                <p className="text-xs text-gray-500 line-clamp-2">{meta.descricao}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {meta.setor_executor}
+                                  {meta.coordenador ? ` • ${meta.coordenador}` : ''}
+                                </p>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {metaSelecionada && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                    <p className="font-medium">{metaSelecionada.requisito}</p>
+                    <p className="text-xs mt-1 text-blue-800">
+                      {metaSelecionada.eixo} • {metaSelecionada.artigo} • {metaSelecionada.setor_executor}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-gray-700">Ação</label>
+                <Textarea
+                  value={novaAcao}
+                  onChange={(event) => setNovaAcao(event.target.value)}
+                  placeholder="Descreva a atividade que será executada"
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-gray-700">Responsável</label>
+                  <Input
+                    value={novoResponsavel}
+                    onChange={(event) => setNovoResponsavel(event.target.value)}
+                    placeholder="Nome do responsável"
+                  />
+                  {responsaveisSugeridos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {responsaveisSugeridos.map((responsavel) => (
+                        <Button
+                          key={responsavel}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNovoResponsavel(responsavel)}
+                          className="h-7"
+                        >
+                          {responsavel}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-gray-700">Prazo</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !novoPrazo && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {novoPrazo ? formatDateSafe(novoPrazo) : 'Selecione a data no formato dd/MM/yyyy'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={parseValidDate(novoPrazo) || undefined}
+                        onSelect={(date) => setNovoPrazo(date ? format(date, 'yyyy-MM-dd') : '')}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <Select value={novoStatus} onValueChange={(value: AtividadeStatus) => setNovoStatus(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Não iniciada">⏸️ Não iniciada</SelectItem>
+                    <SelectItem value="Em andamento">🔄 Em andamento</SelectItem>
+                    <SelectItem value="Concluída">✅ Concluída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleModalCriarAtividadeChange(false)}
+                disabled={salvandoNovaAtividade}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleCriarAtividade} disabled={salvandoNovaAtividade}>
+                {salvandoNovaAtividade ? 'Salvando...' : 'Criar atividade'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -1092,7 +1440,7 @@ const RequisitoAcordeao = ({ metaId }: { metaId: string }) => {
         <div>
           <p className="text-xs text-blue-700 font-medium">Deadline</p>
           <p className="text-gray-900">
-            {format(parseISO(meta.deadline), 'dd/MM/yyyy', { locale: ptBR })}
+            {formatDateSafe(meta.deadline, 'Sem deadline')}
           </p>
         </div>
       </div>
@@ -1119,7 +1467,7 @@ const RequisitoAcordeao = ({ metaId }: { metaId: string }) => {
                 <p className="font-medium text-gray-900 mb-1">{idx + 1}. {atv.acao}</p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                   <div>👤 {atv.responsavel}</div>
-                  <div>📅 {atv.prazo ? format(parseISO(atv.prazo), 'dd/MM/yyyy', { locale: ptBR }) : 'Sem prazo'}</div>
+                  <div>📅 {formatDateSafe(atv.prazo, 'Sem prazo')}</div>
                 </div>
                 <div className="mt-1">
                   <Badge variant="outline" className="text-xs">

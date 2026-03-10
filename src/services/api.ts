@@ -204,6 +204,7 @@ export const api = {
     setor_executor: string;
     estimativa_cumprimento?: string;
     pontos_estimados?: number;
+    estimativa_maxima?: number | null;
     percentual_cumprimento?: number;
     acoes_planejadas?: string;
     justificativa_parcial?: string;
