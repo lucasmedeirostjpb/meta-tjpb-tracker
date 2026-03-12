@@ -74,6 +74,8 @@ interface AtividadeComMeta extends Atividade {
   meta_coordenador?: string;
 }
 
+type CampoEditavelAtividade = 'acao' | 'responsavel' | 'prazo' | 'status';
+
 const normalizeEixo = (eixo: string) => eixo.replace(/^\d+\.\s*/, '');
 
 const generateAtividadeId = () => {
@@ -140,7 +142,8 @@ const GerenciamentoAtividadesPage = () => {
   const [atividadeExpandida, setAtividadeExpandida] = useState<string | null>(null);
   
   // NOVO: Estados para edição de campos
-  const [editandoCampo, setEditandoCampo] = useState<{ atividadeId: string; campo: 'responsavel' | 'prazo' | 'status' } | null>(null);
+  const [editandoCampo, setEditandoCampo] = useState<{ atividadeId: string; campo: CampoEditavelAtividade } | null>(null);
+  const [valorTempAcao, setValorTempAcao] = useState<string>('');
   const [valorTempResponsavel, setValorTempResponsavel] = useState<string>('');
   const [valorTempPrazo, setValorTempPrazo] = useState<string>('');
   const [valorTempStatus, setValorTempStatus] = useState<AtividadeStatus>('Não iniciada');
@@ -293,6 +296,44 @@ const GerenciamentoAtividadesPage = () => {
 
   const stats = contarPorStatus();
 
+  const sincronizarAtividadesDaMeta = (metaId: string, atividadesAtualizadas: Atividade[]) => {
+    setMetas(prevMetas => prevMetas.map(meta => (
+      meta.id === metaId
+        ? { ...meta, atividades: atividadesAtualizadas }
+        : meta
+    )));
+  };
+
+  const sincronizarAtividadeLocal = <K extends keyof Atividade>(
+    atividadeId: string,
+    metaId: string,
+    campo: K,
+    valor: Atividade[K],
+  ) => {
+    setAtividades(prevAtividades =>
+      prevAtividades.map(atividade => (
+        atividade.id === atividadeId && atividade.meta_id === metaId
+          ? { ...atividade, [campo]: valor }
+          : atividade
+      ))
+    );
+  };
+
+  const getCampoLabel = (campo: CampoEditavelAtividade) => {
+    switch (campo) {
+      case 'acao':
+        return 'título da atividade';
+      case 'responsavel':
+        return 'responsável';
+      case 'prazo':
+        return 'prazo';
+      case 'status':
+        return 'status';
+      default:
+        return 'campo';
+    }
+  };
+
   const iniciarEdicaoAndamento = (atividadeId: string, andamentoAtual: string) => {
     if (!usuarioEdicao.trim()) {
       toast.error('Por favor, informe seu nome antes de editar');
@@ -349,11 +390,8 @@ const GerenciamentoAtividadesPage = () => {
       }
 
       // Atualizar estado local
-      setAtividades(prevAtividades =>
-        prevAtividades.map(a =>
-          a.id === atividadeId ? { ...a, andamento: andamentoTemp } : a
-        )
-      );
+      sincronizarAtividadesDaMeta(metaId, atividadesAtualizadas);
+      sincronizarAtividadeLocal(atividadeId, metaId, 'andamento', andamentoTemp);
 
       toast.success('Andamento atualizado com sucesso!');
       setEditandoAndamento(null);
@@ -367,12 +405,13 @@ const GerenciamentoAtividadesPage = () => {
   };
 
   // NOVO: Funções para edição de campos
-  const iniciarEdicaoCampo = (atividadeId: string, campo: 'responsavel' | 'prazo' | 'status', valorAtual: string | AtividadeStatus) => {
+  const iniciarEdicaoCampo = (atividadeId: string, campo: CampoEditavelAtividade, valorAtual: string | AtividadeStatus) => {
     if (!usuarioEdicao.trim()) {
       toast.error('Por favor, informe seu nome antes de editar');
       return;
     }
     setEditandoCampo({ atividadeId, campo });
+    if (campo === 'acao') setValorTempAcao(valorAtual as string);
     if (campo === 'responsavel') setValorTempResponsavel(valorAtual as string);
     if (campo === 'prazo') setValorTempPrazo(valorAtual as string);
     if (campo === 'status') setValorTempStatus(valorAtual as AtividadeStatus);
@@ -380,12 +419,13 @@ const GerenciamentoAtividadesPage = () => {
 
   const cancelarEdicaoCampo = () => {
     setEditandoCampo(null);
+    setValorTempAcao('');
     setValorTempResponsavel('');
     setValorTempPrazo('');
     setValorTempStatus('Não iniciada');
   };
 
-  const salvarCampo = async (atividadeId: string, metaId: string, campo: 'responsavel' | 'prazo' | 'status') => {
+  const salvarCampo = async (atividadeId: string, metaId: string, campo: CampoEditavelAtividade) => {
     try {
       setSalvandoAndamento(true);
       
@@ -403,10 +443,18 @@ const GerenciamentoAtividadesPage = () => {
         return;
       }
 
-      const valorAnterior = campo === 'responsavel' ? atividade.responsavel : 
+      const valorAnterior = campo === 'acao' ? atividade.acao :
+                           campo === 'responsavel' ? atividade.responsavel : 
                            campo === 'prazo' ? atividade.prazo : 
                            atividade.status;
-      const valorNovo = campo === 'responsavel' ? valorTempResponsavel :
+
+      if (campo === 'acao' && !valorTempAcao.trim()) {
+        toast.error('Informe o título da atividade');
+        return;
+      }
+
+      const valorNovo = campo === 'acao' ? valorTempAcao.trim() :
+                       campo === 'responsavel' ? valorTempResponsavel :
                        campo === 'prazo' ? valorTempPrazo :
                        valorTempStatus;
 
@@ -430,8 +478,7 @@ const GerenciamentoAtividadesPage = () => {
       const atividadeAtualizada = atividadesAtualizadas.find(a => a.id === atividadeId);
       
       if (atividadeAtualizada) {
-        const campoNome = campo === 'responsavel' ? 'responsável' :
-                         campo === 'prazo' ? 'prazo' : 'status';
+        const campoNome = getCampoLabel(campo);
         const valorAnteriorFormatado = campo === 'prazo'
           ? formatDateSafe(valorAnterior, valorAnterior || '-')
           : valorAnterior;
@@ -442,20 +489,27 @@ const GerenciamentoAtividadesPage = () => {
         await supabase.from('historico_atividades').insert({
           meta_id: metaId,
           atividade_id: atividadeId,
-          acao_descricao: `Alteração de ${campoNome}: ${atividadeAtualizada.acao}`,
+          acao_descricao: campo === 'acao'
+            ? 'Alteração do título da atividade'
+            : `Alteração de ${campoNome}: ${atividadeAtualizada.acao}`,
           usuario_nome: usuarioEdicao,
           andamento_anterior: `${campoNome}: ${valorAnteriorFormatado}`,
           andamento_novo: `${campoNome}: ${valorNovoFormatado}`,
         });
       }
 
-      setAtividades(prevAtividades =>
-        prevAtividades.map(a =>
-          a.id === atividadeId ? { ...a, [campo]: valorNovo } : a
-        )
-      );
+      sincronizarAtividadesDaMeta(metaId, atividadesAtualizadas);
+      sincronizarAtividadeLocal(atividadeId, metaId, campo, valorNovo);
 
-      toast.success(`${campo === 'responsavel' ? 'Responsável' : campo === 'prazo' ? 'Prazo' : 'Status'} atualizado com sucesso!`);
+      if (campo === 'responsavel' && valorNovo.trim()) {
+        setResponsaveis(prevResponsaveis => (
+          prevResponsaveis.includes(valorNovo)
+            ? prevResponsaveis
+            : [...prevResponsaveis, valorNovo].sort((a, b) => a.localeCompare(b))
+        ));
+      }
+
+      toast.success(`${campo === 'acao' ? 'Título da atividade' : campo === 'responsavel' ? 'Responsável' : campo === 'prazo' ? 'Prazo' : 'Status'} atualizado com sucesso!`);
       cancelarEdicaoCampo();
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -933,9 +987,54 @@ const GerenciamentoAtividadesPage = () => {
                 return (
                   <Card key={`${atividade.meta_id}-${atividade.id}`} className="p-4 bg-white hover:shadow-md transition-shadow">
                     <div className="space-y-3">
-                      {/* Ação e Botão Ver Requisito */}
+                      {/* Título da atividade e botão do requisito */}
                       <div className="flex items-start justify-between gap-4">
-                        <h3 className="font-semibold text-gray-900 text-lg flex-1">{atividade.acao}</h3>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-500 mb-1">Título da atividade</p>
+                          {editandoCampo?.atividadeId === atividade.id && editandoCampo.campo === 'acao' ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={valorTempAcao}
+                                onChange={(e) => setValorTempAcao(e.target.value)}
+                                placeholder="Descreva o título da atividade"
+                                rows={3}
+                                className="bg-white resize-none"
+                              />
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => salvarCampo(atividade.id, atividade.meta_id, 'acao')}
+                                  disabled={salvandoAndamento}
+                                  className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Save className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={cancelarEdicaoCampo}
+                                  disabled={salvandoAndamento}
+                                  className="h-7 px-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-2">
+                              <h3 className="font-semibold text-gray-900 text-lg flex-1 whitespace-pre-wrap break-words">{atividade.acao}</h3>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => iniciarEdicaoCampo(atividade.id, 'acao', atividade.acao)}
+                                className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
