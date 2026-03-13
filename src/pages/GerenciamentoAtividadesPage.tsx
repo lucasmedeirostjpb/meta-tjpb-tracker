@@ -33,11 +33,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText, Plus } from 'lucide-react';
+import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText, Plus, Trash2 } from 'lucide-react';
 import { format, parseISO, isPast, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
@@ -155,6 +165,8 @@ const GerenciamentoAtividadesPage = () => {
   const [novoPrazo, setNovoPrazo] = useState<string>('');
   const [novoStatus, setNovoStatus] = useState<AtividadeStatus>('Não iniciada');
   const [salvandoNovaAtividade, setSalvandoNovaAtividade] = useState(false);
+  const [atividadeParaExcluir, setAtividadeParaExcluir] = useState<AtividadeComMeta | null>(null);
+  const [excluindoAtividade, setExcluindoAtividade] = useState(false);
 
   useEffect(() => {
     fetchAtividades();
@@ -620,6 +632,84 @@ const GerenciamentoAtividadesPage = () => {
     }
   };
 
+  const solicitarExclusaoAtividade = (atividade: AtividadeComMeta) => {
+    if (!usuarioEdicao.trim()) {
+      toast.error('Por favor, informe seu nome antes de excluir uma atividade');
+      return;
+    }
+
+    setAtividadeParaExcluir(atividade);
+  };
+
+  const confirmarExclusaoAtividade = async () => {
+    if (!atividadeParaExcluir) {
+      return;
+    }
+
+    try {
+      setExcluindoAtividade(true);
+
+      const metasAtualizadas = await api.getMetas();
+      const meta = metasAtualizadas.find((m) => m.id === atividadeParaExcluir.meta_id);
+
+      if (!meta) {
+        toast.error('Meta não encontrada');
+        return;
+      }
+
+      const atividadeExiste = (meta.atividades || []).some((a) => a.id === atividadeParaExcluir.id);
+
+      if (!atividadeExiste) {
+        toast.error('Atividade não encontrada');
+        return;
+      }
+
+      const atividadesAtualizadas = (meta.atividades || []).filter((a) => a.id !== atividadeParaExcluir.id);
+
+      await api.createUpdate({
+        meta_id: meta.id,
+        setor_executor: meta.setor_executor,
+        estimativa_cumprimento: meta.estimativa_cumprimento,
+        pontos_estimados: meta.pontos_estimados,
+        percentual_cumprimento: meta.percentual_cumprimento,
+        acoes_planejadas: meta.acoes_planejadas,
+        justificativa_parcial: meta.justificativa_parcial,
+        link_evidencia: meta.link_evidencia,
+        observacoes: meta.observacoes,
+        atividades: atividadesAtualizadas,
+        dificuldade: meta.dificuldade,
+      });
+
+      sincronizarAtividadesDaMeta(meta.id, atividadesAtualizadas);
+      setAtividades((prevAtividades) => (
+        prevAtividades.filter((atividade) => (
+          !(atividade.id === atividadeParaExcluir.id && atividade.meta_id === atividadeParaExcluir.meta_id)
+        ))
+      ));
+
+      if (atividadeExpandida === atividadeParaExcluir.id) {
+        setAtividadeExpandida(null);
+      }
+
+      if (editandoAndamento === atividadeParaExcluir.id) {
+        setEditandoAndamento(null);
+        setAndamentoTemp('');
+      }
+
+      if (editandoCampo?.atividadeId === atividadeParaExcluir.id) {
+        cancelarEdicaoCampo();
+      }
+
+      toast.success('Atividade excluída com sucesso!');
+      setAtividadeParaExcluir(null);
+    } catch (error) {
+      console.error('Erro ao excluir atividade:', error);
+      toast.error('Erro ao excluir atividade');
+    } finally {
+      setExcluindoAtividade(false);
+    }
+  };
+
   const metaSelecionada = metas.find((meta) => meta.id === novaMetaId) || null;
   const responsaveisSugeridos = responsaveis
     .filter((responsavel) => {
@@ -980,7 +1070,7 @@ const GerenciamentoAtividadesPage = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {filteredAtividades.map((atividade, index) => {
+              {filteredAtividades.map((atividade) => {
                 const prazoVencido = isPrazoVencido(atividade.prazo);
                 const isExpanded = atividadeExpandida === atividade.id;
                 
@@ -1035,15 +1125,26 @@ const GerenciamentoAtividadesPage = () => {
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setAtividadeExpandida(isExpanded ? null : atividade.id)}
-                          className="gap-2 flex-shrink-0"
-                        >
-                          {isExpanded ? 'Ocultar' : 'Ver'} Requisito
-                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAtividadeExpandida(isExpanded ? null : atividade.id)}
+                            className="gap-2"
+                          >
+                            {isExpanded ? 'Ocultar' : 'Ver'} Requisito
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => solicitarExclusaoAtividade(atividade)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            aria-label={`Excluir atividade ${atividade.acao}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Andamento da Atividade */}
@@ -1455,6 +1556,38 @@ const GerenciamentoAtividadesPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog
+          open={!!atividadeParaExcluir}
+          onOpenChange={(open) => {
+            if (!open && !excluindoAtividade) {
+              setAtividadeParaExcluir(null);
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir atividade</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação removerá permanentemente a atividade selecionada da aba de atividades.
+                {atividadeParaExcluir ? `\n\nAtividade: ${atividadeParaExcluir.acao}` : ''}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={excluindoAtividade}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  void confirmarExclusaoAtividade();
+                }}
+                disabled={excluindoAtividade}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {excluindoAtividade ? 'Excluindo...' : 'Excluir atividade'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
