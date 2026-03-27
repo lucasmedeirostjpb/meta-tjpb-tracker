@@ -540,7 +540,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://atos.cnj.jus.br/files/original18414620260108695ffa6a3bf9b.pdf', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/pesquisas-judiciarias/premio-cnj-de-qualidade/', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <FileText className="h-6 w-6" />
