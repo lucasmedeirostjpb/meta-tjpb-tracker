@@ -550,7 +550,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2026/02/glossario-ranking-transparencia-11-02-2026.pdf', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/transparencia-cnj/ranking-da-transparencia/ranking-da-transparencia-2026/', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50 hover:border-orange-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <BarChart3 className="h-6 w-6" />
@@ -571,7 +571,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://drive.google.com/file/d/1MHvVUgVKIVv6D_8x_hnfDpjfCMZjfQsr/view?usp=sharing', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/pesquisas-judiciarias/premio-cnj-de-qualidade/', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <FileText className="h-6 w-6" />
@@ -581,7 +581,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => window.open('https://www.cnj.jus.br/wp-content/uploads/2026/02/glossario-ranking-transparencia-11-02-2026.pdf', '_blank')}
+                  onClick={() => window.open('https://www.cnj.jus.br/transparencia-cnj/ranking-da-transparencia/ranking-da-transparencia-2026/', '_blank')}
                   className="gap-3 text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50 hover:border-orange-400 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <BarChart3 className="h-6 w-6" />
