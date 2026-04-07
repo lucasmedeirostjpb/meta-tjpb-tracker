@@ -84,13 +84,13 @@ export const api = {
 
     try {
       // Primeira query: buscar metas_base
-      let queryMetas = supabase
+      let queryMetas = (supabase
         .from('metas_base')
         .select('*')
         .order('linha_planilha', { ascending: true, nullsFirst: false })
         .order('eixo', { ascending: true })
         .order('artigo', { ascending: true })
-        .order('requisito', { ascending: true });
+        .order('requisito', { ascending: true })) as any;
 
       // Aplicar filtros
       if (filters?.setor) {
@@ -115,9 +115,9 @@ export const api = {
       }
 
       // Segunda query: buscar updates
-      const { data: updatesData, error: updatesError } = await supabase
+      const { data: updatesData, error: updatesError } = await (supabase
         .from('updates')
-        .select('*');
+        .select('*') as any);
 
       if (updatesError) {
         console.error('⚠️ [API] Erro ao buscar updates (continuando sem eles):', updatesError);
@@ -126,8 +126,8 @@ export const api = {
       console.log(`✅ [API] ${updatesData?.length || 0} updates encontrados`);
 
       // Mapear metas com seus updates
-      const metasComUpdates = metasData.map(meta => {
-        const update = updatesData?.find(u => u.meta_id === meta.id);
+      const metasComUpdates = (metasData as any[]).map((meta: any) => {
+        const update = (updatesData as any[])?.find((u: any) => u.meta_id === meta.id);
         
         if (update && update.atividades) {
           console.log(`📋 [API] Meta ${meta.requisito.substring(0, 30)}... tem ${update.atividades.length} atividades`);
@@ -169,9 +169,9 @@ export const api = {
     const metasBase = metas.map(({ pontos_recebidos, ...meta }) => meta);
     
     const { data: metasData, error } = await (supabase
-      .from('metas_base')
+      .from('metas_base') as any)
       .insert(metasBase)
-      .select() as any);
+      .select();
 
     if (error) {
       console.error('❌ [API] Erro ao criar metas:', error);
@@ -223,8 +223,8 @@ export const api = {
     });
 
     // Verificar se já existe um update para esta meta
-    const { data: existing } = await supabase
-      .from('updates')
+    const { data: existing } = await (supabase
+      .from('updates') as any)
       .select('id')
       .eq('meta_id', updateData.meta_id)
       .maybeSingle();
@@ -233,8 +233,8 @@ export const api = {
       console.log('📝 [API] Update existente encontrado, atualizando...');
       
       // Atualizar update existente
-      const { error } = await supabase
-        .from('updates')
+      const { error } = await (supabase
+        .from('updates') as any)
         .update({
           setor_executor: updateData.setor_executor,
           estimativa_cumprimento: updateData.estimativa_cumprimento,
@@ -261,7 +261,7 @@ export const api = {
       console.log('➕ [API] Criando novo update...');
       
       // Criar novo update
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('updates')
         .insert({
           meta_id: updateData.meta_id,
@@ -277,7 +277,7 @@ export const api = {
           atividades: updateData.atividades,
           dificuldade: updateData.dificuldade,
           data_prestacao: new Date().toISOString(),
-        });
+        } as any) as any);
 
       if (error) {
         console.error('❌ [API] Erro ao criar update:', error);
@@ -293,11 +293,11 @@ export const api = {
   async getSetores(): Promise<string[]> {
     console.log('📋 [API] Buscando lista de setores...');
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('metas_base')
       .select('setor_executor')
       .not('setor_executor', 'is', null)
-      .order('setor_executor');
+      .order('setor_executor') as any);
 
     if (error) {
       console.error('❌ [API] Erro ao buscar setores:', error);
@@ -305,7 +305,7 @@ export const api = {
     }
 
     // Retornar lista única de setores
-    const setores = [...new Set(data?.map(m => m.setor_executor).filter(Boolean) || [])];
+    const setores = [...new Set((data as any[])?.map((m: any) => m.setor_executor).filter(Boolean) || [])];
     console.log(`✅ [API] ${setores.length} setores encontrados:`, setores);
     return setores.sort();
   },
@@ -313,11 +313,11 @@ export const api = {
   async getCoordenadores(): Promise<string[]> {
     console.log('👥 [API] Buscando lista de coordenadores...');
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('metas_base')
       .select('coordenador')
       .not('coordenador', 'is', null)
-      .order('coordenador');
+      .order('coordenador') as any);
 
     if (error) {
       console.error('❌ [API] Erro ao buscar coordenadores:', error);
@@ -325,7 +325,7 @@ export const api = {
     }
 
     // Retornar lista única de coordenadores
-    const coordenadores = [...new Set(data?.map(m => m.coordenador).filter(Boolean) || [])];
+    const coordenadores = [...new Set((data as any[])?.map((m: any) => m.coordenador).filter(Boolean) || [])];
     console.log(`✅ [API] ${coordenadores.length} coordenadores encontrados:`, coordenadores);
     return coordenadores.sort();
   },
@@ -373,7 +373,7 @@ export const api = {
   async getHistoricoByMeta(metaId: string): Promise<HistoricoItem[]> {
     console.log(`📜 [API] Buscando histórico da meta: ${metaId}`);
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('historico_alteracoes')
       .select(`
         *,
@@ -386,7 +386,7 @@ export const api = {
         )
       `)
       .eq('meta_id', metaId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as any);
 
     if (error) {
       console.error('❌ [API] Erro ao buscar histórico da meta:', error);
@@ -395,7 +395,7 @@ export const api = {
 
     console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados para a meta`);
     
-    return (data || []).map(item => ({
+    return ((data || []) as any[]).map((item: any) => ({
       ...item,
       meta: item.metas_base ? {
         eixo: item.metas_base.eixo,
@@ -414,18 +414,18 @@ export const api = {
 
     try {
       // Buscar metas e updates separadamente (mesmo padrão de getMetas)
-      const { data: metasData, error: metasError } = await supabase
+      const { data: metasData, error: metasError } = await (supabase
         .from('metas_base')
-        .select('*');
+        .select('*') as any);
 
       if (metasError) {
         console.error('❌ [API] Erro ao buscar metas_base:', metasError);
         throw metasError;
       }
 
-      const { data: updatesData, error: updatesError } = await supabase
+      const { data: updatesData, error: updatesError } = await (supabase
         .from('updates')
-        .select('*');
+        .select('*') as any);
 
       if (updatesError) {
         console.error('⚠️ [API] Erro ao buscar updates (continuando sem eles):', updatesError);
@@ -458,12 +458,12 @@ export const api = {
       let totalPontosEstimados = 0;
       let totalPontosMaximos = 0;
 
-      (metasData || []).forEach(meta => {
+      ((metasData || []) as any[]).forEach((meta: any) => {
         totalRequisitos++;
         setoresSet.add(meta.setor_executor);
 
         // Buscar update correspondente
-        const update = updatesData?.find(u => u.meta_id === meta.id);
+        const update = (updatesData as any[])?.find((u: any) => u.meta_id === meta.id);
 
         // Agregar por eixo
         const eixoData = eixosMap.get(meta.eixo) || { 
@@ -548,7 +548,7 @@ export const api = {
         }))
         .sort((a, b) => a.ordem - b.ordem);
 
-      const totalPontosAplicaveis = metasData?.reduce((sum, m) => sum + (m.pontos_aplicaveis || 0), 0) || 0;
+      const totalPontosAplicaveis = (metasData as any[])?.reduce((sum: number, m: any) => sum + (m.pontos_aplicaveis || 0), 0) || 0;
       const percentualGeral = totalPontosAplicaveis > 0 ? (totalPontos / totalPontosAplicaveis) * 100 : 0;
       const percentualComEstimados = totalPontosAplicaveis > 0 ? ((totalPontos + totalPontosEstimados) / totalPontosAplicaveis) * 100 : 0;
       const percentualMaximo = totalPontosAplicaveis > 0 ? (totalPontosMaximos / totalPontosAplicaveis) * 100 : 0;
@@ -583,11 +583,11 @@ export const api = {
   async getCoordenadoresAutorizados(): Promise<Database['public']['Tables']['coordenadores_autorizados']['Row'][]> {
     console.log('👥 [API] Buscando coordenadores autorizados...');
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('coordenadores_autorizados')
       .select('*')
       .eq('ativo', true)
-      .order('nome');
+      .order('nome') as any);
 
     if (error) {
       console.error('❌ [API] Erro ao buscar coordenadores autorizados:', error);
@@ -638,7 +638,7 @@ export const api = {
       return null;
     }
 
-    console.log('✅ [API] Coordenador encontrado:', data.nome);
+    console.log('✅ [API] Coordenador encontrado:', (data as any).nome);
     return data;
   },
 
@@ -647,20 +647,20 @@ export const api = {
 
     try {
       // Usar UPSERT para inserir ou atualizar se email já existir
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('coordenadores_autorizados')
         .upsert(
           coordenadores.map(c => ({
             email: c.email.toLowerCase(), // Email é a chave única
             nome: c.nome,
             ativo: true,
-          })),
+          })) as any,
           { 
             onConflict: 'email', // Se email já existe, atualiza
             ignoreDuplicates: false // Atualiza os dados existentes
           }
         )
-        .select();
+        .select() as any);
 
       if (error) throw error;
 
@@ -694,8 +694,8 @@ export const api = {
     console.log('📝 [API] Atualizando meta:', metaId);
     
     try {
-      const { data: updatedMeta, error } = await supabase
-        .from('metas_base')
+      const { data: updatedMeta, error } = await (supabase
+        .from('metas_base') as any)
         .update(data)
         .eq('id', metaId)
         .select()
