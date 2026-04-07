@@ -357,40 +357,25 @@ const SetorSelectionPage = () => {
                   <CardTitle className="text-xl font-bold">Visão Consolidada</CardTitle>
                 </div>
                 <CardDescription className="text-base">
-                  Visualize todos os requisitos organizados em uma visão completa
+                  Visualize todos os requisitos organizados por coordenador, setor, eixo ou em lista plana
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-2">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
-                    <p className="text-sm text-purple-900 font-medium">Escolha o tipo de consolidação:</p>
+                    <p className="text-sm text-purple-900 font-medium">
+                      Agrupe por coordenador, setor ou eixo temático com filtros e ordenação avançados
+                    </p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <Button
-                      onClick={() => navigate('/consolidado?tipo=coordenador')}
-                      variant="outline"
-                      className="border-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400 h-auto py-5 flex-col gap-2 transition-all duration-300"
-                    >
-                      <Users className="h-7 w-7" />
-                      <div className="text-center">
-                        <div className="font-bold text-sm">Coordenador</div>
-                        <div className="text-xs text-muted-foreground">Eixos → Coords</div>
-                      </div>
-                    </Button>
-                    
-                    <Button
-                      onClick={() => navigate('/consolidado?tipo=setor')}
-                      variant="outline"
-                      className="border-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-400 h-auto py-5 flex-col gap-2 transition-all duration-300"
-                    >
-                      <Building2 className="h-7 w-7" />
-                      <div className="text-center">
-                        <div className="font-bold text-sm">Setor</div>
-                        <div className="text-xs text-muted-foreground">Eixos → Setores</div>
-                      </div>
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => navigate('/consolidado')}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 mt-4"
+                    size="lg"
+                  >
+                    <LayoutList className="mr-2 h-5 w-5" />
+                    Abrir Visão Consolidada
+                  </Button>
                 </div>
               </CardContent>
             </Card>
