@@ -710,4 +710,32 @@ export const api = {
       throw error;
     }
   },
+
+  async deleteMeta(metaId: string) {
+    console.log('🗑️ [API] Deletando meta:', metaId);
+    
+    try {
+      // Primeiro deletar updates associados
+      await (supabase.from('updates') as any)
+        .delete()
+        .eq('meta_id', metaId);
+
+      // Deletar histórico associado
+      await (supabase.from('historico_alteracoes') as any)
+        .delete()
+        .eq('meta_id', metaId);
+
+      // Deletar a meta em si
+      const { error } = await (supabase.from('metas_base') as any)
+        .delete()
+        .eq('id', metaId);
+
+      if (error) throw error;
+
+      console.log('✅ [API] Meta deletada com sucesso');
+    } catch (error) {
+      console.error('❌ [API] Erro ao deletar meta:', error);
+      throw error;
+    }
+  },
 };

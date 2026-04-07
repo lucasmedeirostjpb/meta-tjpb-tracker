@@ -20,6 +20,7 @@ interface Meta {
   status?: string;
   link_evidencia?: string;
   estimativa_cumprimento?: string;
+  pontos_estimados?: number;
 }
 
 interface MetaCardProps {
@@ -124,7 +125,22 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
             <Award className="h-4 w-4 text-primary" />
-            <span className="font-medium">{meta.pontos_aplicaveis} pontos</span>
+            <div className="flex flex-col">
+              <span className="font-medium leading-none">
+                {statusLabel === 'Em Andamento' || statusLabel === 'Parcialmente Cumprido' ? (
+                  <>
+                    <span className="text-blue-600">{meta.pontos_estimados || 0}</span>
+                    <span className="text-gray-400 mx-1">/</span>
+                    <span>{meta.pontos_aplicaveis} pontos</span>
+                  </>
+                ) : (
+                  <span>{meta.pontos_aplicaveis} pontos</span>
+                )}
+              </span>
+              {(statusLabel === 'Em Andamento' || statusLabel === 'Parcialmente Cumprido') && (
+                <span className="text-[10px] text-muted-foreground mt-1">Pontos estimados</span>
+              )}
+            </div>
           </div>
         </div>
         <div className={`flex items-center gap-2 text-sm ${isUrgent ? 'text-prazo-urgente font-medium' : 'text-muted-foreground'}`}>
