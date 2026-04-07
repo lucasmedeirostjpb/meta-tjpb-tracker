@@ -21,22 +21,24 @@ import {
 import { ArrowLeft, Search, Download, Filter, Scale, X, Copy, ChevronLeft, ChevronRight, LogOut, LogIn, Edit, History, FileText } from 'lucide-react';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateSafe, formatDateSafe } from '@/lib/date-utils';
 import { getMetasWithUpdates } from '@/lib/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Meta {
   id: string;
   eixo: string;
-  item: string;
   artigo: string;
   requisito: string;
-  descricao: string;
+  descricao?: string;
   pontos_aplicaveis: number;
   setor_executor: string;
   coordenador?: string;
-  deadline: string;
+  deadline?: string;
+  prazo?: string;
+  link_evidencia?: string;
   status?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
@@ -55,21 +57,6 @@ interface Meta {
   }>;
 }
 
-// Função helper para formatar datas de forma segura
-const formatDateSafe = (dateString: string | null | undefined, formatStr: string = 'dd/MM/yyyy'): string => {
-  if (!dateString || dateString.trim() === '') {
-    return '-';
-  }
-  try {
-    const parsed = parseISO(dateString);
-    if (isNaN(parsed.getTime())) {
-      return '-';
-    }
-    return format(parsed, formatStr, { locale: ptBR });
-  } catch {
-    return '-';
-  }
-};
 
 const TabelaCompletaPage = () => {
   const navigate = useNavigate();
@@ -161,7 +148,7 @@ const TabelaCompletaPage = () => {
         m.requisito.toLowerCase().includes(search) ||
         m.artigo.toLowerCase().includes(search) ||
         m.descricao?.toLowerCase().includes(search) ||
-        m.item?.toLowerCase().includes(search) ||
+        m.requisito?.toLowerCase().includes(search) ||
         m.eixo.toLowerCase().includes(search)
       );
     }
@@ -229,7 +216,7 @@ const TabelaCompletaPage = () => {
         meta.eixo,
         meta.coordenador || '',
         meta.setor_executor,
-        meta.item || '',
+        meta.requisito || '',
         meta.artigo,
         meta.requisito,
         meta.descricao || '',
@@ -776,7 +763,7 @@ const TabelaCompletaPage = () => {
                       </TableCell>
                       <TableCell>{meta.coordenador || '-'}</TableCell>
                       <TableCell>{meta.setor_executor}</TableCell>
-                      <TableCell>{meta.item || '-'}</TableCell>
+                      <TableCell>{meta.requisito || '-'}</TableCell>
                       <TableCell className="font-mono text-sm">{meta.artigo}</TableCell>
                       <TableCell className="font-medium">{meta.requisito}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">

@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database, Atividade, Dificuldade } from '@/integrations/supabase/types';
 
-type UpdateData = {
+export type UpdateData = {
   id: string;
   estimativa_cumprimento?: string | null;
   pontos_estimados?: number | null;
@@ -13,15 +13,17 @@ type UpdateData = {
   updated_at: string;
 };
 
-type Meta = Database['public']['Tables']['metas_base']['Row'] & {
+export type Meta = Database['public']['Tables']['metas_base']['Row'] & {
   // Mapeamentos para compatibilidade com componentes
   descricao?: string;
   deadline?: string;
+  prazo?: string;
   link_evidencia?: string;
   observacoes?: string;
   update_id?: string;
   estimativa_cumprimento?: string;
   pontos_estimados?: number;
+  estimativa_maxima?: number;
   percentual_cumprimento?: number;
   acoes_planejadas?: string;
   justificativa_parcial?: string;
@@ -135,7 +137,8 @@ export const api = {
           ...meta,
           // Mapeamentos de campos para compatibilidade com componentes
           descricao: meta.especificacao_requisito,
-          deadline: meta.prazo || '',
+          deadline: meta.deadline || meta.prazo || '',
+          prazo: meta.prazo || meta.deadline || '',
           link_evidencia: update?.link_evidencia || '',
           observacoes: update?.observacoes || '',
           update_id: update?.id,
@@ -165,10 +168,10 @@ export const api = {
     // Separar pontos_recebidos dos dados de metas_base
     const metasBase = metas.map(({ pontos_recebidos, ...meta }) => meta);
     
-    const { data: metasData, error } = await supabase
+    const { data: metasData, error } = await (supabase
       .from('metas_base')
       .insert(metasBase)
-      .select();
+      .select() as any);
 
     if (error) {
       console.error('❌ [API] Erro ao criar metas:', error);
@@ -333,7 +336,7 @@ export const api = {
   async getHistorico(limit = 100): Promise<HistoricoItem[]> {
     console.log(`📜 [API] Buscando histórico (limite: ${limit})`);
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('historico_alteracoes')
       .select(`
         *,
@@ -346,7 +349,7 @@ export const api = {
         )
       `)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(limit) as any);
 
     if (error) {
       console.error('❌ [API] Erro ao buscar histórico:', error);

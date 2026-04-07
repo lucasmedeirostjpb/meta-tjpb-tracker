@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -38,35 +38,14 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { api } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseDateSafe, formatDateSafe } from "@/lib/date-utils";
 import { Calendar, Target, User, Building2, AlertCircle, TrendingUp, Clock, Plus, Trash2, Check, ChevronsUpDown, Info } from "lucide-react";
 import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
 
-interface Meta {
-  id: string;
-  eixo: string;
-  item: string;
-  artigo: string;
-  requisito: string;
-  descricao: string;
-  pontos_aplicaveis: number;
-  setor_executor: string;
-  coordenador?: string;
-  deadline: string;
-  link_evidencia?: string;
-  observacoes?: string;
-  update_id?: string;
-  estimativa_cumprimento?: string;
-  pontos_estimados?: number;
-  percentual_cumprimento?: number;
-  acoes_planejadas?: string;
-  justificativa_parcial?: string;
-  atividades?: Atividade[];
-  dificuldade?: Dificuldade;
-  estimativa_maxima?: number;
-}
+import { Meta } from "@/services/api";
 
 interface MetaModalProps {
   meta: Meta | null;
@@ -390,9 +369,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
             <div>
               <p className="text-xs text-muted-foreground">Prazo</p>
               <p className="font-medium text-sm">
-                {meta.deadline 
-                  ? format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })
-                  : 'Sem prazo definido'}
+                {formatDateSafe(meta.prazo || meta.deadline, "dd/MM/yyyy", 'Sem prazo definido')}
               </p>
             </div>
             <div>
@@ -764,7 +741,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                                   >
                                     <Calendar className="mr-2 h-4 w-4" />
                                     {atividade.prazo ? (
-                                      format(parseISO(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
+                                      format(parseDateSafe(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
                                     ) : (
                                       <span>Selecione a data</span>
                                     )}
@@ -773,7 +750,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                                 <PopoverContent className="w-auto p-0" align="start">
                                   <CalendarComponent
                                     mode="single"
-                                    selected={atividade.prazo ? parseISO(atividade.prazo) : undefined}
+                                    selected={atividade.prazo ? parseDateSafe(atividade.prazo) : undefined}
                                     onSelect={(date) => {
                                       if (date) {
                                         handleUpdateAtividade(atividade.id, 'prazo', format(date, 'yyyy-MM-dd'));
@@ -994,7 +971,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Item</p>
-                        <p className="text-sm font-medium">{meta.item}</p>
+                        <p className="text-sm font-medium">{meta.requisito}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Artigo</p>
@@ -1014,7 +991,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                         <p className="text-xs text-muted-foreground">Prazo (Deadline)</p>
                         <p className="text-sm font-medium">
                           {meta.deadline 
-                            ? format(parseISO(meta.deadline), "dd/MM/yyyy", { locale: ptBR })
+                            ? format(parseDateSafe(meta.deadline), "dd/MM/yyyy", { locale: ptBR })
                             : 'Sem prazo definido'}
                         </p>
                       </div>
@@ -1062,7 +1039,7 @@ const MetaModal = ({ meta, open, onClose, onUpdate, isEditable = false }: MetaMo
                                 <div>
                                   <span className="font-medium">Prazo:</span> {
                                     atividade.prazo 
-                                      ? format(parseISO(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
+                                      ? format(parseDateSafe(atividade.prazo), "dd/MM/yyyy", { locale: ptBR })
                                       : '-'
                                   }
                                 </div>

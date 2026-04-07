@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Calendar, Award, Building2 } from "lucide-react";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseDateSafe, formatDateSafe } from "@/lib/date-utils";
 
 interface Meta {
   id: string;
@@ -15,7 +16,9 @@ interface Meta {
   setor_executor: string;
   coordenador?: string;
   deadline: string;
+  prazo?: string;
   status?: string;
+  link_evidencia?: string;
   estimativa_cumprimento?: string;
 }
 
@@ -93,8 +96,8 @@ const getStatusLabel = (meta: Meta) => {
 const MetaCard = ({ meta, onClick }: MetaCardProps) => {
   // Usar prazo do banco ou deadline, com fallback para data padrão
   const deadlineStr = meta.prazo || meta.deadline || '';
-  const deadline = deadlineStr ? parseISO(deadlineStr) : null;
-  const hasValidDeadline = deadline && !isNaN(deadline.getTime());
+  const deadline = parseDateSafe(deadlineStr);
+  const hasValidDeadline = !!deadline;
   const daysUntilDeadline = hasValidDeadline ? differenceInDays(deadline, new Date()) : 999;
   const isUrgent = hasValidDeadline && daysUntilDeadline <= 30 && daysUntilDeadline >= 0;
   const statusLabel = getStatusLabel(meta);
@@ -127,9 +130,7 @@ const MetaCard = ({ meta, onClick }: MetaCardProps) => {
         <div className={`flex items-center gap-2 text-sm ${isUrgent ? 'text-prazo-urgente font-medium' : 'text-muted-foreground'}`}>
           <Calendar className="h-4 w-4" />
           <span>
-            {hasValidDeadline 
-              ? format(deadline, "dd/MM/yyyy", { locale: ptBR })
-              : 'Sem prazo definido'}
+            {formatDateSafe(deadlineStr, "dd/MM/yyyy", 'Sem prazo definido')}
             {isUrgent && ` (${daysUntilDeadline} dias)`}
           </span>
         </div>

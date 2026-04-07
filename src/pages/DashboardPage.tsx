@@ -10,30 +10,8 @@ import MetaCard from "@/components/MetaCard";
 import MetaModal from "@/components/MetaModal";
 import { getMetasWithUpdates } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
+import { Meta } from "@/services/api";
 
-interface Meta {
-  id: string;
-  eixo: string;
-  item: string;
-  artigo: string;
-  requisito: string;
-  descricao: string;
-  pontos_aplicaveis: number;
-  setor_executor: string;
-  coordenador?: string;
-  deadline: string;
-  linha_planilha?: number;
-  status?: string;
-  link_evidencia?: string;
-  observacoes?: string;
-  update_id?: string;
-  estimativa_cumprimento?: string;
-  pontos_estimados?: number;
-  estimativa_maxima?: number;
-  percentual_cumprimento?: number;
-  acoes_planejadas?: string;
-  justificativa_parcial?: string;
-}
 
 const DashboardPage = () => {
   const [searchParams] = useSearchParams();
@@ -64,7 +42,7 @@ const DashboardPage = () => {
         // Usar dados mock
         const allMetas = getMetasWithUpdates();
         const coluna = tipo === 'coordenador' ? 'coordenador' : 'setor_executor';
-        const filteredMetas = allMetas.filter(meta => meta[coluna] === nome);
+        const filteredMetas = allMetas.filter(meta => meta[coluna] === nome) as unknown as Meta[];
         setMetas(filteredMetas);
       } else {
         // Usar API

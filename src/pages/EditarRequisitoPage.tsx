@@ -14,21 +14,16 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Lock, Search } from 'lucide-react';
 import { getMetasWithUpdates } from '@/lib/mockData';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { ArrowLeft, Save, Lock, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { formatDateSafe, parseDateSafe } from '@/lib/date-utils';
+import { Meta } from '@/services/api';
 
-interface Meta {
-  id: string;
-  eixo: string;
-  item: string;
-  artigo: string;
-  requisito: string;
-  descricao: string;
-  pontos_aplicaveis: number;
-  setor_executor: string;
-  coordenador?: string;
-  deadline: string;
-}
 
 const EditarRequisitoPage = () => {
   const navigate = useNavigate();
@@ -330,12 +325,29 @@ const EditarRequisitoPage = () => {
                   {/* Deadline */}
                   <div className="space-y-2">
                     <Label htmlFor="deadline">Deadline</Label>
-                    <Input
-                      id="deadline"
-                      type="date"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !deadline && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {deadline ? formatDateSafe(deadline) : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={deadline ? parseDateSafe(deadline) : undefined}
+                          onSelect={(date) => setDeadline(date ? format(date, 'yyyy-MM-dd') : '')}
+                          locale={ptBR}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 

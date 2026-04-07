@@ -48,21 +48,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Filter, CheckCircle2, Clock, AlertCircle, Calendar, User as UserIcon, ChevronsUpDown, Check, Edit2, Save, X, ChevronDown, ChevronUp, FileText, Plus, Trash2 } from 'lucide-react';
-import { format, parseISO, isPast, isValid } from 'date-fns';
+import { format, parseISO, isPast, isValid, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseDateSafe, formatDateSafe } from '@/lib/date-utils';
 import type { Atividade, AtividadeStatus, Dificuldade } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 interface Meta {
   id: string;
   eixo: string;
-  item: string;
   artigo: string;
   requisito: string;
-  descricao: string;
+  descricao?: string;
   setor_executor: string;
   coordenador?: string;
-  deadline: string;
+  deadline?: string;
   pontos_aplicaveis: number;
   link_evidencia?: string;
   estimativa_cumprimento?: string;
@@ -106,20 +106,6 @@ const getMetaSelectionSearchValue = (meta: Meta) => [
   meta.setor_executor,
   meta.coordenador || '',
 ].join(' ');
-
-const parseValidDate = (value?: string | null) => {
-  if (!value?.trim()) {
-    return null;
-  }
-
-  const parsedDate = parseISO(value);
-  return isValid(parsedDate) ? parsedDate : null;
-};
-
-const formatDateSafe = (value?: string | null, fallback = '-') => {
-  const parsedDate = parseValidDate(value);
-  return parsedDate ? format(parsedDate, 'dd/MM/yyyy', { locale: ptBR }) : fallback;
-};
 
 const GerenciamentoAtividadesPage = () => {
   const navigate = useNavigate();
@@ -292,7 +278,7 @@ const GerenciamentoAtividadesPage = () => {
   };
 
   const isPrazoVencido = (prazo: string) => {
-    const parsedDate = parseValidDate(prazo);
+    const parsedDate = parseDateSafe(prazo);
     if (!parsedDate) return false;
     return isPast(parsedDate);
   };
@@ -1512,7 +1498,7 @@ const GerenciamentoAtividadesPage = () => {
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarComponent
                         mode="single"
-                        selected={parseValidDate(novoPrazo) || undefined}
+                        selected={parseDateSafe(novoPrazo) || undefined}
                         onSelect={(date) => setNovoPrazo(date ? format(date, 'yyyy-MM-dd') : '')}
                         initialFocus
                         locale={ptBR}
@@ -1636,10 +1622,6 @@ const RequisitoAcordeao = ({ metaId }: { metaId: string }) => {
         <div>
           <p className="text-xs text-blue-700 font-medium">Eixo</p>
           <p className="text-gray-900">{meta.eixo}</p>
-        </div>
-        <div>
-          <p className="text-xs text-blue-700 font-medium">Item</p>
-          <p className="text-gray-900">{meta.item}</p>
         </div>
         <div>
           <p className="text-xs text-blue-700 font-medium">Artigo</p>
