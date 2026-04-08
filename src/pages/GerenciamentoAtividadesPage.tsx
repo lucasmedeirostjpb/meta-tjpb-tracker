@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/services/api';
+import { api, type HistoricoAtividadeItem } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -153,6 +153,10 @@ const GerenciamentoAtividadesPage = () => {
   const [salvandoNovaAtividade, setSalvandoNovaAtividade] = useState(false);
   const [atividadeParaExcluir, setAtividadeParaExcluir] = useState<AtividadeComMeta | null>(null);
   const [excluindoAtividade, setExcluindoAtividade] = useState(false);
+  const [historicoAtividadeId, setHistoricoAtividadeId] = useState<string | null>(null);
+  const [historicoData, setHistoricoData] = useState<HistoricoAtividadeItem[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [modalHistoricoOpen, setModalHistoricoOpen] = useState(false);
 
   useEffect(() => {
     fetchAtividades();
@@ -522,6 +526,22 @@ const GerenciamentoAtividadesPage = () => {
       toast.error('Erro ao salvar alteração');
     } finally {
       setSalvandoAndamento(false);
+    }
+  };
+
+  const abrirHistoricoAtividade = async (atividadeId: string) => {
+    try {
+      setHistoricoAtividadeId(atividadeId);
+      setLoadingHistorico(true);
+      setModalHistoricoOpen(true);
+      
+      const data = await api.getHistoricoByAtividade(atividadeId);
+      setHistoricoData(data);
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+      toast.error('Erro ao carregar histórico da atividade');
+    } finally {
+      setLoadingHistorico(false);
     }
   };
 
@@ -1111,6 +1131,15 @@ const GerenciamentoAtividadesPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => abrirHistoricoAtividade(atividade.id)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            title="Ver histórico de edições"
+                          >
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setAtividadeExpandida(isExpanded ? null : atividade.id)}
                             className="gap-2"
                           >
@@ -1570,6 +1599,90 @@ const GerenciamentoAtividadesPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Modal de Histórico */}
+        <Dialog open={modalHistoricoOpen} onOpenChange={setModalHistoricoOpen}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                Histórico de Edições
+              </DialogTitle>
+              <DialogDescription>
+                Rastreamento de todas as alterações feitas nesta atividade.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto pr-2 py-4">
+              {loadingHistorico ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                  <p className="text-sm text-muted-foreground">Carregando histórico...</p>
+                </div>
+              ) : historicoData.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                  <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Nenhuma alteração registrada para esta atividade.</p>
+                </div>
+              ) : (
+                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+                  {historicoData.map((item, index) => (
+                    <div key={item.id} className="relative pl-12">
+                      {/* Timeline Dot */}
+                      <div className="absolute left-0 mt-1.5 w-10 h-10 flex items-center justify-center rounded-full bg-white border-2 border-blue-100 shadow-sm z-10">
+                        <UserIcon className="h-4 w-4 text-blue-600" />
+                      </div>
+                      
+                      <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4 hover:border-blue-100 transition-colors">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                          <span className="font-semibold text-gray-900">{item.usuario_nome}</span>
+                          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(parseISO(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {/* Ação Descrição */}
+                          <div className="text-sm font-medium text-blue-800 bg-blue-50 px-3 py-2 rounded-md border border-blue-100">
+                            {item.acao_descricao}
+                          </div>
+
+                          {/* Comparativo de valores */}
+                          {(item.andamento_anterior || item.andamento_novo) && (
+                            <div className="grid grid-cols-1 gap-2">
+                              {item.andamento_anterior && (
+                                <div className="p-2 pt-1 border-l-2 border-red-200 bg-red-50/30 rounded-r">
+                                  <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider">Anterior</span>
+                                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{item.andamento_anterior}</p>
+                                </div>
+                              )}
+                              <div className="flex justify-center -my-1">
+                                <ChevronDown className="h-4 w-4 text-gray-300" />
+                              </div>
+                              {item.andamento_novo && (
+                                <div className="p-2 pt-1 border-l-2 border-green-200 bg-green-50/30 rounded-r">
+                                  <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Novo</span>
+                                  <p className="text-sm text-gray-900 font-medium whitespace-pre-wrap">{item.andamento_novo}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => setModalHistoricoOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

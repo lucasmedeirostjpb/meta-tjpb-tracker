@@ -43,6 +43,18 @@ type HistoricoItem = Database['public']['Tables']['historico_alteracoes']['Row']
   metas_base?: MetaBase | MetaBase[] | null;
 };
 
+export type HistoricoAtividadeItem = {
+  id: string;
+  meta_id: string;
+  atividade_id: string;
+  acao_descricao: string;
+  usuario_nome: string;
+  andamento_anterior: string | null;
+  andamento_novo: string | null;
+  created_at: string;
+  meta?: MetaBase;
+};
+
 export const api = {
   // ==================== AUTENTICAÇÃO ====================
   
@@ -394,6 +406,43 @@ export const api = {
     }
 
     console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados para a meta`);
+    
+    return ((data || []) as any[]).map((item: any) => ({
+      ...item,
+      meta: item.metas_base ? {
+        eixo: item.metas_base.eixo,
+        artigo: item.metas_base.artigo,
+        requisito: item.metas_base.requisito,
+        setor_executor: item.metas_base.setor_executor,
+        coordenador: item.metas_base.coordenador,
+      } : undefined,
+    }));
+  },
+
+  async getHistoricoByAtividade(atividadeId: string): Promise<HistoricoAtividadeItem[]> {
+    console.log(`📜 [API] Buscando histórico da atividade: ${atividadeId}`);
+    
+    const { data, error } = await (supabase
+      .from('historico_atividades')
+      .select(`
+        *,
+        metas_base (
+          eixo,
+          artigo,
+          requisito,
+          setor_executor,
+          coordenador
+        )
+      `)
+      .eq('atividade_id', atividadeId)
+      .order('created_at', { ascending: false }) as any);
+
+    if (error) {
+      console.error('❌ [API] Erro ao buscar histórico da atividade:', error);
+      throw error;
+    }
+
+    console.log(`✅ [API] ${data?.length || 0} registros de histórico encontrados para a atividade`);
     
     return ((data || []) as any[]).map((item: any) => ({
       ...item,
